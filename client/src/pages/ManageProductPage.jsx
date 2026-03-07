@@ -89,42 +89,86 @@ function ManageProductPage() {
   );
 }
 
+/**
+ * Hue assigned to each category name.
+ * All badges share the same saturation (65%) and lightness (95% bg / 35% text),
+ * only the hue changes
+ */
+const CATEGORY_HUES = {
+  // Food groups
+  "Meat":             0,
+  "Poultry":          30,
+  "Seafood":          200,
+  "Dairy":            50,
+  "Dry Goods":        160,
+  "Frozen Goods":     210,
+  "Fresh Produce":    120,
+  "Pastry & Bakery":  35,
+  "Alcohol":          270,
+  "Cold Drinks":      195,
+  "Hot Drinks":       15,
+  "Confectionery":    320,
+  // Packaging types
+  "Serviettes":              60,
+  "Cups/Lids/Holders":       230,
+  "Container/Noodle Boxes":  140,
+  "Bags":                    280,
+  "Cleaning":                170,
+  "Cutlery":                 220,
+  "Gloves":                  350,
+  "Consumable & Papers":     90,
+  "Drop-off & Pizza Boxes":  25,
+};
+
+/** Returns inline styles for a category badge, varying only the hue. */
+function categoryStyle(name) {
+  const hue = CATEGORY_HUES[name] ?? 240;
+  return {
+    backgroundColor: `hsl(${hue}, 65%, 94%)`,
+    color:           `hsl(${hue}, 55%, 35%)`,
+    borderColor:     `hsl(${hue}, 55%, 80%)`,
+  };
+}
+
 function ProductRow({ product }) {
   const category = product.is_packaging ? product.packaging_type : product.food_group;
 
   return (
-    <div className="flex items-center bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm gap-4">
-      {/* Product name + inline edit icon */}
-      <div className="flex items-center gap-2 w-64 flex-shrink-0">
+    <div className="flex items-center bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm">
+      {/* Col 1: Product name */}
+      <div className="w-56 flex-shrink-0">
         <span className="text-sm font-medium text-gray-800">{product.name}</span>
-        <button
-          className="text-gray-400 hover:text-brand-600 transition-colors flex-shrink-0"
-          aria-label={`Edit ${product.name}`}
-        >
-          <PencilIcon />
-        </button>
       </div>
 
-      {/* Meta: supplier · product code · price */}
-      <div className="flex-1 flex items-center gap-4 text-sm text-gray-500 min-w-0">
-        {product.supplier && (
-          <span className="truncate">{product.supplier}</span>
-        )}
-        {product.product_code && (
-          <span className="text-gray-400 font-mono text-xs flex-shrink-0">{product.product_code}</span>
-        )}
-        {product.price != null && (
-          <span className="flex-shrink-0">${Number(product.price).toFixed(2)}</span>
-        )}
+      {/* Col 2: Supplier */}
+      <div className="w-40 flex-shrink-0 text-sm text-gray-500">
+        {product.supplier ?? "—"}
       </div>
 
-      {/* Category & UOM badges */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      {/* Col 3: Product code */}
+      <div className="w-28 flex-shrink-0">
+        <span className="text-xs font-mono text-gray-400">{product.product_code ?? ""}</span>
+      </div>
+
+      {/* Col 4: Price */}
+      <div className="flex-1 text-sm text-gray-700">
+        {product.price != null ? `$${Number(product.price).toFixed(2)}` : ""}
+      </div>
+
+      {/* Col 5: Category badge — fixed width so badges always align */}
+      <div className="w-44 flex-shrink-0 flex justify-start">
         {category && (
-          <span className="px-2.5 py-1 text-xs font-medium bg-brand-50 text-brand-700 rounded-full border border-brand-200">
+          <span
+            className="px-2.5 py-1 text-xs font-medium rounded-full border"
+            style={categoryStyle(category)}
+          >
             {category}
           </span>
         )}
+      </div>
+
+      {/* Col 6: UOM badge — fixed width so buttons always align */}
+      <div className="w-14 flex-shrink-0 flex justify-start">
         {product.uom && (
           <span className="px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full border border-gray-200">
             {product.uom}
@@ -142,18 +186,6 @@ function ProductRow({ product }) {
         </button>
       </div>
     </div>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"
-      />
-    </svg>
   );
 }
 
