@@ -6,14 +6,18 @@ import { useState } from "react";
  */
 const NAV_ITEMS = [
   { key: "inventory", label: "Manage Inventory" },
+  { key: "products", label: "Manage Product" },
   { key: "branches", label: "Manage Branch" },
   { key: "categories", label: "Manage Category" },
 ];
 
-/** Collapsible sidebar navigation with brand purple colour scheme. */
-function Sidebar() {
+/**
+ * Collapsible sidebar navigation with brand purple colour scheme.
+ * @param {string}   activePage  - The currently active page key (controlled from App)
+ * @param {Function} onNavigate  - Callback invoked with the nav item key on click
+ */
+function Sidebar({ activePage, onNavigate }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [active, setActive] = useState("inventory");
 
   return (
     <aside
@@ -41,9 +45,9 @@ function Sidebar() {
           {NAV_ITEMS.map((item) => (
             <li key={item.key}>
               <button
-                onClick={() => setActive(item.key)}
+                onClick={() => onNavigate(item.key)}
                 className={`flex items-center w-full rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  active === item.key
+                  activePage === item.key
                     ? "bg-brand-500 text-white"
                     : "text-brand-100 hover:bg-brand-600"
                 }`}
@@ -64,6 +68,14 @@ function NavIcon({ itemKey }) {
   const cls = "w-5 h-5 flex-shrink-0";
 
   switch (itemKey) {
+    case "products":
+    case "categories":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
+        </svg>
+      );
     case "inventory":
       return (
         <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -74,13 +86,6 @@ function NavIcon({ itemKey }) {
       return (
         <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.016A3.001 3.001 0 0 0 20.25 9.35m-16.5 0a3.004 3.004 0 0 1-.621-1.101L2.083 5.85A2.25 2.25 0 0 1 4.217 3h15.566a2.25 2.25 0 0 1 2.134 2.85l-1.046 2.399a3.004 3.004 0 0 1-.621 1.1" />
-        </svg>
-      );
-    case "categories":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
         </svg>
       );
     default:
