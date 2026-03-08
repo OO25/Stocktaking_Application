@@ -1,87 +1,233 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { fetchProducts } from "../api/products.js";
+
+/** Debounce a value by `delay` ms. */
+function useDebounce(value, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
 
 function ManageProductPage() {
   const [products, setProducts] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // null = no error; string = error message
+  const [error, setError] = useState(null);
 
+  const debouncedSearch = useDebounce(search, 300);
+
+  // Reset to page 1 when search term changes
+  const prevSearch = useRef(debouncedSearch);
   useEffect(() => {
-    fetchProducts()
-      .then(setProducts)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+    if (prevSearch.current !== debouncedSearch) {
+      prevSearch.current = debouncedSearch;
+      setPage(1);
+    }
+  }, [debouncedSearch]);
 
-  const filtered = products.filter((p) => {
-    const term = search.toLowerCase();
-    const category = p.is_packaging ? p.packaging_type : p.food_group;
-    return (
-      p.name.toLowerCase().includes(term) ||
-      (category ?? "").toLowerCase().includes(term) ||
-      (p.supplier ?? "").toLowerCase().includes(term) ||
-      (p.product_code ?? "").toLowerCase().includes(term)
-    );
-  });
+  // Fetch products whenever page, limit, or debounced search changes
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetchProducts({ page, limit, search: debouncedSearch })
+      .then((data) => {
+        if (!cancelled) {
+          setProducts(data.rows);
+          setTotalCount(data.totalCount);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [page, limit, debouncedSearch]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
-      {/* Page header */}
-      <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-gray-200">
-        <h1 className="text-xl font-semibold text-gray-800">Manage Product</h1>
-
-        <div className="flex items-center gap-3">
-          {/* Search bar */}
-          <div className="relative">
-            <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0Z" />
-              </svg>
-            </span>
-            <input
-              type="text"
-              placeholder="Search products…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 w-52"
-            />
+      <div className="px-8 pt-6 pb-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <nav className="text-sm text-gray-500 mb-2">Home &gt; Products</nav>
+            <h1 className="text-3xl font-extrabold text-gray-900">Products</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Quick access to essential metrics and management tools.
+            </p>
           </div>
 
-          {/* Add Product button */}
-          <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Product
-          </button>
+          <div className="mt-1">
+            <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+              Create
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 px-8 py-6">
+      <div className="flex-1 px-8 pb-8">
         {loading && (
-          <p className="text-sm text-gray-400 text-center py-12">Loading products…</p>
+          <p className="text-sm text-gray-400 text-center py-12">
+            Loading products…
+          </p>
         )}
 
         {error !== null && (
           <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            <svg
+              className="w-4 h-4 flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+              />
             </svg>
             {error}
           </div>
         )}
 
         {!loading && error === null && (
-          <div className="space-y-3">
-            {filtered.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-12">
-                {search ? "No products match your search." : "No products found."}
-              </p>
-            )}
-            {filtered.map((product) => (
-              <ProductRow key={product.id} product={product} />
-            ))}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            {/* Card header: search + category filter */}
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 w-full">
+                <div className="relative flex-1">
+                  <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="m21 21-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0Z"
+                      />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search by name or barcode..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 w-full max-w-xl"
+                  />
+                </div>
+                <div className="ml-auto">
+                  <div className="relative inline-block">
+                    <button className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm text-gray-700 shadow-sm">
+                      All Categories
+                      <svg
+                        className="w-4 h-4 inline-block ml-2"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Table headings */}
+            <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-gray-500 border-b border-gray-100 items-center">
+              <div className="col-span-2">Category</div>
+              <div className="col-span-3">Name</div>
+              <div className="col-span-1 text-right">Price</div>
+              <div className="col-span-2">Supplier</div>
+              <div className="col-span-1 text-center">Pkg</div>
+              <div className="col-span-1 text-center">UOM</div>
+              <div className="col-span-2 text-right">Actions</div>
+            </div>
+
+            {/* Rows */}
+            <div className="space-y-2 px-5 py-4">
+              {products.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  {search
+                    ? "No products match your search."
+                    : "No products found."}
+                </p>
+              )}
+              {products.map((product) => (
+                <ProductRow key={product.id} product={product} />
+              ))}
+            </div>
+
+            {/* Footer / pagination */}
+            <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center gap-3">
+                <span>Rows per page</span>
+                <select
+                  className="border border-gray-200 rounded px-2 py-1 bg-white text-sm"
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className="text-sm text-gray-400">
+                  Page {page} of {totalPages}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  ‹ Prev
+                </button>
+                <button
+                  className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next ›
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -96,28 +242,28 @@ function ManageProductPage() {
  */
 const CATEGORY_HUES = {
   // Food groups
-  "Meat":             0,
-  "Poultry":          30,
-  "Seafood":          200,
-  "Dairy":            50,
-  "Dry Goods":        160,
-  "Frozen Goods":     210,
-  "Fresh Produce":    120,
-  "Pastry & Bakery":  35,
-  "Alcohol":          270,
-  "Cold Drinks":      195,
-  "Hot Drinks":       15,
-  "Confectionery":    320,
+  Meat: 0,
+  Poultry: 30,
+  Seafood: 200,
+  Dairy: 50,
+  "Dry Goods": 160,
+  "Frozen Goods": 210,
+  "Fresh Produce": 120,
+  "Pastry & Bakery": 35,
+  Alcohol: 270,
+  "Cold Drinks": 195,
+  "Hot Drinks": 15,
+  Confectionery: 320,
   // Packaging types
-  "Serviettes":              60,
-  "Cups/Lids/Holders":       230,
-  "Container/Noodle Boxes":  140,
-  "Bags":                    280,
-  "Cleaning":                170,
-  "Cutlery":                 220,
-  "Gloves":                  350,
-  "Consumable & Papers":     90,
-  "Drop-off & Pizza Boxes":  25,
+  Serviettes: 60,
+  "Cups/Lids/Holders": 230,
+  "Container/Noodle Boxes": 140,
+  Bags: 280,
+  Cleaning: 170,
+  Cutlery: 220,
+  Gloves: 350,
+  "Consumable & Papers": 90,
+  "Drop-off & Pizza Boxes": 25,
 };
 
 /** Returns inline styles for a category badge, varying only the hue. */
@@ -125,41 +271,22 @@ function categoryStyle(name) {
   const hue = CATEGORY_HUES[name] ?? 240;
   return {
     backgroundColor: `hsl(${hue}, 65%, 94%)`,
-    color:           `hsl(${hue}, 55%, 35%)`,
-    borderColor:     `hsl(${hue}, 55%, 80%)`,
+    color: `hsl(${hue}, 55%, 35%)`,
+    borderColor: `hsl(${hue}, 55%, 80%)`,
   };
 }
 
 function ProductRow({ product }) {
-  const category = product.is_packaging ? product.packaging_type : product.food_group;
+  const category = product.is_packaging
+    ? product.packaging_type
+    : product.food_group;
 
   return (
-    <div className="flex items-center bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm">
-      {/* Col 1: Product name */}
-      <div className="w-56 flex-shrink-0">
-        <span className="text-sm font-medium text-gray-800">{product.name}</span>
-      </div>
-
-      {/* Col 2: Supplier */}
-      <div className="w-40 flex-shrink-0 text-sm text-gray-500">
-        {product.supplier ?? "—"}
-      </div>
-
-      {/* Col 3: Product code */}
-      <div className="w-28 flex-shrink-0">
-        <span className="text-xs font-mono text-gray-400">{product.product_code ?? ""}</span>
-      </div>
-
-      {/* Col 4: Price */}
-      <div className="flex-1 text-sm text-gray-700">
-        {product.price != null ? `$${Number(product.price).toFixed(2)}` : ""}
-      </div>
-
-      {/* Col 5: Category badge — fixed width so badges always align */}
-      <div className="w-44 flex-shrink-0 flex justify-start">
+    <div className="grid grid-cols-12 gap-4 items-center bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm">
+      <div className="col-span-2">
         {category && (
           <span
-            className="px-2.5 py-1 text-xs font-medium rounded-full border"
+            className="px-3 py-1 text-xs font-medium rounded-full border"
             style={categoryStyle(category)}
           >
             {category}
@@ -167,8 +294,27 @@ function ProductRow({ product }) {
         )}
       </div>
 
-      {/* Col 6: UOM badge — fixed width so buttons always align */}
-      <div className="w-14 flex-shrink-0 flex justify-start">
+      <div className="col-span-3">
+        <div className="text-sm font-semibold text-gray-800 truncate">
+          {product.name}
+        </div>
+      </div>
+
+      <div className="col-span-1 text-right text-sm text-gray-700">
+        {product.price != null ? `$${Number(product.price).toFixed(2)}` : "—"}
+      </div>
+
+      <div className="col-span-2">
+        <div className="inline-block px-2.5 py-1 text-sm bg-gray-100 text-gray-600 rounded-md border border-gray-200">
+          {product.supplier ?? "—"}
+        </div>
+      </div>
+
+      <div className="col-span-1 text-center text-sm text-gray-700">
+        {product.pack_size ?? 1}
+      </div>
+
+      <div className="col-span-1 text-center">
         {product.uom && (
           <span className="px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full border border-gray-200">
             {product.uom}
@@ -176,13 +322,24 @@ function ProductRow({ product }) {
         )}
       </div>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <button className="px-4 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors">
+      <div className="col-span-2 flex items-center justify-end gap-3">
+        <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
           Edit
         </button>
-        <button className="px-4 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
-          Delete
+        <button className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">
+          <svg
+            className="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
         </button>
       </div>
     </div>

@@ -20,6 +20,11 @@ function sanitizeConnectionString(url) {
 const pool = new Pool({
   connectionString: sanitizeConnectionString(process.env.DATABASE_URL),
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  min: 2,
+  idleTimeoutMillis: 30_000,
 });
+
+// Pre-warm one connection so the first request isn't slow
+pool.connect().then((c) => c.release()).catch(console.error);
 
 export default pool;

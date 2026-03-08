@@ -1,14 +1,15 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 /**
- * Fetches all products from the backend.
- * @returns {Promise<Array>} Array of product objects.
+ * Fetches a paginated list of products from the backend.
+ * @param {{ page?: number, limit?: number, search?: string }} params
+ * @returns {Promise<{ rows: Array, totalCount: number }>}
  */
-export async function fetchProducts() {
-  const res = await fetch(`${API_BASE}/products`);
+export async function fetchProducts({ page = 1, limit = 10, search = "" } = {}) {
+  const qs = new URLSearchParams({ page, limit, search });
+  const res = await fetch(`${API_BASE}/products?${qs}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    // Use || not ?? so that empty strings also fall back to the default message
     throw new Error(body.error || `Request failed (${res.status})`);
   }
   return res.json();
