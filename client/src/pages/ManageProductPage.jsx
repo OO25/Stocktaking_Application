@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { fetchProducts, fetchCategories } from "../api/products.js";
+import AddProductModal from "../components/AddProductModal.jsx";
 
 /** Debounce a value by `delay` ms. */
 function useDebounce(value, delay = 300) {
@@ -25,6 +26,7 @@ function ManageProductPage() {
   const [catOpen, setCatOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const catRef = useRef(null);
   const debouncedSearch = useDebounce(search, 300);
@@ -85,6 +87,11 @@ function ManageProductPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
+  /** Re-fetch current page after a new product is created. */
+  function handleProductCreated() {
+    setPage(1);
+  }
+
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
       <div className="px-8 pt-4 pb-2">
@@ -94,7 +101,10 @@ function ManageProductPage() {
           </div>
 
           <div className="mt-1">
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow"
+            >
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -108,7 +118,7 @@ function ManageProductPage() {
                   d="M12 4.5v15m7.5-7.5h-15"
                 />
               </svg>
-              Create
+              Add New Item
             </button>
           </div>
         </div>
@@ -232,7 +242,7 @@ function ManageProductPage() {
           </div>
 
           {/* Table headings */}
-          <div className="grid grid-cols-12 gap-4 px-5 py-3 text-sm font-semibold text-gray-800 border-b border-gray-100 items-center">
+          <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-gray-700 border-b border-gray-100 items-center">
             <div className="col-span-2">Category</div>
             <div className="col-span-3">Name</div>
             <div className="col-span-1 text-right">Price</div>
@@ -324,6 +334,12 @@ function ManageProductPage() {
           </div>
         </div>
       </div>
+      {/* Add product modal */}
+      <AddProductModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onCreated={handleProductCreated}
+      />
     </div>
   );
 }
