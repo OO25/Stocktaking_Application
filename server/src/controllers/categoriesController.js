@@ -2,7 +2,7 @@ import pool from "../config/db.js";
 
 /**
  * GET /api/categories
- * Returns all food groups and packaging types as a single list.
+ * Returns all food groups and packaging types as two separate arrays.
  */
 export async function getCategories(_req, res) {
   try {

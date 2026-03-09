@@ -111,193 +111,195 @@ function ManageProductPage() {
 
       <div className="flex-1 px-8 pb-8">
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            {/* Card header: search + category filter */}
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 w-full">
-                <div className="relative flex-1">
-                  <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.8}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="m21 21-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0Z"
-                      />
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Search by name or barcode..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 w-full max-w-xl"
-                  />
-                </div>
-                <div className="ml-auto" ref={catRef}>
-                  <div className="relative inline-block">
-                    <button
-                      className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
-                      onClick={() => setCatOpen((o) => !o)}
-                    >
-                      {category || "All Categories"}
-                      <svg
-                        className={`w-4 h-4 inline-block ml-2 transition-transform ${catOpen ? "rotate-180" : ""}`}
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-
-                    {catOpen && (
-                      <div className="absolute right-0 mt-1 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                        <button
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                            category === "" ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
-                          }`}
-                          onClick={() => { setCategory(""); setCatOpen(false); }}
-                        >
-                          All Categories
-                        </button>
-
-                        {categories.foodGroups.length > 0 && (
-                          <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-gray-100">
-                            Food Groups
-                          </div>
-                        )}
-                        {categories.foodGroups.map((fg) => (
-                          <button
-                            key={`fg-${fg.id}`}
-                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                              category === fg.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
-                            }`}
-                            onClick={() => { setCategory(fg.name); setCatOpen(false); }}
-                          >
-                            {fg.name}
-                          </button>
-                        ))}
-
-                        {categories.packagingTypes.length > 0 && (
-                          <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-gray-100">
-                            Packaging
-                          </div>
-                        )}
-                        {categories.packagingTypes.map((pt) => (
-                          <button
-                            key={`pt-${pt.id}`}
-                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                              category === pt.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
-                            }`}
-                            onClick={() => { setCategory(pt.name); setCatOpen(false); }}
-                          >
-                            {pt.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Table headings */}
-            <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-gray-500 border-b border-gray-100 items-center">
-              <div className="col-span-2">Category</div>
-              <div className="col-span-3">Name</div>
-              <div className="col-span-1 text-right">Price</div>
-              <div className="col-span-2">Supplier</div>
-              <div className="col-span-1 text-center">Pkg</div>
-              <div className="col-span-1 text-center">UOM</div>
-              <div className="col-span-2 text-right">Actions</div>
-            </div>
-
-            {/* Rows */}
-            <div className="space-y-2 px-5 py-4">
-              {loading && (
-                <p className="text-sm text-gray-400 text-center py-12">
-                  Loading products…
-                </p>
-              )}
-
-              {!loading && error !== null && (
-                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          {/* Card header: search + category filter */}
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 w-full">
+              <div className="relative flex-1">
+                <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
                   <svg
-                    className="w-4 h-4 flex-shrink-0"
+                    className="w-4 h-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                    strokeWidth={2}
+                    strokeWidth={1.8}
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                      d="m21 21-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0Z"
                     />
                   </svg>
-                  {error}
-                </div>
-              )}
-
-              {!loading && error === null && products.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  {search
-                    ? "No products match your search."
-                    : "No products found."}
-                </p>
-              )}
-
-              {!loading && error === null && products.map((product) => (
-                <ProductRow key={product.id} product={product} />
-              ))}
-            </div>
-
-            {/* Footer / pagination */}
-            <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-sm text-gray-600">
-              <div className="flex items-center gap-3">
-                <span>Rows per page</span>
-                <select
-                  className="border border-gray-200 rounded px-2 py-1 bg-white text-sm"
-                  value={limit}
-                  onChange={(e) => {
-                    setLimit(Number(e.target.value));
-                    setPage(1);
-                  }}
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
-                <span className="text-sm text-gray-400">
-                  Page {page} of {totalPages}
                 </span>
+                <input
+                  type="text"
+                  placeholder="Search by name or barcode..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 w-full max-w-xl"
+                />
               </div>
 
-              <div className="flex items-center gap-3">
-                <button
-                  className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  ‹ Prev
-                </button>
-                <button
-                  className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  Next ›
-                </button>
+              {/* Category dropdown */}
+              <div className="ml-auto" ref={catRef}>
+                <div className="relative inline-block">
+                  <button
+                    className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+                    onClick={() => setCatOpen((o) => !o)}
+                  >
+                    {category || "All Categories"}
+                    <svg
+                      className={`w-4 h-4 inline-block ml-2 transition-transform ${catOpen ? "rotate-180" : ""}`}
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+
+                  {catOpen && (
+                    <div className="absolute right-0 mt-1 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                      <button
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                          category === "" ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                        }`}
+                        onClick={() => { setCategory(""); setCatOpen(false); }}
+                      >
+                        All Categories
+                      </button>
+
+                      {categories.foodGroups.length > 0 && (
+                        <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-gray-100">
+                          Food Groups
+                        </div>
+                      )}
+                      {categories.foodGroups.map((fg) => (
+                        <button
+                          key={`fg-${fg.id}`}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                            category === fg.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                          }`}
+                          onClick={() => { setCategory(fg.name); setCatOpen(false); }}
+                        >
+                          {fg.name}
+                        </button>
+                      ))}
+
+                      {categories.packagingTypes.length > 0 && (
+                        <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-gray-100">
+                          Packaging
+                        </div>
+                      )}
+                      {categories.packagingTypes.map((pt) => (
+                        <button
+                          key={`pt-${pt.id}`}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                            category === pt.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                          }`}
+                          onClick={() => { setCategory(pt.name); setCatOpen(false); }}
+                        >
+                          {pt.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+          </div>
+
+          {/* Table headings */}
+          <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-gray-500 border-b border-gray-100 items-center">
+            <div className="col-span-2">Category</div>
+            <div className="col-span-3">Name</div>
+            <div className="col-span-1 text-right">Price</div>
+            <div className="col-span-2">Supplier</div>
+            <div className="col-span-1 text-center">Pkg</div>
+            <div className="col-span-1 text-center">UOM</div>
+            <div className="col-span-2 text-right">Actions</div>
+          </div>
+
+          {/* Table rows — only this section re-renders on loading */}
+          <div className="space-y-2 px-5 py-4">
+            {loading && (
+              <p className="text-sm text-gray-400 text-center py-12">
+                Loading products…
+              </p>
+            )}
+
+            {!loading && error !== null && (
+              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                <svg
+                  className="w-4 h-4 flex-shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                  />
+                </svg>
+                {error}
+              </div>
+            )}
+
+            {!loading && error === null && products.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-12">
+                {search
+                  ? "No products match your search."
+                  : "No products found."}
+              </p>
+            )}
+
+            {!loading && error === null && products.map((product) => (
+              <ProductRow key={product.id} product={product} />
+            ))}
+          </div>
+
+          {/* Footer / pagination */}
+          <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center gap-3">
+              <span>Rows per page</span>
+              <select
+                className="border border-gray-200 rounded px-2 py-1 bg-white text-sm"
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setPage(1);
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="text-sm text-gray-400">
+                Page {page} of {totalPages}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                ‹ Prev
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next ›
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -345,6 +347,7 @@ function categoryStyle(name) {
   };
 }
 
+/** Single product row within the table grid. */
 function ProductRow({ product }) {
   const category = product.is_packaging
     ? product.packaging_type

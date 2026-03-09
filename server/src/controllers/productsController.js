@@ -1,8 +1,9 @@
 import pool from "../config/db.js";
 
 /**
- * GET /api/products?page=1&limit=10&search=
+ * GET /api/products?page=1&limit=10&search=&category=
  * Returns a paginated list of products joined with their category and supplier.
+ * Supports text search (name, supplier, product_code) and exact category filtering.
  */
 export async function getProducts(req, res) {
   try {
