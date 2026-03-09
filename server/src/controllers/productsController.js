@@ -82,3 +82,52 @@ export async function getProducts(req, res) {
     res.status(500).json({ error: err.message || "Failed to fetch products." });
   }
 }
+
+/**
+ * POST /api/products
+ * Creates a new product. Returns the newly created row.
+ */
+export async function createProduct(req, res) {
+  try {
+    const {
+      name,
+      is_packaging = false,
+      food_group_id,
+      packaging_type_id,
+      supplier_id,
+      price = 0,
+      uom,
+      product_code,
+      unit_size,
+      package_size,
+    } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Product name is required." });
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO products
+        (name, is_packaging, food_group_id, packaging_type_id, supplier_id, price, uom, product_code, unit_size, package_size)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [
+        name.trim(),
+        is_packaging,
+        is_packaging ? null : (food_group_id || null),
+        is_packaging ? (packaging_type_id || null) : null,
+        supplier_id || null,
+        price,
+        uom || null,
+        product_code || null,
+        unit_size || null,
+        package_size || null,
+      ]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error("createProduct error:", err);
+    res.status(500).json({ error: err.message || "Failed to create product." });
+  }
+}

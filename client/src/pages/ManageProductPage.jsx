@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { fetchProducts, fetchCategories } from "../api/products.js";
+import AddProductModal from "../components/AddProductModal.jsx";
 
 /** Debounce a value by `delay` ms. */
 function useDebounce(value, delay = 300) {
@@ -18,10 +19,14 @@ function ManageProductPage() {
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
-  const [categories, setCategories] = useState({ foodGroups: [], packagingTypes: [] });
+  const [categories, setCategories] = useState({
+    foodGroups: [],
+    packagingTypes: [],
+  });
   const [catOpen, setCatOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const catRef = useRef(null);
   const debouncedSearch = useDebounce(search, 300);
@@ -34,7 +39,8 @@ function ManageProductPage() {
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClick(e) {
-      if (catRef.current && !catRef.current.contains(e.target)) setCatOpen(false);
+      if (catRef.current && !catRef.current.contains(e.target))
+        setCatOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -44,7 +50,10 @@ function ManageProductPage() {
   const prevSearch = useRef(debouncedSearch);
   const prevCategory = useRef(category);
   useEffect(() => {
-    if (prevSearch.current !== debouncedSearch || prevCategory.current !== category) {
+    if (
+      prevSearch.current !== debouncedSearch ||
+      prevCategory.current !== category
+    ) {
       prevSearch.current = debouncedSearch;
       prevCategory.current = category;
       setPage(1);
@@ -71,10 +80,17 @@ function ManageProductPage() {
         if (!cancelled) setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [page, limit, debouncedSearch, category]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+
+  /** Re-fetch current page after a new product is created. */
+  function handleProductCreated() {
+    setPage(1);
+  }
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
@@ -89,7 +105,10 @@ function ManageProductPage() {
           </div>
 
           <div className="mt-1">
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow"
+            >
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -103,7 +122,7 @@ function ManageProductPage() {
                   d="M12 4.5v15m7.5-7.5h-15"
                 />
               </svg>
-              Create
+              Add New Item
             </button>
           </div>
         </div>
@@ -164,9 +183,14 @@ function ManageProductPage() {
                     <div className="absolute right-0 mt-1 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg z-20">
                       <button
                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                          category === "" ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                          category === ""
+                            ? "font-semibold text-blue-600 bg-blue-50"
+                            : "text-gray-700"
                         }`}
-                        onClick={() => { setCategory(""); setCatOpen(false); }}
+                        onClick={() => {
+                          setCategory("");
+                          setCatOpen(false);
+                        }}
                       >
                         All Categories
                       </button>
@@ -180,9 +204,14 @@ function ManageProductPage() {
                         <button
                           key={`fg-${fg.id}`}
                           className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                            category === fg.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                            category === fg.name
+                              ? "font-semibold text-blue-600 bg-blue-50"
+                              : "text-gray-700"
                           }`}
-                          onClick={() => { setCategory(fg.name); setCatOpen(false); }}
+                          onClick={() => {
+                            setCategory(fg.name);
+                            setCatOpen(false);
+                          }}
                         >
                           {fg.name}
                         </button>
@@ -197,9 +226,14 @@ function ManageProductPage() {
                         <button
                           key={`pt-${pt.id}`}
                           className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                            category === pt.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                            category === pt.name
+                              ? "font-semibold text-blue-600 bg-blue-50"
+                              : "text-gray-700"
                           }`}
-                          onClick={() => { setCategory(pt.name); setCatOpen(false); }}
+                          onClick={() => {
+                            setCategory(pt.name);
+                            setCatOpen(false);
+                          }}
                         >
                           {pt.name}
                         </button>
@@ -212,7 +246,7 @@ function ManageProductPage() {
           </div>
 
           {/* Table headings */}
-          <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-gray-500 border-b border-gray-100 items-center">
+          <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-gray-700 border-b border-gray-100 items-center">
             <div className="col-span-2">Category</div>
             <div className="col-span-3">Name</div>
             <div className="col-span-1 text-right">Price</div>
@@ -257,9 +291,11 @@ function ManageProductPage() {
               </p>
             )}
 
-            {!loading && error === null && products.map((product) => (
-              <ProductRow key={product.id} product={product} />
-            ))}
+            {!loading &&
+              error === null &&
+              products.map((product) => (
+                <ProductRow key={product.id} product={product} />
+              ))}
           </div>
 
           {/* Footer / pagination */}
@@ -302,6 +338,12 @@ function ManageProductPage() {
           </div>
         </div>
       </div>
+      {/* Add product modal */}
+      <AddProductModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onCreated={handleProductCreated}
+      />
     </div>
   );
 }

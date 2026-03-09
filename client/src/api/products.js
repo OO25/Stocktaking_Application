@@ -27,3 +27,34 @@ export async function fetchCategories() {
   }
   return res.json();
 }
+
+/**
+ * Fetches all suppliers.
+ * @returns {Promise<Array<{ id: number, name: string }>>}
+ */
+export async function fetchSuppliers() {
+  const res = await fetch(`${API_BASE}/suppliers`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/**
+ * Creates a new product.
+ * @param {Object} product - The product data to create.
+ * @returns {Promise<Object>} The newly created product row.
+ */
+export async function createProduct(product) {
+  const res = await fetch(`${API_BASE}/products`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(product),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
