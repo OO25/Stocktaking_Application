@@ -18,7 +18,10 @@ function ManageProductPage() {
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
-  const [categories, setCategories] = useState({ foodGroups: [], packagingTypes: [] });
+  const [categories, setCategories] = useState({
+    foodGroups: [],
+    packagingTypes: [],
+  });
   const [catOpen, setCatOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,7 +37,8 @@ function ManageProductPage() {
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClick(e) {
-      if (catRef.current && !catRef.current.contains(e.target)) setCatOpen(false);
+      if (catRef.current && !catRef.current.contains(e.target))
+        setCatOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -44,7 +48,10 @@ function ManageProductPage() {
   const prevSearch = useRef(debouncedSearch);
   const prevCategory = useRef(category);
   useEffect(() => {
-    if (prevSearch.current !== debouncedSearch || prevCategory.current !== category) {
+    if (
+      prevSearch.current !== debouncedSearch ||
+      prevCategory.current !== category
+    ) {
       prevSearch.current = debouncedSearch;
       prevCategory.current = category;
       setPage(1);
@@ -71,21 +78,19 @@ function ManageProductPage() {
         if (!cancelled) setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [page, limit, debouncedSearch, category]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
-      <div className="px-8 pt-6 pb-4">
+      <div className="px-8 pt-4 pb-2">
         <div className="flex items-start justify-between">
           <div>
-            <nav className="text-sm text-gray-500 mb-2">Home &gt; Products</nav>
             <h1 className="text-3xl font-extrabold text-gray-900">Products</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Quick access to essential metrics and management tools.
-            </p>
           </div>
 
           <div className="mt-1">
@@ -164,9 +169,14 @@ function ManageProductPage() {
                     <div className="absolute right-0 mt-1 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg z-20">
                       <button
                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                          category === "" ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                          category === ""
+                            ? "font-semibold text-blue-600 bg-blue-50"
+                            : "text-gray-700"
                         }`}
-                        onClick={() => { setCategory(""); setCatOpen(false); }}
+                        onClick={() => {
+                          setCategory("");
+                          setCatOpen(false);
+                        }}
                       >
                         All Categories
                       </button>
@@ -180,9 +190,14 @@ function ManageProductPage() {
                         <button
                           key={`fg-${fg.id}`}
                           className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                            category === fg.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                            category === fg.name
+                              ? "font-semibold text-blue-600 bg-blue-50"
+                              : "text-gray-700"
                           }`}
-                          onClick={() => { setCategory(fg.name); setCatOpen(false); }}
+                          onClick={() => {
+                            setCategory(fg.name);
+                            setCatOpen(false);
+                          }}
                         >
                           {fg.name}
                         </button>
@@ -197,9 +212,14 @@ function ManageProductPage() {
                         <button
                           key={`pt-${pt.id}`}
                           className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                            category === pt.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                            category === pt.name
+                              ? "font-semibold text-blue-600 bg-blue-50"
+                              : "text-gray-700"
                           }`}
-                          onClick={() => { setCategory(pt.name); setCatOpen(false); }}
+                          onClick={() => {
+                            setCategory(pt.name);
+                            setCatOpen(false);
+                          }}
                         >
                           {pt.name}
                         </button>
@@ -212,7 +232,7 @@ function ManageProductPage() {
           </div>
 
           {/* Table headings */}
-          <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-gray-500 border-b border-gray-100 items-center">
+          <div className="grid grid-cols-12 gap-4 px-5 py-3 text-sm font-semibold text-gray-800 border-b border-gray-100 items-center">
             <div className="col-span-2">Category</div>
             <div className="col-span-3">Name</div>
             <div className="col-span-1 text-right">Price</div>
@@ -257,9 +277,11 @@ function ManageProductPage() {
               </p>
             )}
 
-            {!loading && error === null && products.map((product) => (
-              <ProductRow key={product.id} product={product} />
-            ))}
+            {!loading &&
+              error === null &&
+              products.map((product) => (
+                <ProductRow key={product.id} product={product} />
+              ))}
           </div>
 
           {/* Footer / pagination */}
@@ -306,46 +328,27 @@ function ManageProductPage() {
   );
 }
 
-/**
- * Hue assigned to each category name.
- * All badges share the same saturation (65%) and lightness (95% bg / 35% text),
- * only the hue changes
+/*
+ * Hue-based category colours commented out.
+ *
+ * const CATEGORY_HUES = {
+ *   Meat: 0, Poultry: 30, Seafood: 200, Dairy: 50, "Dry Goods": 160,
+ *   "Frozen Goods": 210, "Fresh Produce": 120, "Pastry & Bakery": 35,
+ *   Alcohol: 270, "Cold Drinks": 195, "Hot Drinks": 15, Confectionery: 320,
+ *   Serviettes: 60, "Cups/Lids/Holders": 230, "Container/Noodle Boxes": 140,
+ *   Bags: 280, Cleaning: 170, Cutlery: 220, Gloves: 350,
+ *   "Consumable & Papers": 90, "Drop-off & Pizza Boxes": 25,
+ * };
+ *
+ * function categoryStyle(name) {
+ *   const hue = CATEGORY_HUES[name] ?? 240;
+ *   return {
+ *     backgroundColor: `hsl(${hue}, 65%, 94%)`,
+ *     color: `hsl(${hue}, 55%, 35%)`,
+ *     borderColor: `hsl(${hue}, 55%, 80%)`,
+ *   };
+ * }
  */
-const CATEGORY_HUES = {
-  // Food groups
-  Meat: 0,
-  Poultry: 30,
-  Seafood: 200,
-  Dairy: 50,
-  "Dry Goods": 160,
-  "Frozen Goods": 210,
-  "Fresh Produce": 120,
-  "Pastry & Bakery": 35,
-  Alcohol: 270,
-  "Cold Drinks": 195,
-  "Hot Drinks": 15,
-  Confectionery: 320,
-  // Packaging types
-  Serviettes: 60,
-  "Cups/Lids/Holders": 230,
-  "Container/Noodle Boxes": 140,
-  Bags: 280,
-  Cleaning: 170,
-  Cutlery: 220,
-  Gloves: 350,
-  "Consumable & Papers": 90,
-  "Drop-off & Pizza Boxes": 25,
-};
-
-/** Returns inline styles for a category badge, varying only the hue. */
-function categoryStyle(name) {
-  const hue = CATEGORY_HUES[name] ?? 240;
-  return {
-    backgroundColor: `hsl(${hue}, 65%, 94%)`,
-    color: `hsl(${hue}, 55%, 35%)`,
-    borderColor: `hsl(${hue}, 55%, 80%)`,
-  };
-}
 
 /** Single product row within the table grid. */
 function ProductRow({ product }) {
@@ -357,17 +360,14 @@ function ProductRow({ product }) {
     <div className="grid grid-cols-12 gap-4 items-center bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm">
       <div className="col-span-2">
         {category && (
-          <span
-            className="px-3 py-1 text-xs font-medium rounded-full border"
-            style={categoryStyle(category)}
-          >
+          <span className="px-3 py-1 text-xs font-bold rounded-md border border-gray-300 bg-gray-100 text-gray-800">
             {category}
           </span>
         )}
       </div>
 
       <div className="col-span-3">
-        <div className="text-sm font-semibold text-gray-800 truncate">
+        <div className="text-base font-bold text-gray-900 truncate">
           {product.name}
         </div>
       </div>
