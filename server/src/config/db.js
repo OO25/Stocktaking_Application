@@ -24,6 +24,12 @@ const pool = new Pool({
   idleTimeoutMillis: 30_000,
 });
 
+// Catch background disconnects, like when neon closes itself
+// so the process doesn't crash. The pool will reconnect automatically.
+pool.on("error", (err) => {
+  console.error("Unexpected pool error:", err.message);
+});
+
 // Pre-warm one connection so the first request isn't slow
 pool.connect().then((c) => c.release()).catch(console.error);
 

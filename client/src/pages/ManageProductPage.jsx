@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { fetchProducts } from "../api/products.js";
+import { fetchProducts, fetchCategories } from "../api/products.js";
 
 /** Debounce a value by `delay` ms. */
 function useDebounce(value, delay = 300) {
@@ -17,27 +17,47 @@ function ManageProductPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState({ foodGroups: [], packagingTypes: [] });
+  const [catOpen, setCatOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const catRef = useRef(null);
   const debouncedSearch = useDebounce(search, 300);
 
-  // Reset to page 1 when search term changes
-  const prevSearch = useRef(debouncedSearch);
+  // Load categories once on mount
   useEffect(() => {
-    if (prevSearch.current !== debouncedSearch) {
+    fetchCategories().then(setCategories).catch(console.error);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClick(e) {
+      if (catRef.current && !catRef.current.contains(e.target)) setCatOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // Reset to page 1 when search or category changes
+  const prevSearch = useRef(debouncedSearch);
+  const prevCategory = useRef(category);
+  useEffect(() => {
+    if (prevSearch.current !== debouncedSearch || prevCategory.current !== category) {
       prevSearch.current = debouncedSearch;
+      prevCategory.current = category;
       setPage(1);
     }
-  }, [debouncedSearch]);
+  }, [debouncedSearch, category]);
 
-  // Fetch products whenever page, limit, or debounced search changes
+  // Fetch products whenever page, limit, debounced search, or category changes
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetchProducts({ page, limit, search: debouncedSearch })
+    fetchProducts({ page, limit, search: debouncedSearch, category })
       .then((data) => {
         if (!cancelled) {
           setProducts(data.rows);
@@ -52,7 +72,7 @@ function ManageProductPage() {
       });
 
     return () => { cancelled = true; };
-  }, [page, limit, debouncedSearch]);
+  }, [page, limit, debouncedSearch, category]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
@@ -90,33 +110,7 @@ function ManageProductPage() {
       </div>
 
       <div className="flex-1 px-8 pb-8">
-        {loading && (
-          <p className="text-sm text-gray-400 text-center py-12">
-            Loading products…
-          </p>
-        )}
-
-        {error !== null && (
-          <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            <svg
-              className="w-4 h-4 flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-              />
-            </svg>
-            {error}
-          </div>
-        )}
-
-        {!loading && error === null && (
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
             {/* Card header: search + category filter */}
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 w-full">
@@ -144,12 +138,15 @@ function ManageProductPage() {
                     className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 w-full max-w-xl"
                   />
                 </div>
-                <div className="ml-auto">
+                <div className="ml-auto" ref={catRef}>
                   <div className="relative inline-block">
-                    <button className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm text-gray-700 shadow-sm">
-                      All Categories
+                    <button
+                      className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+                      onClick={() => setCatOpen((o) => !o)}
+                    >
+                      {category || "All Categories"}
                       <svg
-                        className="w-4 h-4 inline-block ml-2"
+                        className={`w-4 h-4 inline-block ml-2 transition-transform ${catOpen ? "rotate-180" : ""}`}
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -160,6 +157,53 @@ function ManageProductPage() {
                         />
                       </svg>
                     </button>
+
+                    {catOpen && (
+                      <div className="absolute right-0 mt-1 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                        <button
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                            category === "" ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                          }`}
+                          onClick={() => { setCategory(""); setCatOpen(false); }}
+                        >
+                          All Categories
+                        </button>
+
+                        {categories.foodGroups.length > 0 && (
+                          <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-gray-100">
+                            Food Groups
+                          </div>
+                        )}
+                        {categories.foodGroups.map((fg) => (
+                          <button
+                            key={`fg-${fg.id}`}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                              category === fg.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                            }`}
+                            onClick={() => { setCategory(fg.name); setCatOpen(false); }}
+                          >
+                            {fg.name}
+                          </button>
+                        ))}
+
+                        {categories.packagingTypes.length > 0 && (
+                          <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-gray-100">
+                            Packaging
+                          </div>
+                        )}
+                        {categories.packagingTypes.map((pt) => (
+                          <button
+                            key={`pt-${pt.id}`}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                              category === pt.name ? "font-semibold text-blue-600 bg-blue-50" : "text-gray-700"
+                            }`}
+                            onClick={() => { setCategory(pt.name); setCatOpen(false); }}
+                          >
+                            {pt.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -178,14 +222,40 @@ function ManageProductPage() {
 
             {/* Rows */}
             <div className="space-y-2 px-5 py-4">
-              {products.length === 0 && (
+              {loading && (
+                <p className="text-sm text-gray-400 text-center py-12">
+                  Loading products…
+                </p>
+              )}
+
+              {!loading && error !== null && (
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                  <svg
+                    className="w-4 h-4 flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                    />
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              {!loading && error === null && products.length === 0 && (
                 <p className="text-sm text-gray-500 text-center py-12">
                   {search
                     ? "No products match your search."
                     : "No products found."}
                 </p>
               )}
-              {products.map((product) => (
+
+              {!loading && error === null && products.map((product) => (
                 <ProductRow key={product.id} product={product} />
               ))}
             </div>
@@ -228,8 +298,7 @@ function ManageProductPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

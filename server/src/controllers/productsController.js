@@ -18,12 +18,19 @@ export async function getProducts(req, res) {
     if (search) {
       const pattern = `%${search}%`;
       params.push(pattern);
-      const idx = params.length; // $1
+      const idx = params.length;
       conditions.push(`(
         p.name         ILIKE $${idx} OR
         s.name         ILIKE $${idx} OR
         p.product_code ILIKE $${idx}
       )`);
+    }
+
+    const category = (req.query.category ?? "").trim();
+    if (category) {
+      params.push(category);
+      const idx = params.length;
+      conditions.push(`(fg.name = $${idx} OR pt.name = $${idx})`);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
