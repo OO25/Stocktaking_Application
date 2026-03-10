@@ -1,23 +1,26 @@
-import { useState } from "react";
+// Collapsible navigation sidebar with role-based item filtering.
+// To add a page: add an entry to NAV_ITEMS with a key, label, and optional roles array.
+// Omit roles to show the item to all users.
+// admin = all items, manager = inventory + branches
 
-/**
- * Navigation items
- * Add new pages here
- */
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext.jsx";
+
 const NAV_ITEMS = [
-  { key: "inventory", label: "Manage Inventory" },
-  { key: "products", label: "Manage Product" },
-  { key: "branches", label: "Manage Branch" },
-  { key: "categories", label: "Manage Category" },
+  { key: "inventory",  label: "Manage Inventory" },
+  { key: "products",   label: "Manage Product",   roles: ["admin", "manager"] },
+  { key: "branches",   label: "Manage Branch",    roles: ["admin", "manager"] },
+  { key: "categories", label: "Manage Category",  roles: ["admin"] },
 ];
 
-/**
- * Collapsible sidebar navigation with brand purple colour scheme.
- * @param {string}   activePage  - The currently active page key (controlled from App)
- * @param {Function} onNavigate  - Callback invoked with the nav item key on click
- */
 function Sidebar({ activePage, onNavigate }) {
   const [collapsed, setCollapsed] = useState(false);
+  const { user, logout } = useAuth();
+
+  // Only show items the current user's role is allowed to see
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => !item.roles || item.roles.includes(user?.role)
+  );
 
   return (
     <aside
@@ -39,10 +42,10 @@ function Sidebar({ activePage, onNavigate }) {
         </button>
       </div>
 
-      {/* Navigation links */}
+      {/* Navigation links — filtered by the user's role */}
       <nav className="flex-1 py-4">
         <ul className="space-y-1 px-2">
-          {NAV_ITEMS.map((item) => (
+          {visibleItems.map((item) => (
             <li key={item.key}>
               <button
                 onClick={() => onNavigate(item.key)}
@@ -59,11 +62,32 @@ function Sidebar({ activePage, onNavigate }) {
           ))}
         </ul>
       </nav>
+
+      {/* Footer: username, role, and logout */}
+      <div className="border-t border-brand-600 px-4 py-4">
+        {!collapsed && (
+          <div className="mb-3">
+            <p className="text-sm font-medium text-white truncate">{user?.username}</p>
+            <p className="text-xs text-brand-300 capitalize">{user?.role}</p>
+          </div>
+        )}
+
+        <button
+          onClick={logout}
+          className="flex items-center w-full rounded-lg px-3 py-2 text-sm text-brand-200
+                     hover:bg-brand-600 hover:text-white transition-colors"
+          aria-label="Log out"
+        >
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+          </svg>
+          {!collapsed && <span className="ml-3">Log out</span>}
+        </button>
+      </div>
     </aside>
   );
 }
 
-/** Simple icons for each nav item. */
 function NavIcon({ itemKey }) {
   const cls = "w-5 h-5 flex-shrink-0";
 
@@ -93,7 +117,6 @@ function NavIcon({ itemKey }) {
   }
 }
 
-/** Icon that flips when the sidebar is collapsed. */
 function CollapseIcon({ collapsed }) {
   return (
     <svg

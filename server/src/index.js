@@ -1,3 +1,4 @@
+import "dotenv/config"; // loads .env from process.cwd() — run server from project root
 import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
