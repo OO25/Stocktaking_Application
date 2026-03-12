@@ -143,7 +143,11 @@
 
 @layer components {
   .page-title {
-    @apply text-3xl font-bold text-gray-900 tracking-tight;
+    @apply text-3xl font-bold tracking-tight;
+  }
+
+  .page-description {
+    @apply text-muted-foreground;
   }
 
   .column-title {
@@ -371,7 +375,7 @@
   }
 
   .intro-row {
-    @apply flex flex-col md:flex-row md:items-center justify-between gap-4;
+    @apply flex flex-wrap items-end justify-between gap-2;
   }
 
   .class-view {
