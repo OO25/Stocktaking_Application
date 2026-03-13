@@ -1,0 +1,178 @@
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableCaption,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table.jsx";
+import { Button } from "./ui/button.jsx";
+import { Badge } from "./ui/badge.jsx";
+import { Pencil, Trash } from "lucide-react";
+
+/** Product table for ManageProductPage. */
+function ProductTable({
+  loading,
+  error,
+  products,
+  search,
+  limit,
+  page,
+  totalPages,
+  onLimitChange,
+  onPageChange,
+}) {
+  return (
+    <div className="">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[280px] py-4 pl-6">Name</TableHead>
+            <TableHead className="w-[110px] text-left py-4">Price</TableHead>
+            <TableHead className="w-[160px] py-4">Category</TableHead>
+            <TableHead className="w-[100px] py-4">Supplier</TableHead>
+            <TableHead className="w-[50px] text-center py-4">PKG</TableHead>
+            <TableHead className="w-[90px] text-center py-4">UOM</TableHead>
+            <TableHead className="w-[160px] py-4">
+              <div className="flex justify-end">
+                <div className="w-[120px] text-center">Action</div>
+              </div>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading && (
+            <TableRow>
+              <TableCell colSpan={7} className="py-12 text-center text-sm">
+                Loading products…
+              </TableCell>
+            </TableRow>
+          )}
+
+          {!loading && error !== null && (
+            <TableRow>
+              <TableCell colSpan={7} className="py-4">
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                  <svg
+                    className="w-4 h-4 flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                    />
+                  </svg>
+                  {error}
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+
+          {!loading && error === null && products.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={7} className="py-12 text-center text-sm">
+                {search
+                  ? "No products match your search."
+                  : "No products found."}
+              </TableCell>
+            </TableRow>
+          )}
+
+          {!loading &&
+            error === null &&
+            products.map((product) => {
+              const category = product.is_packaging
+                ? product.packaging_type
+                : product.food_group;
+
+              return (
+                <TableRow key={product.id}>
+                  <TableCell className="font-semibold pl-6">
+                    {product.name}
+                  </TableCell>
+                  <TableCell className="text-left">
+                    {product.price != null
+                      ? `$${Number(product.price).toFixed(2)}`
+                      : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{category ?? "—"}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{product.supplier ?? "—"}</Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {product.pack_size ?? 1}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {product.uom ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end">
+                      <div className="inline-flex items-center justify-center gap-2 w-[120px]">
+                        <Button size="sm" variant="secondary">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="destructive">
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+        </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell colSpan={4}>
+              <div className="flex items-center gap-3 pl-4">
+                <span>Rows per page</span>
+                <select
+                  className="border border-gray-200 rounded px-2 py-1 bg-white text-sm"
+                  value={limit}
+                  onChange={(e) => onLimitChange(Number(e.target.value))}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className="text-sm text-gray-500">
+                  Page {page} of {totalPages}
+                </span>
+              </div>
+            </TableCell>
+            <TableCell colSpan={3} className="text-right">
+              <div className="inline-flex items-center gap-3 pr-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => onPageChange(Math.max(1, page - 1))}
+                >
+                  ‹ Prev
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page >= totalPages}
+                  onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                >
+                  Next ›
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
+    </div>
+  );
+}
+
+export default ProductTable;
