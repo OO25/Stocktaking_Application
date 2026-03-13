@@ -52,7 +52,7 @@ function CategoryTable({
             <TableCell colSpan={5} className="py-4">
               <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                 <svg
-                  className="w-4 h-4 flex-shrink-0"
+                  className="w-4 h-4 shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -114,7 +114,7 @@ function CategoryTable({
               </TableCell>
               <TableCell>
                 <div className="flex justify-end">
-                  <div className="inline-flex items-center justify-center gap-2 w-[120px]">
+                  <div className="inline-flex items-center justify-center gap-2 w-30">
                     <Button size="sm" variant="secondary" disabled>
                       <Pencil className="h-4 w-4" />
                     </Button>
