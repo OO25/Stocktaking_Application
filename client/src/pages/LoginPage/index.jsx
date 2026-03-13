@@ -31,22 +31,26 @@ function LoginPage() {
 
   return (
     <div className="sign-in">
+      {/* Login card */}
       <div className="card border bg-card text-card-foreground shadow-sm rounded-xl -translate-y-8">
+        {/* Title and subtitle */}
         <div className="header">
           <h1 className="title text-center">Stocktake Login</h1>
-          <p className="description text-center mt-1">Please enter your credentials.</p>
+          <p className="description text-center mt-3">Please enter your credentials.</p>
         </div>
 
         <div className="content">
           <form onSubmit={handleSubmit} className="form">
 
+            {/* Error message for if login fails */}
             {error && (
-              <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+              <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
                 {error}
               </div>
             )}
 
-            <div className="field">
+            {/* Username field */}
+            <div className=" mt-1 field">
               <label htmlFor="username" className="text-sm font-medium">Username</label>
               <Input
                 id="username"
@@ -59,6 +63,7 @@ function LoginPage() {
               />
             </div>
 
+            {/* Password field with show/hide toggle :) */}
             <div className="field">
               <label htmlFor="password" className="text-sm font-medium">Password</label>
               <div className="relative">
@@ -72,6 +77,7 @@ function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pr-10"
                 />
+                {/* Eye icon to toggle show/hide password */}
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
@@ -84,6 +90,7 @@ function LoginPage() {
               </div>
             </div>
 
+            {/* Submit button */}
             <Button type="submit" disabled={loading} className="submit">
               {loading ? "Signing in…" : "Sign in"}
             </Button>
@@ -94,5 +101,5 @@ function LoginPage() {
     </div>
   );
 }
-
+// Zane was here :)
 export default LoginPage;
