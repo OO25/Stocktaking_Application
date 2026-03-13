@@ -7,7 +7,7 @@ import pool from "../config/db.js";
 export async function getSuppliers(_req, res) {
   try {
     const { rows } = await pool.query(
-      "SELECT id, name FROM suppliers ORDER BY name"
+      "SELECT id, name, contact_name, email, NULL::text AS website FROM suppliers ORDER BY name"
     );
     res.json(rows);
   } catch (err) {
