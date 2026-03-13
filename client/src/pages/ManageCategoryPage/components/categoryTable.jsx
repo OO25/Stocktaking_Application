@@ -27,13 +27,13 @@ function CategoryTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[220px] py-4 pl-6">Name</TableHead>
-          <TableHead className="w-[260px] py-4">Type</TableHead>
-          <TableHead className="w-[160px] py-4">Created At</TableHead>
-          <TableHead className="w-[160px] py-4">Updated At</TableHead>
-          <TableHead className="w-[160px] py-4">
+          <TableHead className="w-65 py-4 pl-6">Name</TableHead>
+          <TableHead className="w-60 py-4">Type</TableHead>
+          <TableHead className="w-50 py-4">Created At</TableHead>
+          <TableHead className="w-40 py-4">Updated At</TableHead>
+          <TableHead className="w-30 py-4">
             <div className="flex justify-end">
-              <div className="w-[120px] text-center">Action</div>
+              <div className="w-30 text-center">Action</div>
             </div>
           </TableHead>
         </TableRow>
