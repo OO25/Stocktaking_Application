@@ -4,6 +4,7 @@ import productsRouter from "./products.js";
 import categoriesRouter from "./categories.js";
 import suppliersRouter from "./suppliers.js";
 import outletsRouter from "./outlets.js";
+import usersRouter from "./users.js";
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use("/products", productsRouter);
 router.use("/categories", categoriesRouter);
 router.use("/suppliers", suppliersRouter);
 router.use("/outlets", outletsRouter);
+router.use("/users", usersRouter);
 
 export default router;

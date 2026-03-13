@@ -9,6 +9,7 @@ import ManageSupplierPage from "./pages/ManageSupplierPage/index.jsx";
 import ManageCategoryPage from "./pages/ManageCategoryPage/index.jsx";
 import ManageUomPage from "./pages/ManageUomPage/index.jsx";
 import ManageBranchAssignmentPage from "./pages/ManageBranchAssignmentPage/index.jsx";
+import ManageUsersPage from "./pages/ManageUsersPage/index.jsx";
 import {
   SidebarInset,
   SidebarProvider,
@@ -23,6 +24,7 @@ const PAGES = {
   categories: ManageCategoryPage,
   uom: ManageUomPage,
   "branch-assignment": ManageBranchAssignmentPage,
+  users: ManageUsersPage,
 };
 
 function App() {

@@ -55,6 +55,19 @@ export async function fetchOutlets() {
 }
 
 /**
+ * Fetches all users.
+ * @returns {Promise<Array<{ id: number, name: string, username: string, password_hash: string | null, role: string | null, created_at: string | null, updated_at: string | null }>>}
+ */
+export async function fetchUsers() {
+  const res = await fetch(`${API_BASE}/users`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/**
  * Creates a new product.
  * @param {Object} product - The product data to create.
  * @returns {Promise<Object>} The newly created product row.
