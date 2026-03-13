@@ -29,15 +29,15 @@ function ProductTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[280px] py-4 pl-6">Name</TableHead>
-            <TableHead className="w-[110px] text-left py-4">Price</TableHead>
-            <TableHead className="w-[160px] py-4">Category</TableHead>
-            <TableHead className="w-[100px] py-4">Supplier</TableHead>
-            <TableHead className="w-[50px] text-center py-4">PKG</TableHead>
-            <TableHead className="w-[90px] text-center py-4">UOM</TableHead>
-            <TableHead className="w-[160px] py-4">
+            <TableHead className="w-70 py-4 pl-6">Name</TableHead>
+            <TableHead className="w-28 py-4">Price</TableHead>
+            <TableHead className="w-40 py-4">Category</TableHead>
+            <TableHead className="w-25 py-4">Supplier</TableHead>
+            <TableHead className="w-13 text-center py-4">PKG</TableHead>
+            <TableHead className="w-23 text-center py-4">UOM</TableHead>
+            <TableHead className="w-40 py-4">
               <div className="flex justify-end">
-                <div className="w-[120px] text-center">Action</div>
+                <div className="w-30 text-center">Action</div>
               </div>
             </TableHead>
           </TableRow>
@@ -56,7 +56,7 @@ function ProductTable({
               <TableCell colSpan={7} className="py-4">
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                   <svg
-                    className="w-4 h-4 flex-shrink-0"
+                    className="w-4 h-4 shrink-0"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -115,7 +115,7 @@ function ProductTable({
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end">
-                      <div className="inline-flex items-center justify-center gap-2 w-[120px]">
+                      <div className="inline-flex items-center justify-center gap-2 w-30">
                         <Button size="sm" variant="secondary">
                           <Pencil className="h-4 w-4" />
                         </Button>
