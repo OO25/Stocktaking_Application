@@ -7,6 +7,7 @@ import { AppSidebar } from "./components/app-sidebar.jsx";
 import ManageProductPage from "./pages/ManageProductPage/index.jsx";
 import ManageSupplierPage from "./pages/ManageSupplierPage/index.jsx";
 import ManageCategoryPage from "./pages/ManageCategoryPage/index.jsx";
+import ManageUomPage from "./pages/ManageUomPage/index.jsx";
 import {
   SidebarInset,
   SidebarProvider,
@@ -19,6 +20,7 @@ const PAGES = {
   products: ManageProductPage,
   suppliers: ManageSupplierPage,
   categories: ManageCategoryPage,
+  uom: ManageUomPage,
 };
 
 function App() {
