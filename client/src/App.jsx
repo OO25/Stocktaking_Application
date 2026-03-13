@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useAuth } from "./context/AuthContext.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
+import LoginPage from "./pages/LoginPage/index.jsx";
 import { AppSidebar } from "./components/app-sidebar.jsx";
-import ManageProductPage from "./pages/ManageProductPage.jsx";
+import ManageProductPage from "./pages/ManageProductPage/index.jsx";
 import {
   SidebarInset,
   SidebarProvider,
