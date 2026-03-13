@@ -1,7 +1,7 @@
 // Login form — shown when no user is authenticated
 
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 function LoginPage() {
   const { login } = useAuth();

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { fetchProducts, fetchCategories } from "../api/products.js";
-import AddProductModal from "../components/AddProductModal.jsx";
-import ProductTable from "../components/productTable.jsx";
-import { Button } from "../components/ui/button.jsx";
-import { Input } from "../components/ui/input.jsx";
+import { fetchProducts, fetchCategories } from "../../api/products.js";
+import AddProductModal from "../../components/AddProductModal.jsx";
+import ProductTable from "../../components/productTable.jsx";
+import { Button } from "../../components/ui/button.jsx";
+import { Input } from "../../components/ui/input.jsx";
 import {
   Select,
   SelectContent,
@@ -13,7 +13,7 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "../components/ui/select.jsx";
+} from "../../components/ui/select.jsx";
 import { Plus, Search } from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
