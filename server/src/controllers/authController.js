@@ -62,7 +62,7 @@ export async function login(req, res) {
 // Creates a new user
 export async function register(req, res) {
   try {
-    const { username, password, role = "manager" } = req.body;
+    const { name = "", username, password, role = "manager" } = req.body;
 
     if (!username || !password) {
       return res
@@ -87,7 +87,7 @@ export async function register(req, res) {
     // Hash the password before storing
     const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-    const newUser = await createUser(username, passwordHash, role);
+    const newUser = await createUser(name, username, passwordHash, role);
 
     return res.status(201).json({ user: newUser });
   } catch (err) {
