@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { Button } from "../../components/ui/button.jsx";
+import { Input } from "../../components/ui/input.jsx";
+import { Eye, EyeOff } from "lucide-react";
 
 function LoginPage() {
   const { login } = useAuth();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error,    setError]    = useState("");
-  const [loading,  setLoading]  = useState(false);
+  const [username,     setUsername]     = useState("");
+  const [password,     setPassword]     = useState("");
+  const [error,        setError]        = useState("");
+  const [loading,      setLoading]      = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -26,42 +30,76 @@ function LoginPage() {
   }
 
   return (
-    <div>
-      <h1>Stocktake Login</h1>
-
-      {error && <p>{error}</p>}
-
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="username">Username</label>
-          <input
-            id="username"
-            type="text"
-            autoComplete="username"
-            required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
+    <div className="sign-in">
+      {/* Login card */}
+      <div className="card border bg-card text-card-foreground shadow-sm rounded-xl -translate-y-8">
+        {/* Title and subtitle */}
+        <div className="header">
+          <h1 className="title text-center">Stocktake Login</h1>
+          <p className="description text-center mt-3">Please enter your credentials.</p>
         </div>
 
-        <div>
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+        <div className="content">
+          <form onSubmit={handleSubmit} className="form">
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
-      </form>
+            {/* Error message for if login fails */}
+            {error && (
+              <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            {/* Username field */}
+            <div className=" mt-1 field">
+              <label htmlFor="username" className="text-sm font-medium">Username</label>
+              <Input
+                id="username"
+                type="text"
+                autoComplete="username"
+                placeholder="Enter your username"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+
+            {/* Password field with show/hide toggle :) */}
+            <div className="field">
+              <label htmlFor="password" className="text-sm font-medium">Password</label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                />
+                {/* Eye icon to toggle show/hide password */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit button */}
+            <Button type="submit" disabled={loading} className="submit">
+              {loading ? "Signing in…" : "Sign in"}
+            </Button>
+
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
-
+// Zane was here :)
 export default LoginPage;
