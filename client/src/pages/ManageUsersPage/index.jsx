@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchUsers } from "../../api/products.js";
+import { fetchUsers } from "../../api/users.js";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import UserTable from "./components/userTable.jsx";

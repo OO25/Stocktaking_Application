@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createUser } from "../../../api/products.js";
+import { createUser } from "../../../api/users.js";
 import { Button } from "../../../components/ui/button.jsx";
 import { Input } from "../../../components/ui/input.jsx";
 import {
