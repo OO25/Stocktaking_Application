@@ -82,7 +82,7 @@ function UomTable({
         {!loading &&
           error === null &&
           uoms.map((uom) => (
-            <TableRow key={uom.key}>
+            <TableRow key={uom.id ?? uom.name}>
               <TableCell className="font-semibold pl-6">
                 {uom.name}
               </TableCell>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchUoms } from "../../api/uom.js";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import UomTable from "./components/uomTable.jsx";
@@ -25,9 +26,24 @@ function ManageUomPage() {
   const debouncedSearch = useDebounce(search, 300);
 
   useEffect(() => {
-    // Placeholder until a UOM endpoint exists.
-    setUoms([]);
-    setLoading(false);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetchUoms()
+      .then((data) => {
+        if (!cancelled) setUoms(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Reset to page 1 when search changes
