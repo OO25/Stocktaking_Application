@@ -5,6 +5,7 @@ import SuccessAlert from "../../components/SuccessAlert.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import UserTable from "./components/userTable.jsx";
 import AddUserModal from "./components/AddUserModal.jsx";
+import EditUserModal from "./components/EditUserModal.jsx";
 import { Plus, Search } from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
@@ -25,6 +26,7 @@ function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const successTimerRef = useRef(null);
 
@@ -54,6 +56,18 @@ function ManageUsersPage() {
   function handleUserCreated() {
     loadUsers();
     setSuccessMessage("New user has been created.");
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+    }
+    successTimerRef.current = setTimeout(() => {
+      setSuccessMessage("");
+      successTimerRef.current = null;
+    }, 4000);
+  }
+
+  function handleUserUpdated() {
+    loadUsers();
+    setSuccessMessage("User has been updated.");
     if (successTimerRef.current) {
       clearTimeout(successTimerRef.current);
     }
@@ -154,6 +168,7 @@ function ManageUsersPage() {
               setPage(1);
             }}
             onPageChange={(nextPage) => setPage(nextPage)}
+            onEdit={(user) => setEditingUser(user)}
           />
         </div>
 
@@ -161,6 +176,13 @@ function ManageUsersPage() {
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
           onCreated={handleUserCreated}
+        />
+
+        <EditUserModal
+          open={Boolean(editingUser)}
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onUpdated={handleUserUpdated}
         />
       </div>
     </div>

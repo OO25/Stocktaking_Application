@@ -30,3 +30,22 @@ export async function createUser(user) {
   }
   return res.json();
 }
+
+/**
+ * Updates an existing user.
+ * @param {number} id
+ * @param {{ name: string, username: string, password?: string, role: "admin" | "manager" }} user
+ * @returns {Promise<Object>} The updated user.
+ */
+export async function updateUser(id, user) {
+  const res = await fetch(`${API_BASE}/users/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(user),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
