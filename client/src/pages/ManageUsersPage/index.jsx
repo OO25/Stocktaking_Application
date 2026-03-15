@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchUsers } from "../../api/users.js";
+import { deleteUser, fetchUsers } from "../../api/users.js";
 import { Button } from "../../components/ui/button.jsx";
 import SuccessAlert from "../../components/SuccessAlert.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import UserTable from "./components/userTable.jsx";
 import AddUserModal from "./components/AddUserModal.jsx";
+import EditUserModal from "./components/EditUserModal.jsx";
 import { Plus, Search } from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
@@ -25,6 +27,9 @@ function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const successTimerRef = useRef(null);
 
@@ -61,6 +66,38 @@ function ManageUsersPage() {
       setSuccessMessage("");
       successTimerRef.current = null;
     }, 4000);
+  }
+
+  function handleUserUpdated() {
+    loadUsers();
+    setSuccessMessage("User has been updated.");
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+    }
+    successTimerRef.current = setTimeout(() => {
+      setSuccessMessage("");
+      successTimerRef.current = null;
+    }, 4000);
+  }
+
+  async function handleUserDeleteConfirm() {
+    if (!deleteTarget) return;
+    try {
+      await deleteUser(deleteTarget.id);
+      loadUsers();
+      setSuccessMessage("User has been deleted.");
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+      }
+      successTimerRef.current = setTimeout(() => {
+        setSuccessMessage("");
+        successTimerRef.current = null;
+      }, 4000);
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(err.message || "Failed to delete user.");
+    }
   }
 
   useEffect(() => {
@@ -154,6 +191,11 @@ function ManageUsersPage() {
               setPage(1);
             }}
             onPageChange={(nextPage) => setPage(nextPage)}
+            onEdit={(user) => setEditingUser(user)}
+            onDelete={(user) => {
+              setDeleteTarget(user);
+              setDeleteDialogOpen(true);
+            }}
           />
         </div>
 
@@ -161,6 +203,27 @@ function ManageUsersPage() {
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
           onCreated={handleUserCreated}
+        />
+
+        <EditUserModal
+          open={Boolean(editingUser)}
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onUpdated={handleUserUpdated}
+        />
+
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) setDeleteTarget(null);
+          }}
+          title="Delete user"
+          description={`Delete ${
+            deleteTarget?.username || deleteTarget?.name || "this user"
+          }? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={handleUserDeleteConfirm}
         />
       </div>
     </div>
