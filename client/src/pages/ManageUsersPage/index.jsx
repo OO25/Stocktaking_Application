@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchUsers } from "../../api/users.js";
 import { Button } from "../../components/ui/button.jsx";
+import SuccessAlert from "../../components/SuccessAlert.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import UserTable from "./components/userTable.jsx";
 import AddUserModal from "./components/AddUserModal.jsx";
@@ -24,6 +25,8 @@ function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const successTimerRef = useRef(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -46,6 +49,18 @@ function ManageUsersPage() {
     return () => {
       cancelled = true;
     };
+  }
+
+  function handleUserCreated() {
+    loadUsers();
+    setSuccessMessage("New user has been created.");
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+    }
+    successTimerRef.current = setTimeout(() => {
+      setSuccessMessage("");
+      successTimerRef.current = null;
+    }, 4000);
   }
 
   useEffect(() => {
@@ -103,6 +118,11 @@ function ManageUsersPage() {
           </div>
         </div>
 
+        <SuccessAlert
+          message={successMessage}
+          className="fixed bottom-4 right-4 z-50 w-[320px]"
+        />
+
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
           {/* Card header: search */}
@@ -140,7 +160,7 @@ function ManageUsersPage() {
         <AddUserModal
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
-          onCreated={loadUsers}
+          onCreated={handleUserCreated}
         />
       </div>
     </div>
