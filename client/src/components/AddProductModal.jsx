@@ -1,5 +1,23 @@
 import { useState, useEffect } from "react";
 import { fetchCategories, fetchSuppliers, createProduct } from "../api/products.js";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group.jsx";
+import { Button } from "./ui/button.jsx";
+import { Input } from "./ui/input.jsx";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./ui/command.jsx";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover.jsx";
+import { cn } from "../lib/utils.js";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 const INITIAL_FORM = {
   name: "",
@@ -24,6 +42,9 @@ function AddProductModal({ open, onClose, onCreated }) {
   const [suppliers, setSuppliers] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [supplierOpen, setSupplierOpen] = useState(false);
+  const [uomOpen, setUomOpen] = useState(false);
 
   // Load dropdown data when modal opens
   useEffect(() => {
@@ -31,6 +52,9 @@ function AddProductModal({ open, onClose, onCreated }) {
     fetchCategories().then(setCategories).catch(console.error);
     fetchSuppliers().then(setSuppliers).catch(console.error);
     setForm(INITIAL_FORM);
+    setCategoryOpen(false);
+    setSupplierOpen(false);
+    setUomOpen(false);
     setError(null);
   }, [open]);
 
@@ -68,10 +92,16 @@ function AddProductModal({ open, onClose, onCreated }) {
     : categories.foodGroups;
 
   const categoryField = form.is_packaging ? "packaging_type_id" : "food_group_id";
+  const selectedCategory = categoryOptions.find(
+    (cat) => String(cat.id) === String(form[categoryField])
+  );
+  const selectedSupplier = suppliers.find(
+    (supplier) => String(supplier.id) === String(form.supplier_id)
+  );
+  const uomOptions = ["kg", "g", "L", "mL", "pcs", "doz"];
 
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
-  const inputClass =
-    "w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300";
+  const inputClass = "w-full";
 
   return (
     /* Backdrop */
@@ -102,26 +132,22 @@ function AddProductModal({ open, onClose, onCreated }) {
           {/* Product type toggle */}
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-gray-700">Type:</span>
-            <label className="inline-flex items-center gap-1.5 text-sm cursor-pointer">
-              <input
-                type="radio"
-                name="product_type"
-                checked={!form.is_packaging}
-                onChange={() => set("is_packaging", false)}
-                className="accent-blue-600"
-              />
-              Food
-            </label>
-            <label className="inline-flex items-center gap-1.5 text-sm cursor-pointer">
-              <input
-                type="radio"
-                name="product_type"
-                checked={form.is_packaging}
-                onChange={() => set("is_packaging", true)}
-                className="accent-blue-600"
-              />
-              Packaging
-            </label>
+            <RadioGroup
+              value={form.is_packaging ? "packaging" : "food"}
+              onValueChange={(value) =>
+                set("is_packaging", value === "packaging")
+              }
+              className="flex items-center gap-4"
+            >
+              <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                <RadioGroupItem value="food" />
+                Food
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                <RadioGroupItem value="packaging" />
+                Packaging
+              </label>
+            </RadioGroup>
           </div>
 
           {/* Name */}
@@ -129,7 +155,7 @@ function AddProductModal({ open, onClose, onCreated }) {
             <label className={labelClass}>
               Name <span className="text-red-500">*</span>
             </label>
-            <input
+            <Input
               type="text"
               required
               value={form.name}
@@ -145,43 +171,115 @@ function AddProductModal({ open, onClose, onCreated }) {
               {form.is_packaging ? "Packaging Type" : "Food Group"}{" "}
               <span className="text-red-500">*</span>
             </label>
-            <select
-              required
-              value={form[categoryField]}
-              onChange={(e) => set(categoryField, e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Select…</option>
-              {categoryOptions.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={categoryOpen}
+                  className={cn("w-full justify-between", !selectedCategory && "text-muted-foreground")}
+                  aria-label="Category combobox"
+                >
+                  {selectedCategory ? selectedCategory.name : "Select..."}
+                  <ChevronsUpDown className="opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+              >
+                <Command>
+                  <CommandInput
+                    placeholder={`Search ${form.is_packaging ? "packaging" : "food"}...`}
+                    className="h-9"
+                  />
+                  <CommandList>
+                    <CommandEmpty>No category found.</CommandEmpty>
+                    <CommandGroup>
+                      {categoryOptions.map((cat) => (
+                        <CommandItem
+                          key={cat.id}
+                          value={cat.name}
+                          onSelect={() => {
+                            set(categoryField, String(cat.id));
+                            setCategoryOpen(false);
+                          }}
+                          className="flex w-full items-center justify-between"
+                        >
+                          {cat.name}
+                          <Check
+                            className={cn(
+                              String(form[categoryField]) === String(cat.id)
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Supplier */}
           <div>
-            <label className={labelClass}>Supplier</label>
-            <select
-              value={form.supplier_id}
-              onChange={(e) => set("supplier_id", e.target.value)}
-              className={inputClass}
-            >
-              <option value="">None</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <label className={labelClass}>Supplier <span className="text-red-500">*</span></label>
+            <Popover open={supplierOpen} onOpenChange={setSupplierOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={supplierOpen}
+                  className={cn("w-full justify-between", !selectedSupplier && "text-muted-foreground")}
+                  aria-label="Supplier combobox"
+                >
+                  {selectedSupplier ? selectedSupplier.name : "Select..."}
+                  <ChevronsUpDown className="opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+              >
+                <Command>
+                  <CommandInput placeholder="Search supplier..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>No supplier found.</CommandEmpty>
+                    <CommandGroup>
+                      {suppliers.map((s) => (
+                        <CommandItem
+                          key={s.id}
+                          value={s.name}
+                          onSelect={() => {
+                            set("supplier_id", String(s.id));
+                            setSupplierOpen(false);
+                          }}
+                          className="flex w-full items-center justify-between"
+                        >
+                          {s.name}
+                          <Check
+                            className={cn(
+                              String(form.supplier_id) === String(s.id)
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Price + UOM row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Price ($)</label>
-              <input
+              <label className={labelClass}>Price ($) <span className="text-red-500">*</span></label>
+              <Input
                 type="number"
                 step="0.01"
                 min="0"
@@ -192,28 +290,57 @@ function AddProductModal({ open, onClose, onCreated }) {
               />
             </div>
             <div>
-              <label className={labelClass}>UOM</label>
-              <select
-                value={form.uom}
-                onChange={(e) => set("uom", e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Select…</option>
-                <option value="kg">kg</option>
-                <option value="g">g</option>
-                <option value="L">L</option>
-                <option value="mL">mL</option>
-                <option value="pcs">pcs</option>
-                <option value="doz">doz</option>
-              </select>
+              <label className={labelClass}>UOM <span className="text-red-500">*</span></label>
+              <Popover open={uomOpen} onOpenChange={setUomOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={uomOpen}
+                    className={cn("w-full justify-between", !form.uom && "text-muted-foreground")}
+                    aria-label="UOM combobox"
+                  >
+                    {form.uom || "Select..."}
+                    <ChevronsUpDown className="opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search UOM..." className="h-9" />
+                    <CommandList>
+                      <CommandEmpty>No unit found.</CommandEmpty>
+                      <CommandGroup>
+                        {uomOptions.map((uom) => (
+                          <CommandItem
+                            key={uom}
+                            value={uom}
+                            onSelect={() => {
+                              set("uom", uom);
+                              setUomOpen(false);
+                            }}
+                            className="flex w-full items-center justify-between"
+                          >
+                            {uom}
+                            <Check
+                              className={cn(
+                                form.uom === uom ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
           {/* Product code + Unit size row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Product Code</label>
-              <input
+              <label className={labelClass}>Product Barcode</label>
+              <Input
                 type="text"
                 value={form.product_code}
                 onChange={(e) => set("product_code", e.target.value)}
@@ -222,8 +349,8 @@ function AddProductModal({ open, onClose, onCreated }) {
               />
             </div>
             <div>
-              <label className={labelClass}>Unit Size</label>
-              <input
+              <label className={labelClass}>Unit Size <span className="text-red-500">*</span></label>
+              <Input
                 type="text"
                 value={form.unit_size}
                 onChange={(e) => set("unit_size", e.target.value)}
@@ -236,7 +363,7 @@ function AddProductModal({ open, onClose, onCreated }) {
           {/* Package size */}
           <div>
             <label className={labelClass}>Package Size</label>
-            <input
+            <Input
               type="number"
               step="0.01"
               min="0"
@@ -256,20 +383,12 @@ function AddProductModal({ open, onClose, onCreated }) {
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
+            </Button>
+            <Button type="submit" disabled={submitting}>
               {submitting ? "Adding…" : "Add Item"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
