@@ -3,6 +3,7 @@ import { fetchUsers } from "../../api/products.js";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import UserTable from "./components/userTable.jsx";
+import AddUserModal from "./components/AddUserModal.jsx";
 import { Plus, Search } from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
@@ -22,10 +23,11 @@ function ManageUsersPage() {
   const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
-  useEffect(() => {
+  function loadUsers() {
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -44,6 +46,10 @@ function ManageUsersPage() {
     return () => {
       cancelled = true;
     };
+  }
+
+  useEffect(() => {
+    return loadUsers();
   }, []);
 
   // Reset to page 1 when search changes
@@ -89,7 +95,7 @@ function ManageUsersPage() {
           {/* Action */}
           <div className="action-row">
             <div className="flex gap-2 w-full sm:w-auto">
-              <Button disabled title="User creation coming soon">
+              <Button onClick={() => setShowAddModal(true)}>
                 <Plus />
                 Add New User
               </Button>
@@ -130,6 +136,12 @@ function ManageUsersPage() {
             onPageChange={(nextPage) => setPage(nextPage)}
           />
         </div>
+
+        <AddUserModal
+          open={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onCreated={loadUsers}
+        />
       </div>
     </div>
   );

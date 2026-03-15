@@ -68,6 +68,24 @@ export async function fetchUsers() {
 }
 
 /**
+ * Creates a new user.
+ * @param {{ name: string, username: string, password: string, role: "admin" | "manager" }} user
+ * @returns {Promise<Object>} The newly created user.
+ */
+export async function createUser(user) {
+  const res = await fetch(`${API_BASE}/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(user),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/**
  * Creates a new product.
  * @param {Object} product - The product data to create.
  * @returns {Promise<Object>} The newly created product row.

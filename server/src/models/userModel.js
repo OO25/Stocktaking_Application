@@ -13,12 +13,12 @@ export async function findByUsername(username) {
 }
 
 // Insert a new user. Password must already be hashed before calling this
-export async function createUser(username, passwordHash, role) {
+export async function createUser(name, username, passwordHash, role) {
   const result = await pool.query(
-    `INSERT INTO users (username, password_hash, role)
-     VALUES ($1, $2, $3)
-     RETURNING id, username, role, created_at`,
-    [username, passwordHash, role],
+    `INSERT INTO users (name, username, password_hash, role)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, name, username, role, created_at`,
+    [name, username, passwordHash, role],
   );
 
   return result.rows[0];
