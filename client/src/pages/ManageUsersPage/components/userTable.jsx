@@ -35,6 +35,7 @@ function UserTable({
   onLimitChange,
   onPageChange,
   onEdit,
+  onDelete,
 }) {
   const [revealedIds, setRevealedIds] = useState(() => new Set());
 
@@ -173,7 +174,11 @@ function UserTable({
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="destructive" disabled>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => onDelete?.(user)}
+                      >
                         <Trash className="h-4 w-4" />
                       </Button>
                     </div>

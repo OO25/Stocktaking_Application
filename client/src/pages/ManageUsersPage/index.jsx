@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchUsers } from "../../api/users.js";
+import { deleteUser, fetchUsers } from "../../api/users.js";
 import { Button } from "../../components/ui/button.jsx";
 import SuccessAlert from "../../components/SuccessAlert.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import UserTable from "./components/userTable.jsx";
 import AddUserModal from "./components/AddUserModal.jsx";
@@ -27,6 +28,8 @@ function ManageUsersPage() {
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const successTimerRef = useRef(null);
 
@@ -75,6 +78,26 @@ function ManageUsersPage() {
       setSuccessMessage("");
       successTimerRef.current = null;
     }, 4000);
+  }
+
+  async function handleUserDeleteConfirm() {
+    if (!deleteTarget) return;
+    try {
+      await deleteUser(deleteTarget.id);
+      loadUsers();
+      setSuccessMessage("User has been deleted.");
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+      }
+      successTimerRef.current = setTimeout(() => {
+        setSuccessMessage("");
+        successTimerRef.current = null;
+      }, 4000);
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(err.message || "Failed to delete user.");
+    }
   }
 
   useEffect(() => {
@@ -169,6 +192,10 @@ function ManageUsersPage() {
             }}
             onPageChange={(nextPage) => setPage(nextPage)}
             onEdit={(user) => setEditingUser(user)}
+            onDelete={(user) => {
+              setDeleteTarget(user);
+              setDeleteDialogOpen(true);
+            }}
           />
         </div>
 
@@ -183,6 +210,20 @@ function ManageUsersPage() {
           user={editingUser}
           onClose={() => setEditingUser(null)}
           onUpdated={handleUserUpdated}
+        />
+
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) setDeleteTarget(null);
+          }}
+          title="Delete user"
+          description={`Delete ${
+            deleteTarget?.username || deleteTarget?.name || "this user"
+          }? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={handleUserDeleteConfirm}
         />
       </div>
     </div>

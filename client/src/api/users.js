@@ -49,3 +49,18 @@ export async function updateUser(id, user) {
   }
   return res.json();
 }
+
+/**
+ * Deletes a user.
+ * @param {number} id
+ * @returns {Promise<void>}
+ */
+export async function deleteUser(id) {
+  const res = await fetch(`${API_BASE}/users/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+}
