@@ -17,3 +17,97 @@ export async function getUoms(_req, res) {
     res.status(500).json({ error: err.message || "Failed to fetch units." });
   }
 }
+
+/**
+ * POST /api/uom
+ * Creates a new unit of measure.
+ */
+export async function createUom(req, res) {
+  try {
+    const { name, description } = req.body;
+
+    if (!name || !description) {
+      return res.status(400).json({ error: "Name and description are required." });
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO units_of_measure (name, description)
+       VALUES ($1, $2)
+       RETURNING id, name, description, created_at, updated_at`,
+      [name.trim(), description.trim()]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error("createUom error:", err);
+    res.status(500).json({ error: err.message || "Failed to create unit." });
+  }
+}
+
+/**
+ * PUT /api/uom/:id
+ * Updates a unit of measure.
+ */
+export async function updateUom(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const { name, description } = req.body;
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "Invalid UOM id." });
+    }
+
+    if (!name || !description) {
+      return res.status(400).json({ error: "Name and description are required." });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE units_of_measure
+       SET name = $1,
+           description = $2,
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, name, description, created_at, updated_at`,
+      [name.trim(), description.trim(), id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: "Unit not found." });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("updateUom error:", err);
+    res.status(500).json({ error: err.message || "Failed to update unit." });
+  }
+}
+
+/**
+ * DELETE /api/uom/:id
+ * Deletes a unit of measure.
+ */
+export async function deleteUom(req, res) {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "Invalid UOM id." });
+    }
+
+    const { rows } = await pool.query(
+      `DELETE FROM units_of_measure
+       WHERE id = $1
+       RETURNING id`,
+      [id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: "Unit not found." });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("deleteUom error:", err);
+    res.status(500).json({ error: err.message || "Failed to delete unit." });
+  }
+}
