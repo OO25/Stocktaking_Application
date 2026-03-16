@@ -152,10 +152,12 @@ function AddProductModal({ open, onClose, onCreated }) {
 
           {/* Name */}
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-product-name" className={labelClass}>
               Name <span className="text-red-500">*</span>
             </label>
             <Input
+              id="add-product-name"
+              name="name"
               type="text"
               required
               value={form.name}
@@ -278,8 +280,10 @@ function AddProductModal({ open, onClose, onCreated }) {
           {/* Price + UOM row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Price ($) <span className="text-red-500">*</span></label>
+              <label htmlFor="add-product-price" className={labelClass}>Price ($) <span className="text-red-500">*</span></label>
               <Input
+                id="add-product-price"
+                name="price"
                 type="number"
                 step="0.01"
                 min="0"
@@ -339,8 +343,10 @@ function AddProductModal({ open, onClose, onCreated }) {
           {/* Product code + Unit size row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Product Barcode</label>
+              <label htmlFor="add-product-barcode" className={labelClass}>Product Barcode</label>
               <Input
+                id="add-product-barcode"
+                name="product_code"
                 type="text"
                 value={form.product_code}
                 onChange={(e) => set("product_code", e.target.value)}
@@ -349,8 +355,10 @@ function AddProductModal({ open, onClose, onCreated }) {
               />
             </div>
             <div>
-              <label className={labelClass}>Unit Size <span className="text-red-500">*</span></label>
+              <label htmlFor="add-product-unit-size" className={labelClass}>Unit Size <span className="text-red-500">*</span></label>
               <Input
+                id="add-product-unit-size"
+                name="unit_size"
                 type="text"
                 value={form.unit_size}
                 onChange={(e) => set("unit_size", e.target.value)}
@@ -362,8 +370,10 @@ function AddProductModal({ open, onClose, onCreated }) {
 
           {/* Package size */}
           <div>
-            <label className={labelClass}>Package Size</label>
+            <label htmlFor="add-product-package-size" className={labelClass}>Package Size</label>
             <Input
+              id="add-product-package-size"
+              name="package_size"
               type="number"
               step="0.01"
               min="0"

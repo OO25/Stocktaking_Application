@@ -144,6 +144,8 @@ function ManageCategoryPage() {
               <div className="search-field">
                 <Search className="search-icon" />
                 <Input
+                  id="category-search"
+                  name="search"
                   type="text"
                   placeholder="Search by name or type..."
                   value={search}
@@ -153,12 +155,13 @@ function ManageCategoryPage() {
               </div>
               <div className="ml-auto w-full md:w-auto">
                 <Select
+                  name="type"
                   value={typeFilter || "__all__"}
                   onValueChange={(value) =>
                     setTypeFilter(value === "__all__" ? "" : value)
                   }
                 >
-                  <SelectTrigger className="w-full md:min-w-56 md:w-auto">
+                  <SelectTrigger id="category-type-filter" className="w-full md:min-w-56 md:w-auto">
                     <SelectValue placeholder="All Types" />
                   </SelectTrigger>
                   <SelectContent align="end">

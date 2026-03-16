@@ -76,10 +76,12 @@ function AddUomModal({ open, onClose, onCreated }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-uom-name" className={labelClass}>
               Name <span className="text-red-500">*</span>
             </label>
             <Input
+              id="add-uom-name"
+              name="name"
               type="text"
               required
               value={form.name}
@@ -90,10 +92,12 @@ function AddUomModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-uom-description" className={labelClass}>
               Description <span className="text-red-500">*</span>
             </label>
             <Input
+              id="add-uom-description"
+              name="description"
               type="text"
               required
               value={form.description}

@@ -166,6 +166,8 @@ function ManageSupplierPage() {
               <div className="search-field">
                 <Search className="search-icon" />
                 <Input
+                  id="supplier-search"
+                  name="search"
                   type="text"
                   placeholder="Search by supplier name..."
                   value={search}

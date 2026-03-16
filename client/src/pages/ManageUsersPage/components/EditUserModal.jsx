@@ -162,10 +162,12 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className={labelClass}>
+            <label htmlFor="edit-user-name" className={labelClass}>
               Name <span className="text-red-500">*</span>
             </label>
             <Input
+              id="edit-user-name"
+              name="name"
               type="text"
               required
               value={form.name}
@@ -176,10 +178,12 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="edit-user-username" className={labelClass}>
               Username <span className="text-red-500">*</span>
             </label>
             <Input
+              id="edit-user-username"
+              name="username"
               type="text"
               required
               value={form.username}
@@ -190,9 +194,11 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
           </div>
 
           <div>
-            <label className={labelClass}>Password</label>
+            <label htmlFor="edit-user-password" className={labelClass}>Password</label>
             <div className="relative">
               <Input
+                id="edit-user-password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={(e) => set("password", e.target.value)}
@@ -215,14 +221,15 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="edit-user-role" className={labelClass}>
               Role <span className="text-red-500">*</span>
             </label>
             <Select
+              name="role"
               value={roleValue}
               onValueChange={(value) => set("role", value)}
             >
-              <SelectTrigger className={inputClass}>
+              <SelectTrigger id="edit-user-role" className={inputClass}>
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent align="start">

@@ -159,6 +159,8 @@ function ManageUomPage() {
               <div className="search-field">
                 <Search className="search-icon" />
                 <Input
+                  id="uom-search"
+                  name="search"
                   type="text"
                   placeholder="Search by name or description..."
                   value={search}

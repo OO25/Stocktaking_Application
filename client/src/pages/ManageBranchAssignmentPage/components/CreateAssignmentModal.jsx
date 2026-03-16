@@ -100,11 +100,11 @@ function CreateAssignmentModal({ open, onClose, onCreated }) {
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>
+              <label htmlFor="assign-month" className={labelClass}>
                 Month <span className="text-red-500">*</span>
               </label>
-              <Select value={month} onValueChange={setMonth}>
-                <SelectTrigger className="w-full">
+              <Select name="month" value={month} onValueChange={setMonth}>
+                <SelectTrigger id="assign-month" className="w-full">
                   <SelectValue placeholder="Month" />
                 </SelectTrigger>
                 <SelectContent>
@@ -118,11 +118,11 @@ function CreateAssignmentModal({ open, onClose, onCreated }) {
             </div>
 
             <div>
-              <label className={labelClass}>
+              <label htmlFor="assign-year" className={labelClass}>
                 Year <span className="text-red-500">*</span>
               </label>
-              <Select value={year} onValueChange={setYear}>
-                <SelectTrigger className="w-full">
+              <Select name="year" value={year} onValueChange={setYear}>
+                <SelectTrigger id="assign-year" className="w-full">
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -137,11 +137,11 @@ function CreateAssignmentModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="assign-branch" className={labelClass}>
               Branch <span className="text-red-500">*</span>
             </label>
-            <Select value={outletId} onValueChange={setOutletId}>
-              <SelectTrigger className="w-full">
+            <Select name="outlet_id" value={outletId} onValueChange={setOutletId}>
+              <SelectTrigger id="assign-branch" className="w-full">
                 <SelectValue placeholder="Select a branch" />
               </SelectTrigger>
               <SelectContent>

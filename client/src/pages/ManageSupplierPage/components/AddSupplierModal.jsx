@@ -72,10 +72,12 @@ function AddSupplierModal({ open, onClose, onCreated }) {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-supplier-name" className={labelClass}>
               Name <span className="text-red-500">*</span>
             </label>
             <Input
+              id="add-supplier-name"
+              name="name"
               type="text"
               required
               value={form.name}
@@ -86,8 +88,10 @@ function AddSupplierModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>Email</label>
+            <label htmlFor="add-supplier-email" className={labelClass}>Email</label>
             <Input
+              id="add-supplier-email"
+              name="email"
               type="email"
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
@@ -97,8 +101,10 @@ function AddSupplierModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>Phone</label>
+            <label htmlFor="add-supplier-phone" className={labelClass}>Phone</label>
             <Input
+              id="add-supplier-phone"
+              name="phone"
               type="tel"
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
@@ -108,8 +114,10 @@ function AddSupplierModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>Website</label>
+            <label htmlFor="add-supplier-website" className={labelClass}>Website</label>
             <Input
+              id="add-supplier-website"
+              name="website"
               type="url"
               value={form.website}
               onChange={(e) => set("website", e.target.value)}

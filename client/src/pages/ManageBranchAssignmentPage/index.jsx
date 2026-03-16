@@ -188,6 +188,8 @@ function ManageBranchAssignmentPage() {
               <div className="search-field">
                 <Search className="search-icon" />
                 <Input
+                  id="assignment-search"
+                  name="search"
                   type="text"
                   placeholder="Search by period or branch..."
                   value={search}
@@ -198,12 +200,13 @@ function ManageBranchAssignmentPage() {
 
               <div className="ml-auto w-full md:w-auto">
                 <Select
+                  name="branch"
                   value={branchFilter || "__all__"}
                   onValueChange={(value) =>
                     setBranchFilter(value === "__all__" ? "" : value)
                   }
                 >
-                  <SelectTrigger className="w-full md:min-w-56 md:w-auto">
+                  <SelectTrigger id="assignment-branch-filter" className="w-full md:min-w-56 md:w-auto">
                     <SelectValue placeholder="All Branches" />
                   </SelectTrigger>
                   <SelectContent align="end">

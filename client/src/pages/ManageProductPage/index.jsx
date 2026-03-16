@@ -126,6 +126,8 @@ function ManageProductPage() {
               <div className="search-field">
                 <Search className="search-icon" />
                 <Input
+                  id="product-search"
+                  name="search"
                   type="text"
                   placeholder="Search by name or barcode..."
                   value={search}
@@ -137,12 +139,13 @@ function ManageProductPage() {
               {/* Category dropdown */}
               <div className="ml-auto w-full md:w-auto">
                 <Select
+                  name="category"
                   value={category || "__all__"}
                   onValueChange={(value) =>
                     setCategory(value === "__all__" ? "" : value)
                   }
                 >
-                  <SelectTrigger className="w-full md:min-w-56 md:w-auto">
+                  <SelectTrigger id="product-category-filter" className="w-full md:min-w-56 md:w-auto">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent align="end">

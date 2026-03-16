@@ -134,10 +134,12 @@ function AddUserModal({ open, onClose, onCreated }) {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-user-name" className={labelClass}>
               Name <span className="text-red-500">*</span>
             </label>
             <Input
+              id="add-user-name"
+              name="name"
               type="text"
               required
               value={form.name}
@@ -148,10 +150,12 @@ function AddUserModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-user-username" className={labelClass}>
               Username <span className="text-red-500">*</span>
             </label>
             <Input
+              id="add-user-username"
+              name="username"
               type="text"
               required
               value={form.username}
@@ -162,11 +166,13 @@ function AddUserModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-user-password" className={labelClass}>
               Password <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Input
+                id="add-user-password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 required
                 value={form.password}
@@ -190,11 +196,11 @@ function AddUserModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-user-role" className={labelClass}>
               Role <span className="text-red-500">*</span>
             </label>
-            <Select value={form.role} onValueChange={(value) => set("role", value)}>
-              <SelectTrigger className={inputClass}>
+            <Select name="role" value={form.role} onValueChange={(value) => set("role", value)}>
+              <SelectTrigger id="add-user-role" className={inputClass}>
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent align="start">

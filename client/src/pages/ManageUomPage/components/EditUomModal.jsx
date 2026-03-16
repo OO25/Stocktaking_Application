@@ -79,10 +79,12 @@ function EditUomModal({ open, uom, onClose, onUpdated }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className={labelClass}>
+            <label htmlFor="edit-uom-name" className={labelClass}>
               Name <span className="text-red-500">*</span>
             </label>
             <Input
+              id="edit-uom-name"
+              name="name"
               type="text"
               required
               value={form.name}
@@ -93,8 +95,10 @@ function EditUomModal({ open, uom, onClose, onUpdated }) {
           </div>
 
           <div>
-            <label className={labelClass}>Description</label>
+            <label htmlFor="edit-uom-description" className={labelClass}>Description</label>
             <Input
+              id="edit-uom-description"
+              name="description"
               type="text"
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
