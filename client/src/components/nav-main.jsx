@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom"
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -9,7 +10,6 @@ import {
 export function NavMain({
   items,
   activeKey,
-  onNavigate,
   label = "Menu",
 }) {
   return (
@@ -19,14 +19,16 @@ export function NavMain({
         {items.map((item) => (
           <SidebarMenuItem key={item.key}>
             <SidebarMenuButton
+              asChild
               isActive={activeKey === item.key}
-              onClick={() => onNavigate(item.key)}
               tooltip={item.label}
             >
-              <div className="flex">
-                {item.icon}
-              </div>
-              <span>{item.label}</span>
+              <Link to={`/${item.key}`}>
+                <div className="flex">
+                  {item.icon}
+                </div>
+                <span>{item.label}</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}

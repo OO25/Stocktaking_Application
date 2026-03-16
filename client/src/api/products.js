@@ -1,3 +1,5 @@
+import { fetchWithAuth } from "../lib/fetchWithAuth.js";
+
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 /**
@@ -7,7 +9,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
  */
 export async function fetchProducts({ page = 1, limit = 10, search = "", category = "" } = {}) {
   const qs = new URLSearchParams({ page, limit, search, category });
-  const res = await fetch(`${API_BASE}/products?${qs}`);
+  const res = await fetchWithAuth(`${API_BASE}/products?${qs}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed (${res.status})`);
@@ -20,7 +22,7 @@ export async function fetchProducts({ page = 1, limit = 10, search = "", categor
  * @returns {Promise<{ foodGroups: Array, packagingTypes: Array }>}
  */
 export async function fetchCategories() {
-  const res = await fetch(`${API_BASE}/categories`);
+  const res = await fetchWithAuth(`${API_BASE}/categories`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed (${res.status})`);
@@ -33,7 +35,7 @@ export async function fetchCategories() {
  * @returns {Promise<Array<{ id: number, name: string }>>}
  */
 export async function fetchSuppliers() {
-  const res = await fetch(`${API_BASE}/suppliers`);
+  const res = await fetchWithAuth(`${API_BASE}/suppliers`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed (${res.status})`);
@@ -46,7 +48,7 @@ export async function fetchSuppliers() {
  * @returns {Promise<Array<{ id: number, name: string }>>}
  */
 export async function fetchOutlets() {
-  const res = await fetch(`${API_BASE}/outlets`);
+  const res = await fetchWithAuth(`${API_BASE}/outlets`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed (${res.status})`);
@@ -60,7 +62,7 @@ export async function fetchOutlets() {
  * @returns {Promise<Object>} The newly created product row.
  */
 export async function createProduct(product) {
-  const res = await fetch(`${API_BASE}/products`, {
+  const res = await fetchWithAuth(`${API_BASE}/products`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(product),

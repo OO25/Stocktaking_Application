@@ -1,8 +1,7 @@
 // Fetch wrappers for the auth API endpoints
-// Uses /api as the base path — the Vite dev proxy forwards this to the Express server.
-// In production, the Express server serves the client and handles /api from the same origin.
+// Uses /api as the base path
 
-// POST /api/auth/login — returns { token, user } or throws on failure
+// POST /api/auth/login returns { token, user } or throws on failure
 export async function loginRequest(username, password) {
   const response = await fetch("/api/auth/login", {
     method: "POST",

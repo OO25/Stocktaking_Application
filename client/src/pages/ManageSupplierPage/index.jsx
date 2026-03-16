@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchSuppliers } from "../../api/products.js";
+import { fetchAllSuppliers, deleteSupplier } from "../../api/suppliers.js";
 import { Button } from "../../components/ui/button.jsx";
+import SuccessAlert from "../../components/SuccessAlert.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import SupplierTable from "./components/supplierTable.jsx";
+import AddSupplierModal from "./components/AddSupplierModal.jsx";
+import EditSupplierModal from "./components/EditSupplierModal.jsx";
 import { Plus, Search } from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
@@ -22,15 +26,24 @@ function ManageSupplierPage() {
   const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const successTimerRef = useRef(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
-  useEffect(() => {
+  /*
+   * Fetches all suppliers from the API and updates the table
+   */
+  function loadSuppliers() {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetchSuppliers()
+    fetchAllSuppliers()
       .then((data) => {
         if (!cancelled) setSuppliers(data);
       })
@@ -44,6 +57,48 @@ function ManageSupplierPage() {
     return () => {
       cancelled = true;
     };
+  }
+
+  /*
+   * Flashes a success message that auto-dismisses after 4 seconds
+   */
+  function showSuccess(msg) {
+    setSuccessMessage(msg);
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    successTimerRef.current = setTimeout(() => {
+      setSuccessMessage("");
+      successTimerRef.current = null;
+    }, 4000);
+  }
+
+  function handleSupplierCreated() {
+    loadSuppliers();
+    showSuccess("New supplier has been created.");
+  }
+
+  function handleSupplierUpdated() {
+    loadSuppliers();
+    showSuccess("Supplier has been updated.");
+  }
+
+  /*
+   * Calls the API to delete the selected supplier, then refreshes the list
+   */
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    try {
+      await deleteSupplier(deleteTarget.id);
+      loadSuppliers();
+      showSuccess("Supplier has been deleted.");
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(err.message || "Failed to delete supplier.");
+    }
+  }
+
+  useEffect(() => {
+    return loadSuppliers();
   }, []);
 
   // Reset to page 1 when search changes
@@ -90,13 +145,18 @@ function ManageSupplierPage() {
           {/* Action */}
           <div className="action-row">
             <div className="flex gap-2 w-full sm:w-auto">
-              <Button disabled title="Supplier creation coming soon">
+              <Button onClick={() => setShowAddModal(true)}>
                 <Plus />
                 Add New Supplier
               </Button>
             </div>
           </div>
         </div>
+
+        <SuccessAlert
+          message={successMessage}
+          className="fixed bottom-4 right-4 z-50 w-[320px]"
+        />
 
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
@@ -129,8 +189,40 @@ function ManageSupplierPage() {
               setPage(1);
             }}
             onPageChange={(nextPage) => setPage(nextPage)}
+            onEdit={(supplier) => setEditingSupplier(supplier)}
+            onDelete={(supplier) => {
+              setDeleteTarget(supplier);
+              setDeleteDialogOpen(true);
+            }}
           />
         </div>
+
+        <AddSupplierModal
+          open={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onCreated={handleSupplierCreated}
+        />
+
+        <EditSupplierModal
+          open={Boolean(editingSupplier)}
+          supplier={editingSupplier}
+          onClose={() => setEditingSupplier(null)}
+          onUpdated={handleSupplierUpdated}
+        />
+
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) setDeleteTarget(null);
+          }}
+          title="Delete supplier"
+          description={`Delete ${
+            deleteTarget?.name || "this supplier"
+          }? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={handleDeleteConfirm}
+        />
       </div>
     </div>
   );
