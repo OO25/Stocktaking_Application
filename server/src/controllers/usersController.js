@@ -11,9 +11,21 @@ const BCRYPT_SALT_ROUNDS = 10;
 export async function getUsers(_req, res) {
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, username, password_hash, role, created_at, updated_at
-       FROM users
-       ORDER BY name`
+      `SELECT u.id,
+              u.name,
+              u.username,
+              u.password_hash,
+              u.role,
+              u.created_at,
+              u.updated_at,
+              COALESCE(
+                ARRAY_AGG(uo.outlet_id) FILTER (WHERE uo.outlet_id IS NOT NULL),
+                '{}'::int[]
+              ) AS branch_ids
+       FROM users u
+       LEFT JOIN user_outlets uo ON uo.user_id = u.id
+       GROUP BY u.id
+       ORDER BY u.name`
     );
     res.json(rows);
   } catch (err) {
@@ -101,7 +113,7 @@ export async function updateUserHandler(req, res) {
       return res.status(400).json({ message: "Invalid user id." });
     }
 
-    const { name = "", username, password, role = "manager" } = req.body;
+    const { name = "", username, password, role = "manager", branch_ids = [] } = req.body;
     if (!username) {
       return res.status(400).json({ message: "Username is required." });
     }
@@ -124,19 +136,46 @@ export async function updateUserHandler(req, res) {
       ? await bcrypt.hash(password, BCRYPT_SALT_ROUNDS)
       : null;
 
-    const updatedUser = await updateUser(
-      userId,
-      name,
-      username,
-      role,
-      passwordHash,
-    );
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
 
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found." });
+      const updatedUser = await updateUser(
+        userId,
+        name,
+        username,
+        role,
+        passwordHash,
+        client,
+      );
+
+      if (!updatedUser) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      const outletIds = Array.isArray(branch_ids)
+        ? branch_ids.map(Number).filter((id) => Number.isInteger(id))
+        : [];
+
+      await client.query("DELETE FROM user_outlets WHERE user_id = $1", [userId]);
+
+      if (outletIds.length > 0) {
+        await client.query(
+          `INSERT INTO user_outlets (user_id, outlet_id)
+           SELECT $1, UNNEST($2::int[])`,
+          [userId, outletIds],
+        );
+      }
+
+      await client.query("COMMIT");
+      return res.json({ user: updatedUser });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
     }
-
-    return res.json({ user: updatedUser });
   } catch (err) {
     console.error("updateUser error:", err);
     return res.status(500).json({ message: "An unexpected error occurred." });
