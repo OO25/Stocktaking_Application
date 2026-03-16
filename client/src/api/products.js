@@ -42,6 +42,19 @@ export async function fetchSuppliers() {
 }
 
 /**
+ * Fetches all outlets (branches).
+ * @returns {Promise<Array<{ id: number, name: string }>>}
+ */
+export async function fetchOutlets() {
+  const res = await fetch(`${API_BASE}/outlets`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/**
  * Creates a new product.
  * @param {Object} product - The product data to create.
  * @returns {Promise<Object>} The newly created product row.
