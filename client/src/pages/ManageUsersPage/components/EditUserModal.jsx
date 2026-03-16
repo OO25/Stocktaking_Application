@@ -296,7 +296,10 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
                   />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+              >
                 <Command>
                   <CommandInput placeholder="Search branch..." />
                   <CommandList>
