@@ -25,7 +25,12 @@ export function AuthProvider({ children }) {
           localStorage.removeItem(STORAGE_KEY);
         } else {
           setToken(storedToken);
-          setUser({ id: payload.id, username: payload.username, role: payload.role });
+          setUser({
+            id: payload.id,
+            username: payload.username,
+            role: payload.role,
+            name: payload.name || "",
+          });
         }
       } catch {
         localStorage.removeItem(STORAGE_KEY); // clear malformed token

@@ -25,8 +25,8 @@ export function NavUser({
   onLogout,
 }) {
   const { isMobile } = useSidebar()
-  const initial = (user?.username || "U").slice(0, 1).toUpperCase()
-  const displayName = user?.username || "User"
+  const displayName = user?.name || user?.username || "User"
+  const initial = displayName.slice(0, 1).toUpperCase()
 
   return (
     <SidebarMenu>
