@@ -1,5 +1,6 @@
 // Middleware for protecting routes with JWT verification and role checks
 // Usage: router.get("/route", requireAuth, requireRole("admin"), handler)
+// Basically checks user authentication and authorization before allowing access to the route handler
 
 import jwt from "jsonwebtoken";
 
@@ -10,7 +11,9 @@ export function requireAuth(req, res, next) {
   const token = authHeader && authHeader.split(" ")[1]; // extract from "Bearer <token>"
 
   if (!token) {
-    return res.status(401).json({ message: "No token provided. Please log in." });
+    return res
+      .status(401)
+      .json({ message: "No token provided. Please log in." });
   }
 
   try {
@@ -18,7 +21,9 @@ export function requireAuth(req, res, next) {
     req.user = decoded; // makes req.user.role, req.user.id available downstream
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token. Please log in again." });
+    return res
+      .status(401)
+      .json({ message: "Invalid or expired token. Please log in again." });
   }
 }
 

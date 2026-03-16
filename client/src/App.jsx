@@ -1,6 +1,6 @@
 // Root component — shows LoginPage if unauthenticated, main app if logged in
 
-import { useState } from "react";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import LoginPage from "./pages/LoginPage/index.jsx";
 import { AppSidebar } from "./components/app-sidebar.jsx";
@@ -16,36 +16,21 @@ import {
   SidebarTrigger,
 } from "./components/ui/sidebar.jsx";
 
-
-// Map of page keys (matching Sidebar NAV_ITEMS) to their page components
-const PAGES = {
-  products: ManageProductPage,
-  suppliers: ManageSupplierPage,
-  categories: ManageCategoryPage,
-  uom: ManageUomPage,
-  "branch-assignment": ManageBranchAssignmentPage,
-  users: ManageUsersPage,
-};
-
-function App() {
+/*
+ * Wraps all protected routes, if you're not logged in you get
+ * kicked to /login, otherwise renders the sidebar + page content
+ */
+function AuthLayout() {
   const { user } = useAuth();
-  const [activePage, setActivePage] = useState("inventory");
-  const Page = PAGES[activePage];
 
-  // Show the login page until the user authenticates
   if (!user) {
-    return <LoginPage />;
+    return <Navigate to="/login" replace />;
   }
 
   return (
     <SidebarProvider>
       <div className="flex min-h-svh w-full overflow-hidden">
-        <AppSidebar
-          activePage={activePage}
-          onNavigate={setActivePage}
-          collapsible="icon"
-          variant="sidebar"
-        />
+        <AppSidebar collapsible="icon" variant="sidebar" />
         <SidebarInset className="flex-1 min-h-svh w-full overflow-y-auto bg-gray-50">
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-gray-200 bg-white/80 px-4 backdrop-blur">
             <SidebarTrigger />
@@ -53,7 +38,7 @@ function App() {
               Stocktake
             </span>
           </header>
-          {Page ? <Page /> : <Placeholder />}
+          <Outlet />
         </SidebarInset>
       </div>
     </SidebarProvider>
@@ -70,6 +55,34 @@ function Placeholder() {
         Select a page from the sidebar to get started.
       </p>
     </div>
+  );
+}
+
+function App() {
+  const { user } = useAuth();
+
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/" replace /> : <LoginPage />}
+      />
+
+      <Route element={<AuthLayout />}>
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="dashboard" element={<Placeholder />} />
+        <Route path="stock-count" element={<Placeholder />} />
+        <Route path="inventory" element={<Placeholder />} />
+        <Route path="products" element={<ManageProductPage />} />
+        <Route path="branches" element={<Placeholder />} />
+        <Route path="categories" element={<ManageCategoryPage />} />
+        <Route path="suppliers" element={<ManageSupplierPage />} />
+        <Route path="uom" element={<ManageUomPage />} />
+        <Route path="branch-assignment" element={<ManageBranchAssignmentPage />} />
+        <Route path="users" element={<ManageUsersPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }
 

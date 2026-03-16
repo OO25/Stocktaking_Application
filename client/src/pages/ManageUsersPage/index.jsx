@@ -168,6 +168,8 @@ function ManageUsersPage() {
               <div className="search-field">
                 <Search className="search-icon" />
                 <Input
+                  id="user-search"
+                  name="search"
                   type="text"
                   placeholder="Search by name, username, or role..."
                   value={search}

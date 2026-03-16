@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "../../context/AuthContext.jsx";
 import { fetchOutlets } from "../../api/products.js";
+import { fetchSessions, deleteSession } from "../../api/stocktake.js";
 import { Button } from "../../components/ui/button.jsx";
+import SuccessAlert from "../../components/SuccessAlert.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import {
   Select,
@@ -10,7 +14,13 @@ import {
   SelectValue,
 } from "../../components/ui/select.jsx";
 import BranchAssignmentTable from "./components/branchAssignmentTable.jsx";
+import CreateAssignmentModal from "./components/CreateAssignmentModal.jsx";
 import { Plus, Search } from "lucide-react";
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 /** Debounce a value by `delay` ms. */
 function useDebounce(value, delay = 300) {
@@ -23,27 +33,36 @@ function useDebounce(value, delay = 300) {
 }
 
 function ManageBranchAssignmentPage() {
-  const [assignments, setAssignments] = useState([]);
-  const [branches, setBranches] = useState([]);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [sessions, setSessions] = useState([]);
+  const [outlets, setOutlets] = useState([]);
   const [search, setSearch] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const successTimerRef = useRef(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
-  useEffect(() => {
+  /*
+   * Fetches all stocktake sessions from the API and updates the table
+   */
+  function loadSessions() {
     let cancelled = false;
-    // Placeholder until branch assignment endpoints exist.
-    setAssignments([]);
+    setLoading(true);
+    setError(null);
 
-    fetchOutlets()
+    fetchSessions()
       .then((data) => {
-        if (!cancelled) {
-          setBranches(data.map((outlet) => outlet.name));
-        }
+        if (!cancelled) setSessions(data);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || String(err));
@@ -55,6 +74,47 @@ function ManageBranchAssignmentPage() {
     return () => {
       cancelled = true;
     };
+  }
+
+  /*
+   * Flashes a success message that auto-dismisses after 4 seconds
+   */
+  function showSuccess(msg) {
+    setSuccessMessage(msg);
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    successTimerRef.current = setTimeout(() => {
+      setSuccessMessage("");
+      successTimerRef.current = null;
+    }, 4000);
+  }
+
+  function handleAssignmentCreated() {
+    loadSessions();
+    showSuccess("Stocktake assignment created.");
+  }
+
+  /*
+   * Calls the API to delete the selected session, then refreshes the list
+   */
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    try {
+      await deleteSession(deleteTarget.id);
+      loadSessions();
+      showSuccess("Assignment has been deleted.");
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(err.message || "Failed to delete assignment.");
+    }
+  }
+
+  useEffect(() => {
+    return loadSessions();
+  }, []);
+
+  useEffect(() => {
+    fetchOutlets().then(setOutlets).catch(() => setOutlets([]));
   }, []);
 
   // Reset to page 1 when search or filter changes
@@ -71,24 +131,20 @@ function ManageBranchAssignmentPage() {
     }
   }, [debouncedSearch, branchFilter]);
 
-  const filteredAssignments = useMemo(() => {
+  const filteredSessions = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
-    return assignments.filter((assignment) => {
-      if (branchFilter && assignment.branch !== branchFilter) return false;
+    return sessions.filter((s) => {
+      if (branchFilter && String(s.outlet_id) !== branchFilter) return false;
       if (!query) return true;
-      const haystack = `${assignment.name} ${assignment.branch || ""}`
-        .toLowerCase();
-      return haystack.includes(query);
+      const label = `${MONTH_NAMES[(s.month || 1) - 1]} ${s.year} ${s.outlet_name || ""}`.toLowerCase();
+      return label.includes(query);
     });
-  }, [assignments, debouncedSearch, branchFilter]);
+  }, [sessions, debouncedSearch, branchFilter]);
 
-  const totalCount = filteredAssignments.length;
+  const totalCount = filteredSessions.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
   const startIndex = (page - 1) * limit;
-  const pageAssignments = filteredAssignments.slice(
-    startIndex,
-    startIndex + limit
-  );
+  const pageSessions = filteredSessions.slice(startIndex, startIndex + limit);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -102,20 +158,27 @@ function ManageBranchAssignmentPage() {
           <div>
             <h1 className="page-title">Branch Assignment</h1>
             <p className="page-description">
-              Assign products or inventories to each branch and track totals.
+              Create and assign monthly stocktake sessions to branches.
             </p>
           </div>
 
-          {/* Action */}
-          <div className="action-row">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button disabled title="Branch assignment coming soon">
-                <Plus />
-                New Assignment
-              </Button>
+          {/* Action — only admin can create */}
+          {isAdmin && (
+            <div className="action-row">
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button onClick={() => setShowCreateModal(true)}>
+                  <Plus />
+                  New Assignment
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
+
+        <SuccessAlert
+          message={successMessage}
+          className="fixed bottom-4 right-4 z-50 w-[320px]"
+        />
 
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
@@ -125,8 +188,10 @@ function ManageBranchAssignmentPage() {
               <div className="search-field">
                 <Search className="search-icon" />
                 <Input
+                  id="assignment-search"
+                  name="search"
                   type="text"
-                  placeholder="Search by name or branch..."
+                  placeholder="Search by period or branch..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 w-full"
@@ -135,19 +200,20 @@ function ManageBranchAssignmentPage() {
 
               <div className="ml-auto w-full md:w-auto">
                 <Select
+                  name="branch"
                   value={branchFilter || "__all__"}
                   onValueChange={(value) =>
                     setBranchFilter(value === "__all__" ? "" : value)
                   }
                 >
-                  <SelectTrigger className="w-full md:min-w-56 md:w-auto">
+                  <SelectTrigger id="assignment-branch-filter" className="w-full md:min-w-56 md:w-auto">
                     <SelectValue placeholder="All Branches" />
                   </SelectTrigger>
                   <SelectContent align="end">
                     <SelectItem value="__all__">All Branches</SelectItem>
-                    {branches.map((branch) => (
-                      <SelectItem key={branch} value={branch}>
-                        {branch}
+                    {outlets.map((outlet) => (
+                      <SelectItem key={outlet.id} value={String(outlet.id)}>
+                        {outlet.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -159,18 +225,43 @@ function ManageBranchAssignmentPage() {
           <BranchAssignmentTable
             loading={loading}
             error={error}
-            assignments={pageAssignments}
+            sessions={pageSessions}
             search={search}
             limit={limit}
             page={page}
             totalPages={totalPages}
+            isAdmin={isAdmin}
             onLimitChange={(nextLimit) => {
               setLimit(nextLimit);
               setPage(1);
             }}
             onPageChange={(nextPage) => setPage(nextPage)}
+            onDelete={(session) => {
+              setDeleteTarget(session);
+              setDeleteDialogOpen(true);
+            }}
           />
         </div>
+
+        <CreateAssignmentModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={handleAssignmentCreated}
+        />
+
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) setDeleteTarget(null);
+          }}
+          title="Delete assignment"
+          description={`Delete this stocktake assignment for ${
+            deleteTarget?.outlet_name || "this branch"
+          }? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={handleDeleteConfirm}
+        />
       </div>
     </div>
   );

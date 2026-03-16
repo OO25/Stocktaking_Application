@@ -37,6 +37,7 @@ export async function login(req, res) {
     const token = jwt.sign(
       {
         id: user.id,
+        name: user.name,
         username: user.username,
         role: user.role,
       },
@@ -48,6 +49,7 @@ export async function login(req, res) {
       token,
       user: {
         id: user.id,
+        name: user.name,
         username: user.username,
         role: user.role,
       },

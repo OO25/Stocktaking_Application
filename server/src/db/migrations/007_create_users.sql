@@ -1,4 +1,4 @@
--- Migration 006: Create users table
+-- Migration 007: Create users table
 -- Roles: admin = full access, manager = operational access
 
 CREATE TABLE IF NOT EXISTS users (

@@ -58,6 +58,14 @@ function AddUserModal({ open, onClose, onCreated }) {
     fetchOutlets().then(setOutlets).catch(() => setOutlets([]));
   }, [open]);
 
+  useEffect(() => {
+    if (form.role === "admin") {
+      setSelectedBranches([]);
+      setBranchOpen(false);
+      setExpandedBranches(false);
+    }
+  }, [form.role]);
+
   if (!open) return null;
 
   function set(field, value) {
@@ -126,10 +134,12 @@ function AddUserModal({ open, onClose, onCreated }) {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-user-name" className={labelClass}>
               Name <span className="text-red-500">*</span>
             </label>
             <Input
+              id="add-user-name"
+              name="name"
               type="text"
               required
               value={form.name}
@@ -140,10 +150,12 @@ function AddUserModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-user-username" className={labelClass}>
               Username <span className="text-red-500">*</span>
             </label>
             <Input
+              id="add-user-username"
+              name="username"
               type="text"
               required
               value={form.username}
@@ -154,11 +166,13 @@ function AddUserModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-user-password" className={labelClass}>
               Password <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Input
+                id="add-user-password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 required
                 value={form.password}
@@ -182,11 +196,11 @@ function AddUserModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor="add-user-role" className={labelClass}>
               Role <span className="text-red-500">*</span>
             </label>
-            <Select value={form.role} onValueChange={(value) => set("role", value)}>
-              <SelectTrigger className={inputClass}>
+            <Select name="role" value={form.role} onValueChange={(value) => set("role", value)}>
+              <SelectTrigger id="add-user-role" className={inputClass}>
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent align="start">
@@ -196,9 +210,10 @@ function AddUserModal({ open, onClose, onCreated }) {
             </Select>
           </div>
 
-          <div>
-            <label className={labelClass}>Branch Access</label>
-            <Popover open={branchOpen} onOpenChange={setBranchOpen}>
+          {form.role !== "admin" && (
+            <div>
+              <label className={labelClass}>Branch Access</label>
+              <Popover open={branchOpen} onOpenChange={setBranchOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -259,7 +274,10 @@ function AddUserModal({ open, onClose, onCreated }) {
                   />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+              >
                 <Command>
                   <CommandInput placeholder="Search branch..." />
                   <CommandList>
@@ -282,8 +300,9 @@ function AddUserModal({ open, onClose, onCreated }) {
                   </CommandList>
                 </Command>
               </PopoverContent>
-            </Popover>
-          </div>
+              </Popover>
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

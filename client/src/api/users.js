@@ -1,3 +1,5 @@
+import { fetchWithAuth } from "../lib/fetchWithAuth.js";
+
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 /**
@@ -5,7 +7,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
  * @returns {Promise<Array<{ id: number, name: string, username: string, password_hash: string | null, role: string | null, created_at: string | null, updated_at: string | null }>>}
  */
 export async function fetchUsers() {
-  const res = await fetch(`${API_BASE}/users`);
+  const res = await fetchWithAuth(`${API_BASE}/users`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed (${res.status})`);
@@ -19,7 +21,7 @@ export async function fetchUsers() {
  * @returns {Promise<Object>} The newly created user.
  */
 export async function createUser(user) {
-  const res = await fetch(`${API_BASE}/users`, {
+  const res = await fetchWithAuth(`${API_BASE}/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user),
@@ -38,7 +40,7 @@ export async function createUser(user) {
  * @returns {Promise<Object>} The updated user.
  */
 export async function updateUser(id, user) {
-  const res = await fetch(`${API_BASE}/users/${id}`, {
+  const res = await fetchWithAuth(`${API_BASE}/users/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user),
@@ -56,7 +58,7 @@ export async function updateUser(id, user) {
  * @returns {Promise<void>}
  */
 export async function deleteUser(id) {
-  const res = await fetch(`${API_BASE}/users/${id}`, {
+  const res = await fetchWithAuth(`${API_BASE}/users/${id}`, {
     method: "DELETE",
   });
   if (!res.ok) {
