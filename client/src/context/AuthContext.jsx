@@ -9,18 +9,32 @@ const AuthContext = createContext(null);
 // localStorage key for persisting the JWT across page refreshes
 const STORAGE_KEY = "stocktake_auth_token";
 
-/*
- * Reads the saved JWT from localStorage so the first render already
- * knows who's logged in, avoids a flash redirect to /login on refresh
- */
-function getStoredAuth() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return { user: null, token: null };
-  try {
-    const payload = JSON.parse(atob(raw.split(".")[1]));
-    if (payload.exp * 1000 < Date.now()) {
-      localStorage.removeItem(STORAGE_KEY);
-      return { user: null, token: null };
+export function AuthProvider({ children }) {
+  const [user,  setUser]  = useState(null);
+  const [token, setToken] = useState(null);
+
+  // On first render, restore a saved session from localStorage if still valid
+  useEffect(() => {
+    const storedToken = localStorage.getItem(STORAGE_KEY);
+    if (storedToken) {
+      try {
+        // JWT payload is the middle base64 segment
+        const payload = JSON.parse(atob(storedToken.split(".")[1]));
+        const isExpired = payload.exp * 1000 < Date.now();
+        if (isExpired) {
+          localStorage.removeItem(STORAGE_KEY);
+        } else {
+          setToken(storedToken);
+          setUser({
+            id: payload.id,
+            username: payload.username,
+            role: payload.role,
+            name: payload.name || "",
+          });
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEY); // clear malformed token
+      }
     }
     return {
       user: { id: payload.id, username: payload.username, role: payload.role },

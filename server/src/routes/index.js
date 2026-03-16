@@ -5,7 +5,7 @@ import categoriesRouter from "./categories.js";
 import suppliersRouter from "./suppliers.js";
 import outletsRouter from "./outlets.js";
 import usersRouter from "./users.js";
-import stocktakeRouter from "./stocktake.js";
+import uomRouter from "./uom.js";
 
 const router = Router();
 
@@ -17,6 +17,6 @@ router.use("/categories", categoriesRouter);
 router.use("/suppliers", suppliersRouter);
 router.use("/outlets", outletsRouter);
 router.use("/users", usersRouter);
-router.use("/stocktake", stocktakeRouter);
+router.use("/uom", uomRouter);
 
 export default router;
