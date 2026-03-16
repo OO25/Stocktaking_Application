@@ -1,7 +1,7 @@
 // Provides auth state (user, token, login, logout) to the whole app.
 // Wrap the app with <AuthProvider> in main.jsx, then use the useAuth() hook anywhere.
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 import { loginRequest } from "../api/auth.js";
 
 const AuthContext = createContext(null);
@@ -36,7 +36,19 @@ export function AuthProvider({ children }) {
         localStorage.removeItem(STORAGE_KEY); // clear malformed token
       }
     }
-  }, []);
+    return {
+      user: { id: payload.id, username: payload.username, role: payload.role },
+      token: raw,
+    };
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return { user: null, token: null };
+  }
+}
+
+export function AuthProvider({ children }) {
+  const [user,  setUser]  = useState(() => getStoredAuth().user);
+  const [token, setToken] = useState(() => getStoredAuth().token);
 
   // Call the login API, save the token, and update state
   async function login(username, password) {

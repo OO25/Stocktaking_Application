@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext.jsx"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -42,12 +43,12 @@ const NAV_ITEMS = [
   { key: "users", label: "Users", roles: ["admin"] },
 ]
 
-export function AppSidebar({
-  activePage,
-  onNavigate,
-  ...props
-}) {
+export function AppSidebar(props) {
   const { user, logout } = useAuth()
+  const location = useLocation()
+
+  const activePage = location.pathname.replace(/^\//, "") || "dashboard"
+
   const visibleItems = NAV_ITEMS.filter(
     (item) => !item.roles || item.roles.includes(user?.role)
   )
@@ -64,7 +65,7 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <a href="/">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <GalleryVerticalEndIcon className="size-4" />
                 </div>
@@ -87,7 +88,6 @@ export function AppSidebar({
             icon: <NavIcon itemKey={item.key} />,
           }))}
           activeKey={activePage}
-          onNavigate={onNavigate}
         />
         <NavMain
           label="Manage"
@@ -96,7 +96,6 @@ export function AppSidebar({
             icon: <NavIcon itemKey={item.key} />,
           }))}
           activeKey={activePage}
-          onNavigate={onNavigate}
         />
       </SidebarContent>
       <SidebarFooter>
