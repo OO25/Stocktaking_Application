@@ -28,7 +28,7 @@ export async function getUsers(_req, res) {
  */
 export async function createUserHandler(req, res) {
   try {
-    const { name = "", username, password, role = "manager" } = req.body;
+    const { name = "", username, password, role = "manager", branch_ids = [] } = req.body;
 
     if (!username || !password) {
       return res
@@ -51,9 +51,39 @@ export async function createUserHandler(req, res) {
     }
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
-    const newUser = await createUser(name, username, passwordHash, role);
 
-    return res.status(201).json({ user: newUser });
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const newUser = await createUser(
+        name,
+        username,
+        passwordHash,
+        role,
+        client,
+      );
+
+      const outletIds = Array.isArray(branch_ids)
+        ? branch_ids.map(Number).filter((id) => Number.isInteger(id))
+        : [];
+
+      if (outletIds.length > 0) {
+        await client.query(
+          `INSERT INTO user_outlets (user_id, outlet_id)
+           SELECT $1, UNNEST($2::int[])`,
+          [newUser.id, outletIds],
+        );
+      }
+
+      await client.query("COMMIT");
+      return res.status(201).json({ user: newUser });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error("createUser error:", err);
     return res.status(500).json({ message: "An unexpected error occurred." });
