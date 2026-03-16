@@ -5,6 +5,7 @@ import { useAuth } from "./context/AuthContext.jsx";
 import LoginPage from "./pages/LoginPage/index.jsx";
 import { AppSidebar } from "./components/app-sidebar.jsx";
 import ManageProductPage from "./pages/ManageProductPage/index.jsx";
+import ManageBranchPage from "./pages/ManageBranchPage/index.jsx";
 import {
   SidebarInset,
   SidebarProvider,
@@ -14,6 +15,7 @@ import {
 // Map of page keys (matching Sidebar NAV_ITEMS) to their page components
 const PAGES = {
   products: ManageProductPage,
+  branches: ManageBranchPage,
 };
 
 function App() {
