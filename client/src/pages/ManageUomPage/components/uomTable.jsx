@@ -10,6 +10,17 @@ import {
 import { Button } from "../../../components/ui/button.jsx";
 import { Pencil, Trash } from "lucide-react";
 
+function formatDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 /** UOM table for ManageUomPage. */
 function UomTable({
   loading,
@@ -21,6 +32,8 @@ function UomTable({
   totalPages,
   onLimitChange,
   onPageChange,
+  onEdit,
+  onDelete,
 }) {
   return (
     <Table>
@@ -72,9 +85,7 @@ function UomTable({
         {!loading && error === null && uoms.length === 0 && (
           <TableRow>
             <TableCell colSpan={5} className="py-12 text-center text-sm">
-              {search
-                ? "No units match your search."
-                : "No units found."}
+              {search ? "No units match your search." : "No units found."}
             </TableCell>
           </TableRow>
         )}
@@ -83,37 +94,35 @@ function UomTable({
           error === null &&
           uoms.map((uom) => (
             <TableRow key={uom.id ?? uom.name}>
-              <TableCell className="font-semibold pl-6">
-                {uom.name}
-              </TableCell>
+              <TableCell className="font-semibold pl-6">{uom.name}</TableCell>
               <TableCell className="text-gray-600">
                 {uom.description || "—"}
               </TableCell>
               <TableCell>
-                {uom.created_at ? (
-                  <span className="text-sm text-gray-900">
-                    {uom.created_at}
-                  </span>
-                ) : (
-                  <span className="text-sm text-gray-500">—</span>
-                )}
+                <span className="text-sm text-gray-900">
+                  {formatDate(uom.created_at)}
+                </span>
               </TableCell>
               <TableCell>
-                {uom.updated_at ? (
-                  <span className="text-sm text-gray-900">
-                    {uom.updated_at}
-                  </span>
-                ) : (
-                  <span className="text-sm text-gray-500">—</span>
-                )}
+                <span className="text-sm text-gray-900">
+                  {formatDate(uom.updated_at)}
+                </span>
               </TableCell>
               <TableCell>
                 <div className="flex justify-end">
                   <div className="inline-flex items-center justify-center gap-2 w-30">
-                    <Button size="sm" variant="secondary" disabled>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => onEdit?.(uom)}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="destructive" disabled>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onDelete?.(uom)}
+                    >
                       <Trash className="h-4 w-4" />
                     </Button>
                   </div>

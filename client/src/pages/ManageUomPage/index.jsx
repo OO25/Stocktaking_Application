@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchUoms } from "../../api/uom.js";
+import { fetchUoms, deleteUom } from "../../api/uom.js";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
+import SuccessAlert from "../../components/SuccessAlert.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import UomTable from "./components/uomTable.jsx";
+import AddUomModal from "./components/AddUomModal.jsx";
+import EditUomModal from "./components/EditUomModal.jsx";
 import { Plus, Search } from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
@@ -22,10 +26,17 @@ function ManageUomPage() {
   const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingUom, setEditingUom] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const successTimerRef = useRef(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
-  useEffect(() => {
+  // Load all UOMs from the API
+  function loadUoms() {
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -44,6 +55,44 @@ function ManageUomPage() {
     return () => {
       cancelled = true;
     };
+  }
+
+  // Show a success message for 4 seconds
+  function showSuccess(message) {
+    setSuccessMessage(message);
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    successTimerRef.current = setTimeout(() => {
+      setSuccessMessage("");
+      successTimerRef.current = null;
+    }, 4000);
+  }
+
+  function handleUomCreated() {
+    loadUoms();
+    showSuccess("New unit has been created.");
+  }
+
+  function handleUomUpdated() {
+    loadUoms();
+    showSuccess("Unit has been updated.");
+  }
+
+  async function handleUomDeleteConfirm() {
+    if (!deleteTarget) return;
+    try {
+      await deleteUom(deleteTarget.id);
+      loadUoms();
+      showSuccess("Unit has been deleted.");
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(err.message || "Failed to delete unit.");
+    }
+  }
+
+  // Load UOMs
+  useEffect(() => {
+    return loadUoms();
   }, []);
 
   // Reset to page 1 when search changes
@@ -88,13 +137,19 @@ function ManageUomPage() {
           {/* Action */}
           <div className="action-row">
             <div className="flex gap-2 w-full sm:w-auto">
-              <Button disabled title="UOM creation coming soon">
+              <Button onClick={() => setShowAddModal(true)}>
                 <Plus />
                 Add New Unit
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Success message */}
+        <SuccessAlert
+          message={successMessage}
+          className="fixed bottom-4 right-4 z-50 w-[320px]"
+        />
 
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
@@ -127,8 +182,43 @@ function ManageUomPage() {
               setPage(1);
             }}
             onPageChange={(nextPage) => setPage(nextPage)}
+            onEdit={(uom) => setEditingUom(uom)}
+            onDelete={(uom) => {
+              setDeleteTarget(uom);
+              setDeleteDialogOpen(true);
+            }}
           />
         </div>
+
+        {/* Add UOM modal */}
+        <AddUomModal
+          open={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onCreated={handleUomCreated}
+        />
+
+        {/* Edit UOM modal */}
+        <EditUomModal
+          open={Boolean(editingUom)}
+          uom={editingUom}
+          onClose={() => setEditingUom(null)}
+          onUpdated={handleUomUpdated}
+        />
+
+        {/* Delete confirmation */}
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) setDeleteTarget(null);
+          }}
+          title="Delete unit"
+          description={`Delete "${
+            deleteTarget?.name || "this unit"
+          }"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={handleUomDeleteConfirm}
+        />
       </div>
     </div>
   );

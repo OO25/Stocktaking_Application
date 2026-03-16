@@ -36,7 +36,7 @@ function LoginPage() {
         {/* Title and subtitle */}
         <div className="header">
           <h1 className="title text-center">Stocktake Login</h1>
-          <p className="description text-center mt-3">Please enter your credentials.</p>
+          <p className="description text-center mt-2">Please enter your credentials.</p>
         </div>
 
         <div className="content">
@@ -92,7 +92,7 @@ function LoginPage() {
 
             {/* Submit button */}
             <Button type="submit" disabled={loading} className="submit">
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? "Logging in…" : "Log in"}
             </Button>
 
           </form>
