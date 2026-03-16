@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { updateUser } from "../../../api/users.js";
+import { fetchOutlets } from "../../../api/products.js";
 import { Button } from "../../../components/ui/button.jsx";
+import { Badge } from "../../../components/ui/badge.jsx";
 import { Input } from "../../../components/ui/input.jsx";
 import {
   Select,
@@ -9,7 +11,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select.jsx";
-import { Eye, EyeOff } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../../../components/ui/command.jsx";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../../components/ui/popover.jsx";
+import { Check, ChevronsUpDown, Eye, EyeOff, X } from "lucide-react";
 
 const INITIAL_FORM = {
   name: "",
@@ -24,21 +39,55 @@ const INITIAL_FORM = {
  */
 function EditUserModal({ open, user, onClose, onUpdated }) {
   const [form, setForm] = useState(INITIAL_FORM);
+  const [outlets, setOutlets] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [branchOpen, setBranchOpen] = useState(false);
+  const [selectedBranches, setSelectedBranches] = useState([]);
+  const [expandedBranches, setExpandedBranches] = useState(false);
 
   useEffect(() => {
     if (!open || !user) return;
+    const normalizedRole = String(user.role || "manager")
+      .toLowerCase()
+      .trim();
     setForm({
       name: user.name || "",
       username: user.username || "",
       password: "",
-      role: user.role || "manager",
+      role: normalizedRole === "admin" ? "admin" : "manager",
     });
     setError(null);
     setShowPassword(false);
+    setBranchOpen(false);
+    setExpandedBranches(false);
+    let branchIds = [];
+    if (Array.isArray(user.branch_ids)) {
+      branchIds = user.branch_ids.map(String);
+    } else if (typeof user.branch_ids === "string") {
+      const trimmed = user.branch_ids.replace(/[{}]/g, "");
+      branchIds = trimmed
+        ? trimmed.split(",").map((id) => id.trim()).filter(Boolean)
+        : [];
+    }
+    setSelectedBranches(branchIds);
+    fetchOutlets().then(setOutlets).catch(() => setOutlets([]));
   }, [open, user]);
+
+  const labelClass = "block text-sm font-medium text-gray-700 mb-1";
+  const inputClass = "w-full";
+  const roleValue = form.role
+    || (user?.role ? String(user.role).toLowerCase().trim() : "")
+    || "manager";
+
+  useEffect(() => {
+    if (roleValue === "admin") {
+      setSelectedBranches([]);
+      setBranchOpen(false);
+      setExpandedBranches(false);
+    }
+  }, [roleValue]);
 
   if (!open || !user) return null;
 
@@ -56,6 +105,7 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
         name: form.name,
         username: form.username,
         role: form.role,
+        branch_ids: selectedBranches.map((id) => Number(id)),
       };
 
       if (form.password) {
@@ -71,9 +121,23 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
       setSubmitting(false);
     }
   }
+  const visibleBranches = expandedBranches
+    ? selectedBranches
+    : selectedBranches.slice(0, 2);
+  const hiddenBranchCount =
+    selectedBranches.length > visibleBranches.length
+      ? selectedBranches.length - visibleBranches.length
+      : 0;
 
-  const labelClass = "block text-sm font-medium text-gray-700 mb-1";
-  const inputClass = "w-full";
+  function toggleBranch(id) {
+    setSelectedBranches((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  }
+
+  function removeBranch(id) {
+    setSelectedBranches((prev) => prev.filter((item) => item !== id));
+  }
 
   return (
     <div
@@ -154,7 +218,10 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
             <label className={labelClass}>
               Role <span className="text-red-500">*</span>
             </label>
-            <Select value={form.role} onValueChange={(value) => set("role", value)}>
+            <Select
+              value={roleValue}
+              onValueChange={(value) => set("role", value)}
+            >
               <SelectTrigger className={inputClass}>
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
@@ -164,6 +231,100 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
               </SelectContent>
             </Select>
           </div>
+
+          {roleValue !== "admin" && (
+            <div>
+              <label className={labelClass}>Branch Access</label>
+              <Popover open={branchOpen} onOpenChange={setBranchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={branchOpen}
+                  className="h-auto min-h-8 w-full justify-between hover:bg-transparent"
+                >
+                  <div className="flex flex-wrap items-center gap-1 pr-2.5">
+                    {selectedBranches.length > 0 ? (
+                      <>
+                        {visibleBranches.map((id) => {
+                          const outlet = outlets.find(
+                            (item) => String(item.id) === String(id)
+                          );
+
+                          return outlet ? (
+                            <Badge key={id} variant="outline" className="rounded-sm">
+                              {outlet.name}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-4"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeBranch(id);
+                                }}
+                                asChild
+                              >
+                                <span>
+                                  <X className="size-3" />
+                                </span>
+                              </Button>
+                            </Badge>
+                          ) : null;
+                        })}
+                        {hiddenBranchCount > 0 || expandedBranches ? (
+                          <Badge
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedBranches((prev) => !prev);
+                            }}
+                            className="rounded-sm cursor-pointer"
+                          >
+                            {expandedBranches ? "Show Less" : `+${hiddenBranchCount} more`}
+                          </Badge>
+                        ) : null}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Select branches
+                      </span>
+                    )}
+                  </div>
+                  <ChevronsUpDown
+                    className="text-muted-foreground/80 shrink-0"
+                    aria-hidden="true"
+                  />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+              >
+                <Command>
+                  <CommandInput placeholder="Search branch..." />
+                  <CommandList>
+                    <CommandEmpty>No branch found.</CommandEmpty>
+                    <CommandGroup>
+                      {outlets.map((outlet) => (
+                        <CommandItem
+                          key={outlet.id}
+                          value={outlet.name}
+                          onSelect={() => toggleBranch(String(outlet.id))}
+                          className="flex w-full items-center justify-between"
+                        >
+                          <span className="truncate">{outlet.name}</span>
+                          {selectedBranches.includes(String(outlet.id)) && (
+                            <Check size={16} />
+                          )}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
