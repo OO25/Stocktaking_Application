@@ -58,6 +58,14 @@ function AddUserModal({ open, onClose, onCreated }) {
     fetchOutlets().then(setOutlets).catch(() => setOutlets([]));
   }, [open]);
 
+  useEffect(() => {
+    if (form.role === "admin") {
+      setSelectedBranches([]);
+      setBranchOpen(false);
+      setExpandedBranches(false);
+    }
+  }, [form.role]);
+
   if (!open) return null;
 
   function set(field, value) {
@@ -196,9 +204,10 @@ function AddUserModal({ open, onClose, onCreated }) {
             </Select>
           </div>
 
-          <div>
-            <label className={labelClass}>Branch Access</label>
-            <Popover open={branchOpen} onOpenChange={setBranchOpen}>
+          {form.role !== "admin" && (
+            <div>
+              <label className={labelClass}>Branch Access</label>
+              <Popover open={branchOpen} onOpenChange={setBranchOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -282,8 +291,9 @@ function AddUserModal({ open, onClose, onCreated }) {
                   </CommandList>
                 </Command>
               </PopoverContent>
-            </Popover>
-          </div>
+              </Popover>
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

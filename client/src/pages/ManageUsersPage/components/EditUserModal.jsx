@@ -75,6 +75,20 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
     fetchOutlets().then(setOutlets).catch(() => setOutlets([]));
   }, [open, user]);
 
+  const labelClass = "block text-sm font-medium text-gray-700 mb-1";
+  const inputClass = "w-full";
+  const roleValue = form.role
+    || (user?.role ? String(user.role).toLowerCase().trim() : "")
+    || "manager";
+
+  useEffect(() => {
+    if (roleValue === "admin") {
+      setSelectedBranches([]);
+      setBranchOpen(false);
+      setExpandedBranches(false);
+    }
+  }, [roleValue]);
+
   if (!open || !user) return null;
 
   function set(field, value) {
@@ -107,12 +121,6 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
       setSubmitting(false);
     }
   }
-
-  const labelClass = "block text-sm font-medium text-gray-700 mb-1";
-  const inputClass = "w-full";
-  const roleValue = form.role
-    || (user?.role ? String(user.role).toLowerCase().trim() : "")
-    || "manager";
   const visibleBranches = expandedBranches
     ? selectedBranches
     : selectedBranches.slice(0, 2);
@@ -224,9 +232,10 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
             </Select>
           </div>
 
-          <div>
-            <label className={labelClass}>Branch Access</label>
-            <Popover open={branchOpen} onOpenChange={setBranchOpen}>
+          {roleValue !== "admin" && (
+            <div>
+              <label className={labelClass}>Branch Access</label>
+              <Popover open={branchOpen} onOpenChange={setBranchOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -310,8 +319,9 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
                   </CommandList>
                 </Command>
               </PopoverContent>
-            </Popover>
-          </div>
+              </Popover>
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
