@@ -5,6 +5,7 @@ import { useAuth } from "./context/AuthContext.jsx";
 import LoginPage from "./pages/LoginPage/index.jsx";
 import { AppSidebar } from "./components/app-sidebar.jsx";
 import ManageProductPage from "./pages/ManageProductPage/index.jsx";
+import ManageBranchPage from "./pages/ManageBranchPage/index.jsx";
 import ManageSupplierPage from "./pages/ManageSupplierPage/index.jsx";
 import ManageCategoryPage from "./pages/ManageCategoryPage/index.jsx";
 import ManageUomPage from "./pages/ManageUomPage/index.jsx";
