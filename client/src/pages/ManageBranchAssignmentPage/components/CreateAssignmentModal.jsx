@@ -21,7 +21,7 @@ function currentMonth() {
 }
 
 /*
- * Modal for creating a stocktake assignment — pick a month/year and branch
+ * Modal for creating a stocktake assignment — pick a month/year and outlet
  */
 function CreateAssignmentModal({ open, onClose, onCreated }) {
   const { month: defaultMonth, year: defaultYear } = currentMonth();
@@ -54,7 +54,7 @@ function CreateAssignmentModal({ open, onClose, onCreated }) {
     setError(null);
 
     if (!outletId) {
-      setError("Please select a branch.");
+      setError("Please select an outlet.");
       return;
     }
 
@@ -137,12 +137,12 @@ function CreateAssignmentModal({ open, onClose, onCreated }) {
           </div>
 
           <div>
-            <label htmlFor="assign-branch" className={labelClass}>
-              Branch <span className="text-red-500">*</span>
+            <label htmlFor="assign-outlet" className={labelClass}>
+              Outlet <span className="text-red-500">*</span>
             </label>
             <Select name="outlet_id" value={outletId} onValueChange={setOutletId}>
-              <SelectTrigger id="assign-branch" className="w-full">
-                <SelectValue placeholder="Select a branch" />
+              <SelectTrigger id="assign-outlet" className="w-full">
+                <SelectValue placeholder="Select an outlet" />
               </SelectTrigger>
               <SelectContent>
                 {outlets.map((outlet) => (

@@ -75,7 +75,7 @@ function App() {
         <Route path="stock-count" element={<Placeholder />} />
         <Route path="inventory" element={<Placeholder />} />
         <Route path="products" element={<ManageProductPage />} />
-        <Route path="branches" element={<Placeholder />} />
+        <Route path="branches" element={<ManageBranchPage />} />
         <Route path="categories" element={<ManageCategoryPage />} />
         <Route path="suppliers" element={<ManageSupplierPage />} />
         <Route path="uom" element={<ManageUomPage />} />

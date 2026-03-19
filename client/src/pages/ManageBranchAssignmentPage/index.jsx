@@ -39,7 +39,7 @@ function ManageBranchAssignmentPage() {
   const [sessions, setSessions] = useState([]);
   const [outlets, setOutlets] = useState([]);
   const [search, setSearch] = useState("");
-  const [branchFilter, setBranchFilter] = useState("");
+  const [outletFilter, setOutletFilter] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
@@ -119,27 +119,27 @@ function ManageBranchAssignmentPage() {
 
   // Reset to page 1 when search or filter changes
   const prevSearch = useRef(debouncedSearch);
-  const prevBranch = useRef(branchFilter);
+  const prevOutlet = useRef(outletFilter);
   useEffect(() => {
     if (
       prevSearch.current !== debouncedSearch ||
-      prevBranch.current !== branchFilter
+      prevOutlet.current !== outletFilter
     ) {
       prevSearch.current = debouncedSearch;
-      prevBranch.current = branchFilter;
+      prevOutlet.current = outletFilter;
       setPage(1);
     }
-  }, [debouncedSearch, branchFilter]);
+  }, [debouncedSearch, outletFilter]);
 
   const filteredSessions = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
     return sessions.filter((s) => {
-      if (branchFilter && String(s.outlet_id) !== branchFilter) return false;
+      if (outletFilter && String(s.outlet_id) !== outletFilter) return false;
       if (!query) return true;
       const label = `${MONTH_NAMES[(s.month || 1) - 1]} ${s.year} ${s.outlet_name || ""}`.toLowerCase();
       return label.includes(query);
     });
-  }, [sessions, debouncedSearch, branchFilter]);
+  }, [sessions, debouncedSearch, outletFilter]);
 
   const totalCount = filteredSessions.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
@@ -156,9 +156,9 @@ function ManageBranchAssignmentPage() {
         {/* Heading */}
         <div className="intro-row">
           <div>
-            <h1 className="page-title">Branch Assignment</h1>
+            <h1 className="page-title">Outlet Assignment</h1>
             <p className="page-description">
-              Create and assign monthly stocktake sessions to branches.
+              Create and assign monthly stocktake sessions to outlets.
             </p>
           </div>
 
@@ -191,7 +191,7 @@ function ManageBranchAssignmentPage() {
                   id="assignment-search"
                   name="search"
                   type="text"
-                  placeholder="Search by period or branch..."
+                  placeholder="Search by period or outlet..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 w-full"
@@ -200,17 +200,17 @@ function ManageBranchAssignmentPage() {
 
               <div className="ml-auto w-full md:w-auto">
                 <Select
-                  name="branch"
-                  value={branchFilter || "__all__"}
+                  name="outlet"
+                  value={outletFilter || "__all__"}
                   onValueChange={(value) =>
-                    setBranchFilter(value === "__all__" ? "" : value)
+                    setOutletFilter(value === "__all__" ? "" : value)
                   }
                 >
-                  <SelectTrigger id="assignment-branch-filter" className="w-full md:min-w-56 md:w-auto">
-                    <SelectValue placeholder="All Branches" />
+                  <SelectTrigger id="assignment-outlet-filter" className="w-full md:min-w-56 md:w-auto">
+                    <SelectValue placeholder="All Outlets" />
                   </SelectTrigger>
                   <SelectContent align="end">
-                    <SelectItem value="__all__">All Branches</SelectItem>
+                    <SelectItem value="__all__">All Outlets</SelectItem>
                     {outlets.map((outlet) => (
                       <SelectItem key={outlet.id} value={String(outlet.id)}>
                         {outlet.name}
@@ -257,7 +257,7 @@ function ManageBranchAssignmentPage() {
           }}
           title="Delete assignment"
           description={`Delete this stocktake assignment for ${
-            deleteTarget?.outlet_name || "this branch"
+            deleteTarget?.outlet_name || "this outlet"
           }? This action cannot be undone.`}
           confirmLabel="Delete"
           onConfirm={handleDeleteConfirm}

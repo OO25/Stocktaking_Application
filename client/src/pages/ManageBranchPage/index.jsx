@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { fetchBranches } from "../../api/branches.js";
+import { fetchOutlets } from "../../api/branches.js";
 import AddBranchModal from "../../components/AddBranchModal.jsx";
 import BranchTable from "../../components/BranchTable.jsx";
 import { Button } from "../../components/ui/button.jsx";
@@ -16,7 +16,7 @@ function useDebounce(value, delay = 300) {
 }
 
 function ManageBranchPage() {
-  const [branches, setBranches] = useState([]);
+  const [outlets, setOutlets] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -36,16 +36,16 @@ function ManageBranchPage() {
     }
   }, [debouncedSearch]);
 
-  // Fetch branches whenever page, limit, or search changes
+  // Fetch outlets whenever page, limit, or search changes
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetchBranches({ page, limit, search: debouncedSearch })
+    fetchOutlets({ page, limit, search: debouncedSearch })
       .then((data) => {
         if (!cancelled) {
-          setBranches(data.rows);
+          setOutlets(data.rows);
           setTotalCount(data.totalCount);
         }
       })
@@ -61,7 +61,7 @@ function ManageBranchPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-  function handleBranchCreated() {
+  function handleOutletCreated() {
     setPage(1);
   }
 
@@ -72,12 +72,12 @@ function ManageBranchPage() {
         {/* Heading */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Branches</h1>
-            <p className="text-sm text-gray-500">Manage your branches here.</p>
+            <h1 className="text-2xl font-bold text-gray-900">Outlets</h1>
+            <p className="text-sm text-gray-500">Manage your outlets here.</p>
           </div>
           <Button onClick={() => setShowAddModal(true)}>
             <Plus />
-            Add New Branch
+            Add New Outlet
           </Button>
         </div>
 
@@ -100,7 +100,7 @@ function ManageBranchPage() {
           <BranchTable
             loading={loading}
             error={error}
-            branches={branches}
+            outlets={outlets}
             search={search}
             limit={limit}
             page={page}
@@ -113,7 +113,7 @@ function ManageBranchPage() {
         <AddBranchModal
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
-          onCreated={handleBranchCreated}
+          onCreated={handleOutletCreated}
         />
       </div>
     </div>

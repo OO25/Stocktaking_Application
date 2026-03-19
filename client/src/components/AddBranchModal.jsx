@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchBranches, createBranch } from "../api/branches.js";
+import { fetchOutlets, createOutlet } from "../api/branches.js";
 
 const INITIAL_FORM = {
   name: "",
@@ -7,20 +7,20 @@ const INITIAL_FORM = {
 };
 
 /**
- * Modal for creating a new branch.
+ * Modal for creating a new outlet.
  * @param {{ open: boolean, onClose: () => void, onCreated: () => void }} props
  */
 function AddBranchModal({ open, onClose, onCreated }) {
   const [form, setForm] = useState(INITIAL_FORM);
-  const [existingBranches, setExistingBranches] = useState([]);
+  const [existingOutlets, setExistingOutlets] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
 
-  // Load existing branches for duplicate checking when modal opens
+  // Load existing outlets for duplicate checking when modal opens
   useEffect(() => {
     if (!open) return;
-    fetchBranches().then(setExistingBranches).catch(console.error);
+    fetchOutlets().then(setExistingOutlets).catch(console.error);
     setForm(INITIAL_FORM);
     setError(null);
     setFieldErrors({});
@@ -45,16 +45,16 @@ function AddBranchModal({ open, onClose, onCreated }) {
       errors.branch_number = "Branch number must be exactly 3 digits.";
     }
 
-    // Check for duplicates against existing branches
-    const duplicateName = existingBranches.find(
+    // Check for duplicates against existing outlets
+    const duplicateName = existingOutlets.find(
       (b) => b.name.trim().toLowerCase() === trimmedName
     );
-    const duplicateNumber = existingBranches.find(
+    const duplicateNumber = existingOutlets.find(
       (b) => String(b.branch_number) === String(num)
     );
 
     if (duplicateName) errors.name = `"${form.name.trim()}" is already taken.`;
-    if (duplicateNumber) errors.branch_number = `Branch number ${num} is already assigned.`;
+    if (duplicateNumber) errors.branch_number = `Outlet number ${num} is already assigned.`;
 
     return errors;
   }
@@ -71,14 +71,14 @@ function AddBranchModal({ open, onClose, onCreated }) {
 
     setSubmitting(true);
     try {
-      await createBranch({
+      await createOutlet({
         name: form.name.trim(),
         branch_number: Number(form.branch_number),
       });
       onCreated();
       onClose();
     } catch (err) {
-      setError(err.message || "Failed to create branch.");
+      setError(err.message || "Failed to create outlet.");
     } finally {
       setSubmitting(false);
     }
@@ -101,7 +101,7 @@ function AddBranchModal({ open, onClose, onCreated }) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900">Add New Branch</h2>
+          <h2 className="text-lg font-bold text-gray-900">Add New Outlet</h2>
           <button
             className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
             onClick={onClose}
@@ -115,10 +115,10 @@ function AddBranchModal({ open, onClose, onCreated }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
 
-          {/* Branch Name */}
+          {/* Outlet Name */}
           <div>
             <label className={labelClass}>
-              Branch Name <span className="text-red-500">*</span>
+              Outlet Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -133,10 +133,10 @@ function AddBranchModal({ open, onClose, onCreated }) {
             )}
           </div>
 
-          {/* Branch Number */}
+          {/* Outlet Number */}
           <div>
             <label className={labelClass}>
-              Branch Number <span className="text-red-500">*</span>
+              Outlet Number <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -173,7 +173,7 @@ function AddBranchModal({ open, onClose, onCreated }) {
               disabled={submitting}
               className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {submitting ? "Adding…" : "Add Branch"}
+              {submitting ? "Adding…" : "Add Outlet"}
             </button>
           </div>
         </form>
