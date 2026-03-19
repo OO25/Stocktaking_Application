@@ -38,9 +38,10 @@ export async function getProducts(req, res) {
 
     const baseFrom = `
       FROM products p
-      LEFT JOIN food_groups     fg ON fg.id = p.food_group_id
-      LEFT JOIN packaging_types pt ON pt.id = p.packaging_type_id
-      LEFT JOIN suppliers        s ON s.id  = p.supplier_id
+      LEFT JOIN food_groups      fg  ON fg.id  = p.food_group_id
+      LEFT JOIN packaging_types  pt  ON pt.id  = p.packaging_type_id
+      LEFT JOIN suppliers         s  ON s.id   = p.supplier_id
+      LEFT JOIN units_of_measure  u  ON u.id   = p.uom_id
       ${whereClause}
     `;
 
@@ -55,7 +56,8 @@ export async function getProducts(req, res) {
         p.id,
         p.name,
         p.is_packaging,
-        p.uom,
+        p.uom_id,
+        u.name   AS uom,
         p.product_code,
         p.unit_size,
         p.package_size,
@@ -96,7 +98,7 @@ export async function createProduct(req, res) {
       packaging_type_id,
       supplier_id,
       price = 0,
-      uom,
+      uom_id,
       product_code,
       unit_size,
       package_size,
@@ -108,7 +110,7 @@ export async function createProduct(req, res) {
 
     const { rows } = await pool.query(
       `INSERT INTO products
-        (name, is_packaging, food_group_id, packaging_type_id, supplier_id, price, uom, product_code, unit_size, package_size)
+        (name, is_packaging, food_group_id, packaging_type_id, supplier_id, price, uom_id, product_code, unit_size, package_size)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
@@ -118,7 +120,7 @@ export async function createProduct(req, res) {
         is_packaging ? (packaging_type_id || null) : null,
         supplier_id || null,
         price,
-        uom || null,
+        uom_id || null,
         product_code || null,
         unit_size || null,
         package_size || null,

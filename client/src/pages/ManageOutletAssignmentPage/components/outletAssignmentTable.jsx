@@ -23,8 +23,8 @@ const STATUS_VARIANT = {
   locked: "destructive",
 };
 
-/** Branch assignment table for ManageBranchAssignmentPage. */
-function BranchAssignmentTable({
+/** Outlet assignment table for ManageOutletAssignmentPage. */
+function OutletAssignmentTable({
   loading,
   error,
   sessions,
@@ -42,7 +42,7 @@ function BranchAssignmentTable({
       <TableHeader>
         <TableRow>
           <TableHead className="w-[220px] py-4 pl-6">Period</TableHead>
-          <TableHead className="w-[200px] py-4">Branch</TableHead>
+          <TableHead className="w-[200px] py-4">Outlet</TableHead>
           <TableHead className="w-[140px] py-4">Status</TableHead>
           <TableHead className="w-[160px] py-4">Counted By</TableHead>
           {isAdmin && (
@@ -178,4 +178,4 @@ function BranchAssignmentTable({
   );
 }
 
-export default BranchAssignmentTable;
+export default OutletAssignmentTable;

@@ -42,8 +42,8 @@ export async function createPeriod(req, res) {
 }
 
 /*
- * Gets all stocktake sessions with their period and branch info.
- * Non-admin users only see sessions for branches they're assigned to.
+ * Gets all stocktake sessions with their period and outlet info.
+ * Non-admin users only see sessions for outlets they're assigned to.
  */
 export async function getSessions(req, res) {
   try {
@@ -102,7 +102,7 @@ export async function getSessions(req, res) {
 }
 
 /*
- * Creates a new stocktake session for a branch. If you pass month/year
+ * Creates a new stocktake session for an outlet. If you pass month/year
  * instead of period_id, the period gets auto-created.
  */
 export async function createSession(req, res) {
@@ -110,7 +110,7 @@ export async function createSession(req, res) {
     let { period_id, outlet_id, month, year } = req.body;
 
     if (!outlet_id) {
-      return res.status(400).json({ message: "Branch (outlet_id) is required." });
+      return res.status(400).json({ message: "Outlet (outlet_id) is required." });
     }
 
     const client = await pool.connect();
@@ -139,7 +139,7 @@ export async function createSession(req, res) {
       );
       if (existing.rows.length > 0) {
         await client.query("ROLLBACK");
-        return res.status(409).json({ message: "A stocktake session already exists for this branch and period." });
+        return res.status(409).json({ message: "A stocktake session already exists for this outlet and period." });
       }
 
       const { rows } = await client.query(

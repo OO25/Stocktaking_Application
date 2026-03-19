@@ -43,26 +43,26 @@ function AddUserModal({ open, onClose, onCreated }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [branchOpen, setBranchOpen] = useState(false);
-  const [selectedBranches, setSelectedBranches] = useState([]);
-  const [expandedBranches, setExpandedBranches] = useState(false);
+  const [outletOpen, setOutletOpen] = useState(false);
+  const [selectedOutlets, setSelectedOutlets] = useState([]);
+  const [expandedOutlets, setExpandedOutlets] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setForm(INITIAL_FORM);
     setError(null);
     setShowPassword(false);
-    setBranchOpen(false);
-    setSelectedBranches([]);
-    setExpandedBranches(false);
+    setOutletOpen(false);
+    setSelectedOutlets([]);
+    setExpandedOutlets(false);
     fetchOutlets().then(setOutlets).catch(() => setOutlets([]));
   }, [open]);
 
   useEffect(() => {
     if (form.role === "admin") {
-      setSelectedBranches([]);
-      setBranchOpen(false);
-      setExpandedBranches(false);
+      setSelectedOutlets([]);
+      setOutletOpen(false);
+      setExpandedOutlets(false);
     }
   }, [form.role]);
 
@@ -80,7 +80,7 @@ function AddUserModal({ open, onClose, onCreated }) {
     try {
       await createUser({
         ...form,
-        branch_ids: selectedBranches.map((id) => Number(id)),
+        outlet_ids: selectedOutlets.map((id) => Number(id)),
       });
       onCreated();
       onClose();
@@ -93,22 +93,22 @@ function AddUserModal({ open, onClose, onCreated }) {
 
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
   const inputClass = "w-full";
-  const visibleBranches = expandedBranches
-    ? selectedBranches
-    : selectedBranches.slice(0, 2);
-  const hiddenBranchCount =
-    selectedBranches.length > visibleBranches.length
-      ? selectedBranches.length - visibleBranches.length
+  const visibleOutlets = expandedOutlets
+    ? selectedOutlets
+    : selectedOutlets.slice(0, 2);
+  const hiddenOutletCount =
+    selectedOutlets.length > visibleOutlets.length
+      ? selectedOutlets.length - visibleOutlets.length
       : 0;
 
-  function toggleBranch(id) {
-    setSelectedBranches((prev) =>
+  function toggleOutlet(id) {
+    setSelectedOutlets((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   }
 
-  function removeBranch(id) {
-    setSelectedBranches((prev) => prev.filter((item) => item !== id));
+  function removeOutlet(id) {
+    setSelectedOutlets((prev) => prev.filter((item) => item !== id));
   }
 
   return (
@@ -212,19 +212,19 @@ function AddUserModal({ open, onClose, onCreated }) {
 
           {form.role !== "admin" && (
             <div>
-              <label className={labelClass}>Branch Access</label>
-              <Popover open={branchOpen} onOpenChange={setBranchOpen}>
+              <label className={labelClass}>Outlet Access</label>
+              <Popover open={outletOpen} onOpenChange={setOutletOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
-                  aria-expanded={branchOpen}
+                  aria-expanded={outletOpen}
                   className="h-auto min-h-8 w-full justify-between hover:bg-transparent"
                 >
                   <div className="flex flex-wrap items-center gap-1 pr-2.5">
-                    {selectedBranches.length > 0 ? (
+                    {selectedOutlets.length > 0 ? (
                       <>
-                        {visibleBranches.map((id) => {
+                        {visibleOutlets.map((id) => {
                           const outlet = outlets.find(
                             (item) => String(item.id) === String(id)
                           );
@@ -238,7 +238,7 @@ function AddUserModal({ open, onClose, onCreated }) {
                                 className="size-4"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  removeBranch(id);
+                                  removeOutlet(id);
                                 }}
                                 asChild
                               >
@@ -249,22 +249,22 @@ function AddUserModal({ open, onClose, onCreated }) {
                             </Badge>
                           ) : null;
                         })}
-                        {hiddenBranchCount > 0 || expandedBranches ? (
+                        {hiddenOutletCount > 0 || expandedOutlets ? (
                           <Badge
                             variant="outline"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setExpandedBranches((prev) => !prev);
+                              setExpandedOutlets((prev) => !prev);
                             }}
                             className="rounded-sm cursor-pointer"
                           >
-                            {expandedBranches ? "Show Less" : `+${hiddenBranchCount} more`}
+                            {expandedOutlets ? "Show Less" : `+${hiddenOutletCount} more`}
                           </Badge>
                         ) : null}
                       </>
                     ) : (
                       <span className="text-muted-foreground">
-                        Select branches
+                        Select outlets
                       </span>
                     )}
                   </div>
@@ -279,19 +279,19 @@ function AddUserModal({ open, onClose, onCreated }) {
                 style={{ width: "var(--radix-popover-trigger-width)" }}
               >
                 <Command>
-                  <CommandInput placeholder="Search branch..." />
+                  <CommandInput placeholder="Search outlet..." />
                   <CommandList>
-                    <CommandEmpty>No branch found.</CommandEmpty>
+                    <CommandEmpty>No outlet found.</CommandEmpty>
                     <CommandGroup>
                       {outlets.map((outlet) => (
                         <CommandItem
                           key={outlet.id}
                           value={outlet.name}
-                          onSelect={() => toggleBranch(String(outlet.id))}
+                          onSelect={() => toggleOutlet(String(outlet.id))}
                           className="flex w-full items-center justify-between"
                         >
                           <span className="truncate">{outlet.name}</span>
-                          {selectedBranches.includes(String(outlet.id)) && (
+                          {selectedOutlets.includes(String(outlet.id)) && (
                             <Check size={16} />
                           )}
                         </CommandItem>
