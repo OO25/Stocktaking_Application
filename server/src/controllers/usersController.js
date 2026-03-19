@@ -21,7 +21,7 @@ export async function getUsers(_req, res) {
               COALESCE(
                 ARRAY_AGG(uo.outlet_id) FILTER (WHERE uo.outlet_id IS NOT NULL),
                 '{}'::int[]
-              ) AS branch_ids
+              ) AS outlet_ids
        FROM users u
        LEFT JOIN user_outlets uo ON uo.user_id = u.id
        GROUP BY u.id
@@ -40,7 +40,7 @@ export async function getUsers(_req, res) {
  */
 export async function createUserHandler(req, res) {
   try {
-    const { name = "", username, password, role = "manager", branch_ids = [] } = req.body;
+    const { name = "", username, password, role = "manager", outlet_ids = [] } = req.body;
 
     if (!username || !password) {
       return res
@@ -76,8 +76,8 @@ export async function createUserHandler(req, res) {
         client,
       );
 
-      const outletIds = Array.isArray(branch_ids)
-        ? branch_ids.map(Number).filter((id) => Number.isInteger(id))
+      const outletIds = Array.isArray(outlet_ids)
+        ? outlet_ids.map(Number).filter((id) => Number.isInteger(id))
         : [];
 
       if (outletIds.length > 0) {
@@ -113,7 +113,7 @@ export async function updateUserHandler(req, res) {
       return res.status(400).json({ message: "Invalid user id." });
     }
 
-    const { name = "", username, password, role = "manager", branch_ids = [] } = req.body;
+    const { name = "", username, password, role = "manager", outlet_ids = [] } = req.body;
     if (!username) {
       return res.status(400).json({ message: "Username is required." });
     }
@@ -154,8 +154,8 @@ export async function updateUserHandler(req, res) {
         return res.status(404).json({ message: "User not found." });
       }
 
-      const outletIds = Array.isArray(branch_ids)
-        ? branch_ids.map(Number).filter((id) => Number.isInteger(id))
+      const outletIds = Array.isArray(outlet_ids)
+        ? outlet_ids.map(Number).filter((id) => Number.isInteger(id))
         : [];
 
       await client.query("DELETE FROM user_outlets WHERE user_id = $1", [userId]);

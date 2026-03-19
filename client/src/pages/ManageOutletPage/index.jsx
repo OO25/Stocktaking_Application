@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { fetchOutlets } from "../../api/branches.js";
-import AddBranchModal from "../../components/AddBranchModal.jsx";
-import BranchTable from "../../components/BranchTable.jsx";
+import { fetchOutlets } from "../../api/outlets.js";
+import AddOutletModal from "../../components/AddOutletModal.jsx";
+import OutletTable from "../../components/OutletTable.jsx";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import { Plus, Search } from "lucide-react";
@@ -15,7 +15,7 @@ function useDebounce(value, delay = 300) {
   return debounced;
 }
 
-function ManageBranchPage() {
+function ManageOutletPage() {
   const [outlets, setOutlets] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -97,7 +97,7 @@ function ManageBranchPage() {
             </div>
           </div>
 
-          <BranchTable
+          <OutletTable
             loading={loading}
             error={error}
             outlets={outlets}
@@ -110,7 +110,7 @@ function ManageBranchPage() {
           />
         </div>
 
-        <AddBranchModal
+        <AddOutletModal
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
           onCreated={handleOutletCreated}
@@ -120,4 +120,4 @@ function ManageBranchPage() {
   );
 }
 
-export default ManageBranchPage;
+export default ManageOutletPage;

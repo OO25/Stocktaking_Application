@@ -23,8 +23,8 @@ const STATUS_VARIANT = {
   locked: "destructive",
 };
 
-/** Outlet assignment table for ManageBranchAssignmentPage. */
-function BranchAssignmentTable({
+/** Outlet assignment table for ManageOutletAssignmentPage. */
+function OutletAssignmentTable({
   loading,
   error,
   sessions,
@@ -178,4 +178,4 @@ function BranchAssignmentTable({
   );
 }
 
-export default BranchAssignmentTable;
+export default OutletAssignmentTable;

@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
-import { fetchOutlets, createOutlet } from "../api/branches.js";
+import { fetchOutlets, createOutlet } from "../api/outlets.js";
 
 const INITIAL_FORM = {
   name: "",
-  branch_number: "",
+  cost_centre: "",
 };
 
 /**
  * Modal for creating a new outlet.
  * @param {{ open: boolean, onClose: () => void, onCreated: () => void }} props
  */
-function AddBranchModal({ open, onClose, onCreated }) {
+function AddOutletModal({ open, onClose, onCreated }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [existingOutlets, setExistingOutlets] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -38,11 +38,11 @@ function AddBranchModal({ open, onClose, onCreated }) {
   function validate() {
     const errors = {};
     const trimmedName = form.name.trim().toLowerCase();
-    const num = form.branch_number;
+    const num = form.cost_centre;
 
     // Check 3-digit format
     if (!/^\d{3}$/.test(num)) {
-      errors.branch_number = "Branch number must be exactly 3 digits.";
+      errors.cost_centre = "Cost centre must be exactly 3 digits.";
     }
 
     // Check for duplicates against existing outlets
@@ -50,11 +50,11 @@ function AddBranchModal({ open, onClose, onCreated }) {
       (b) => b.name.trim().toLowerCase() === trimmedName
     );
     const duplicateNumber = existingOutlets.find(
-      (b) => String(b.branch_number) === String(num)
+      (b) => String(b.cost_centre) === String(num)
     );
 
     if (duplicateName) errors.name = `"${form.name.trim()}" is already taken.`;
-    if (duplicateNumber) errors.branch_number = `Outlet number ${num} is already assigned.`;
+    if (duplicateNumber) errors.cost_centre = `Cost centre ${num} is already assigned.`;
 
     return errors;
   }
@@ -73,7 +73,7 @@ function AddBranchModal({ open, onClose, onCreated }) {
     try {
       await createOutlet({
         name: form.name.trim(),
-        branch_number: Number(form.branch_number),
+        cost_centre: Number(form.cost_centre),
       });
       onCreated();
       onClose();
@@ -136,19 +136,19 @@ function AddBranchModal({ open, onClose, onCreated }) {
           {/* Outlet Number */}
           <div>
             <label className={labelClass}>
-              Outlet Number <span className="text-red-500">*</span>
+              Cost Centre <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               required
               maxLength={3}
-              value={form.branch_number}
-              onChange={(e) => set("branch_number", e.target.value.replace(/\D/g, ""))}
-              className={fieldErrors.branch_number ? inputErrorClass : inputClass}
+              value={form.cost_centre}
+              onChange={(e) => set("cost_centre", e.target.value.replace(/\D/g, ""))}
+              className={fieldErrors.cost_centre ? inputErrorClass : inputClass}
               placeholder="e.g. 042"
             />
-            {fieldErrors.branch_number && (
-              <p className="mt-1 text-xs text-red-600">{fieldErrors.branch_number}</p>
+            {fieldErrors.cost_centre && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.cost_centre}</p>
             )}
           </div>
 
@@ -182,4 +182,4 @@ function AddBranchModal({ open, onClose, onCreated }) {
   );
 }
 
-export default AddBranchModal;
+export default AddOutletModal;

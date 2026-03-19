@@ -10,10 +10,10 @@ import {
 import { Button } from "./ui/button.jsx";
 import { Pencil, Trash } from "lucide-react";
 
-function BranchTable({
+function OutletTable({
   loading,
   error,
-  branches,
+  outlets,
   search,
   limit,
   page,
@@ -26,7 +26,7 @@ function BranchTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[80px] py-4 pl-6">Number</TableHead>
+            <TableHead className="w-[80px] py-4 pl-6">Cost Centre</TableHead>
             <TableHead className="py-4">Name</TableHead>
             <TableHead className="py-4">
               <div className="flex justify-end">
@@ -39,7 +39,7 @@ function BranchTable({
           {loading && (
             <TableRow>
               <TableCell colSpan={3} className="py-12 text-center text-sm">
-                Loading branches…
+                Loading outlets…
               </TableCell>
             </TableRow>
           )}
@@ -57,20 +57,20 @@ function BranchTable({
             </TableRow>
           )}
 
-          {!loading && error === null && branches.length === 0 && (
+          {!loading && error === null && outlets.length === 0 && (
             <TableRow>
               <TableCell colSpan={3} className="py-12 text-center text-sm">
-                {search ? "No branches match your search." : "No branches found."}
+                {search ? "No outlets match your search." : "No outlets found."}
               </TableCell>
             </TableRow>
           )}
 
-          {!loading && error === null && branches.map((branch) => (
-            <TableRow key={branch.id}>
+          {!loading && error === null && outlets.map((outlet) => (
+            <TableRow key={outlet.id}>
               <TableCell className="pl-6 font-mono">
-                {String(branch.branch_number).padStart(3, "0")}
+                {String(outlet.cost_centre).padStart(3, "0")}
               </TableCell>
-              <TableCell className="font-semibold">{branch.name}</TableCell>
+              <TableCell className="font-semibold">{outlet.name}</TableCell>
               <TableCell>
                 <div className="flex justify-end">
                   <div className="inline-flex items-center justify-center gap-2 w-[120px]">
@@ -122,4 +122,4 @@ function BranchTable({
   );
 }
 
-export default BranchTable;
+export default OutletTable;

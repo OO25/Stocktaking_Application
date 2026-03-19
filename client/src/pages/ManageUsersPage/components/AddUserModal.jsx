@@ -80,7 +80,7 @@ function AddUserModal({ open, onClose, onCreated }) {
     try {
       await createUser({
         ...form,
-        branch_ids: selectedOutlets.map((id) => Number(id)),
+        outlet_ids: selectedOutlets.map((id) => Number(id)),
       });
       onCreated();
       onClose();
