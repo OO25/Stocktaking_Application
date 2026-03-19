@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchCategories, fetchSuppliers, createProduct } from "../api/products.js";
+import { fetchUoms } from "../api/uom.js";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group.jsx";
 import { Button } from "./ui/button.jsx";
 import { Input } from "./ui/input.jsx";
@@ -26,7 +27,7 @@ const INITIAL_FORM = {
   packaging_type_id: "",
   supplier_id: "",
   price: "",
-  uom: "",
+  uom_id: "",
   product_code: "",
   unit_size: "",
   package_size: "",
@@ -40,6 +41,7 @@ function AddProductModal({ open, onClose, onCreated }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [categories, setCategories] = useState({ foodGroups: [], packagingTypes: [] });
   const [suppliers, setSuppliers] = useState([]);
+  const [uoms, setUoms] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -51,6 +53,7 @@ function AddProductModal({ open, onClose, onCreated }) {
     if (!open) return;
     fetchCategories().then(setCategories).catch(console.error);
     fetchSuppliers().then(setSuppliers).catch(console.error);
+    fetchUoms().then(setUoms).catch(console.error);
     setForm(INITIAL_FORM);
     setCategoryOpen(false);
     setSupplierOpen(false);
@@ -75,6 +78,7 @@ function AddProductModal({ open, onClose, onCreated }) {
         food_group_id: form.food_group_id ? Number(form.food_group_id) : null,
         packaging_type_id: form.packaging_type_id ? Number(form.packaging_type_id) : null,
         supplier_id: form.supplier_id ? Number(form.supplier_id) : null,
+        uom_id: form.uom_id ? Number(form.uom_id) : null,
         price: form.price ? Number(form.price) : 0,
         package_size: form.package_size ? Number(form.package_size) : null,
       });
@@ -98,7 +102,7 @@ function AddProductModal({ open, onClose, onCreated }) {
   const selectedSupplier = suppliers.find(
     (supplier) => String(supplier.id) === String(form.supplier_id)
   );
-  const uomOptions = ["kg", "g", "L", "mL", "pcs", "doz"];
+  const selectedUom = uoms.find((u) => String(u.id) === String(form.uom_id));
 
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
   const inputClass = "w-full";
@@ -301,10 +305,10 @@ function AddProductModal({ open, onClose, onCreated }) {
                     variant="outline"
                     role="combobox"
                     aria-expanded={uomOpen}
-                    className={cn("w-full justify-between", !form.uom && "text-muted-foreground")}
+                    className={cn("w-full justify-between", !form.uom_id && "text-muted-foreground")}
                     aria-label="UOM combobox"
                   >
-                    {form.uom || "Select..."}
+                    {selectedUom ? selectedUom.name : "Select..."}
                     <ChevronsUpDown className="opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -314,20 +318,20 @@ function AddProductModal({ open, onClose, onCreated }) {
                     <CommandList>
                       <CommandEmpty>No unit found.</CommandEmpty>
                       <CommandGroup>
-                        {uomOptions.map((uom) => (
+                        {uoms.map((u) => (
                           <CommandItem
-                            key={uom}
-                            value={uom}
+                            key={u.id}
+                            value={u.name}
                             onSelect={() => {
-                              set("uom", uom);
+                              set("uom_id", String(u.id));
                               setUomOpen(false);
                             }}
                             className="flex w-full items-center justify-between"
                           >
-                            {uom}
+                            {u.name}
                             <Check
                               className={cn(
-                                form.uom === uom ? "opacity-100" : "opacity-0"
+                                String(form.uom_id) === String(u.id) ? "opacity-100" : "opacity-0"
                               )}
                             />
                           </CommandItem>
