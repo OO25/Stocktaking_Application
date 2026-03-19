@@ -63,10 +63,10 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
     setOutletOpen(false);
     setExpandedOutlets(false);
     let outletIds = [];
-    if (Array.isArray(user.branch_ids)) {
-      outletIds = user.branch_ids.map(String);
-    } else if (typeof user.branch_ids === "string") {
-      const trimmed = user.branch_ids.replace(/[{}]/g, "");
+    if (Array.isArray(user.outlet_ids)) {
+      outletIds = user.outlet_ids.map(String);
+    } else if (typeof user.outlet_ids === "string") {
+      const trimmed = user.outlet_ids.replace(/[{}]/g, "");
       outletIds = trimmed
         ? trimmed.split(",").map((id) => id.trim()).filter(Boolean)
         : [];
@@ -105,7 +105,7 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
         name: form.name,
         username: form.username,
         role: form.role,
-        branch_ids: selectedOutlets.map((id) => Number(id)),
+        outlet_ids: selectedOutlets.map((id) => Number(id)),
       };
 
       if (form.password) {

@@ -1,15 +1,13 @@
-// Root component — shows LoginPage if unauthenticated, main app if logged in
-
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import LoginPage from "./pages/LoginPage/index.jsx";
 import { AppSidebar } from "./components/app-sidebar.jsx";
 import ManageProductPage from "./pages/ManageProductPage/index.jsx";
-import ManageBranchPage from "./pages/ManageBranchPage/index.jsx";
+import ManageOutletPage from "./pages/ManageOutletPage/index.jsx";
 import ManageSupplierPage from "./pages/ManageSupplierPage/index.jsx";
 import ManageCategoryPage from "./pages/ManageCategoryPage/index.jsx";
 import ManageUomPage from "./pages/ManageUomPage/index.jsx";
-import ManageBranchAssignmentPage from "./pages/ManageBranchAssignmentPage/index.jsx";
+import ManageOutletAssignmentPage from "./pages/ManageOutletAssignmentPage/index.jsx";
 import ManageUsersPage from "./pages/ManageUsersPage/index.jsx";
 import {
   SidebarInset,
@@ -75,11 +73,11 @@ function App() {
         <Route path="stock-count" element={<Placeholder />} />
         <Route path="inventory" element={<Placeholder />} />
         <Route path="products" element={<ManageProductPage />} />
-        <Route path="branches" element={<ManageBranchPage />} />
+        <Route path="branches" element={<ManageOutletPage />} />
         <Route path="categories" element={<ManageCategoryPage />} />
         <Route path="suppliers" element={<ManageSupplierPage />} />
         <Route path="uom" element={<ManageUomPage />} />
-        <Route path="branch-assignment" element={<ManageBranchAssignmentPage />} />
+        <Route path="branch-assignment" element={<ManageOutletAssignmentPage />} />
         <Route path="users" element={<ManageUsersPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

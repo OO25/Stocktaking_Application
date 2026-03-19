@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select.jsx";
-import BranchAssignmentTable from "./components/branchAssignmentTable.jsx";
+import OutletAssignmentTable from "./components/outletAssignmentTable.jsx";
 import CreateAssignmentModal from "./components/CreateAssignmentModal.jsx";
 import { Plus, Search } from "lucide-react";
 
@@ -32,7 +32,7 @@ function useDebounce(value, delay = 300) {
   return debounced;
 }
 
-function ManageBranchAssignmentPage() {
+function ManageOutletAssignmentPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
@@ -182,7 +182,7 @@ function ManageBranchAssignmentPage() {
 
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-          {/* Card header: search + branch filter */}
+          {/* Card header: search + outlet filter */}
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
             <div className="flex flex-1 flex-col-reverse items-start gap-y-2 sm:flex-row sm:items-center sm:space-x-2">
               <div className="search-field">
@@ -222,7 +222,7 @@ function ManageBranchAssignmentPage() {
             </div>
           </div>
 
-          <BranchAssignmentTable
+          <OutletAssignmentTable
             loading={loading}
             error={error}
             sessions={pageSessions}
@@ -267,4 +267,4 @@ function ManageBranchAssignmentPage() {
   );
 }
 
-export default ManageBranchAssignmentPage;
+export default ManageOutletAssignmentPage;
