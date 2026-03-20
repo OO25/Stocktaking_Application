@@ -1,6 +1,6 @@
 import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
 
 export async function fetchOutlets({ page = 1, limit = 10, search = "" } = {}) {
   const params = new URLSearchParams({ page, limit, search });
