@@ -9,6 +9,8 @@ import ManageCategoryPage from "./pages/ManageCategoryPage/index.jsx";
 import ManageUomPage from "./pages/ManageUomPage/index.jsx";
 import ManageOutletAssignmentPage from "./pages/ManageOutletAssignmentPage/index.jsx";
 import ManageUsersPage from "./pages/ManageUsersPage/index.jsx";
+import StockCountPage from "./pages/StockCountPage/index.jsx";
+import StockCountDetailPage from "./pages/StockCountPage/detail.jsx";
 import {
   SidebarInset,
   SidebarProvider,
@@ -70,7 +72,8 @@ function App() {
       <Route element={<AuthLayout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Placeholder />} />
-        <Route path="stock-count" element={<Placeholder />} />
+        <Route path="stock-count" element={<StockCountPage />} />
+        <Route path="stock-count/:id" element={<StockCountDetailPage />} />
         <Route path="inventory" element={<Placeholder />} />
         <Route path="products" element={<ManageProductPage />} />
         <Route path="branches" element={<ManageOutletPage />} />

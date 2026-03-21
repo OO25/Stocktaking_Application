@@ -45,3 +45,46 @@ export async function deleteSession(id) {
     throw new Error(body.message || body.error || `Request failed (${res.status})`);
   }
 }
+
+/*
+ * Fetches session detail with all products and current entries
+ */
+export async function fetchSessionDetail(id) {
+  const res = await fetchWithAuth(`${API_BASE}/stocktake/sessions/${id}/detail`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/*
+ * Saves product count entries for a session
+ */
+export async function saveSessionEntries(id, entries, finalize = false) {
+  const res = await fetchWithAuth(`${API_BASE}/stocktake/sessions/${id}/entries`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entries, finalize }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/*
+ * Submits a stocktake session for final approval
+ */
+export async function submitSession(id) {
+  const res = await fetchWithAuth(`${API_BASE}/stocktake/sessions/${id}/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
