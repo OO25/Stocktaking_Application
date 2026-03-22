@@ -1,7 +1,53 @@
 import pool from "../config/db.js";
 
+// ============================================
+// HELPERS >^.^<
+// ============================================
+
+/*
+ * HELPER FUNCTION SO NO REUSED CODE
+ * Checks if user has acess to a session based of its outlet_id
+ */
+async function checkSessionAccess(req, sessionOutletId) {
+  if (req.user && req.user.role !== "admin") {
+    const { rows: userOutlets } = await pool.query(
+      "SELECT outlet_id FROM user_outlets WHERE user_id = $1",
+      [req.user.id],
+    );
+    const allowedOutlets = userOutlets.map((r) => r.outlet_id);
+    if (!allowedOutlets.includes(sessionOutletId)) {
+      throw new Error("Access denied");
+    }
+  }
+}
+
+/*
+ * HELPER FUNCTION SO NOT REUSED CODE
+ * Builds a data transfer object, which combines all info for the frontend into a box,
+ * instead of it having to get all the data
+ */
+function buildSessionDetailDTO(session, validProducts, currentEntries) {
+  return {
+    session_id: session.id,
+    period_month: session.month,
+    period_year: session.year,
+    outlet_name: session.outlet_name,
+    status: session.status,
+    counted_by: session.counted_by,
+    counted_date: session.counted_date,
+    valid_products: validProducts,
+    current_entries: currentEntries,
+  };
+}
+
+// ============================================
+// PERIODS >^.^<
+// ============================================
+
 /*
  * Returns all stocktake periods, newest first
+  * URL: GET /api/stocktake/periods
+  * Selects id - etc from periods table, ordered by year
  */
 export async function getPeriods(_req, res) {
   try {
@@ -17,6 +63,10 @@ export async function getPeriods(_req, res) {
 
 /*
  * Creates a stocktake period for a given month/year, or returns it if one already exists
+  * URL: POST /api/stocktake/periods
+  * Uses INSERT INTO... ON CONFLICT...DO UPDATE that:
+  * Tries to insert a new peiod, if that period exists (conflict), updates it setting month to itself
+  * Ensures theres no duplicates
  */
 export async function createPeriod(req, res) {
   try {
@@ -41,22 +91,30 @@ export async function createPeriod(req, res) {
   }
 }
 
+// ============================================
+// SESSIONS >^.^<
+// ============================================
+
 /*
- * Gets all stocktake sessions with their period and outlet info.
- * Non-admin users only see sessions for outlets they're assigned to.
+ * Gets all stocktake sessions with their period and outlet info
+ * Non-admin users only see sessions for outlets they're assigned to
+ * URL: GET /api/stocktake/sessions
+ * 
  */
 export async function getSessions(req, res) {
   try {
     const outletId = req.query.outlet_id ? Number(req.query.outlet_id) : null;
-
+    // Arrays for dynamic query building (Conditionally adds filters to arrays)
     const conditions = [];
     const params = [];
 
+    // If outlet filter is provided
     if (outletId) {
       params.push(outletId);
       conditions.push(`ss.outlet_id = $${params.length}`);
     }
 
+    // Permission check
     if (req.user && req.user.role !== "admin") {
       const userOutlets = await pool.query(
         "SELECT outlet_id FROM user_outlets WHERE user_id = $1",
@@ -73,7 +131,7 @@ export async function getSessions(req, res) {
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-
+    // Main query with ${where} for filter
     const { rows } = await pool.query(
       `SELECT
          ss.id,
@@ -104,6 +162,8 @@ export async function getSessions(req, res) {
 /*
  * Creates a new stocktake session for an outlet. If you pass month/year
  * instead of period_id, the period gets auto-created.
+ * URL: POST /api/stocktake/sessions
+ * 
  */
 export async function createSession(req, res) {
   try {
@@ -117,6 +177,7 @@ export async function createSession(req, res) {
     try {
       await client.query("BEGIN");
 
+      // Same logic as createPeriod
       if (!period_id && month && year) {
         const { rows: periodRows } = await client.query(
           `INSERT INTO stocktake_periods (month, year)
@@ -128,11 +189,13 @@ export async function createSession(req, res) {
         period_id = periodRows[0].id;
       }
 
+      // Final validation
       if (!period_id) {
         await client.query("ROLLBACK");
         return res.status(400).json({ message: "Period (period_id or month+year) is required." });
       }
 
+      // Ensures no duplicates
       const existing = await client.query(
         "SELECT id FROM stocktake_sessions WHERE period_id = $1 AND outlet_id = $2",
         [period_id, outlet_id],
@@ -151,6 +214,7 @@ export async function createSession(req, res) {
 
       await client.query("COMMIT");
 
+      // After session is created, gets all joined data
       const { rows: full } = await pool.query(
         `SELECT
            ss.id, ss.period_id, ss.outlet_id, ss.status, ss.counted_by, ss.counted_date,
@@ -177,7 +241,7 @@ export async function createSession(req, res) {
 }
 
 /*
- * Deletes a stocktake session — only works if the session is still in draft
+ * Deletes a stocktake session if its still in draft
  */
 export async function deleteSession(req, res) {
   try {
@@ -210,6 +274,7 @@ export async function deleteSession(req, res) {
 
 /*
  * Retrieve a session with its full DTO for editing or viewing
+  * URL: GET /api/stocktake/sessions/:id/detail
  */
 export async function getSessionDetail(req, res) {
   try {
@@ -246,16 +311,11 @@ export async function getSessionDetail(req, res) {
     const session = sessionRows[0];
     console.log("Session found:", session);
 
-    // Check permissions: non-admin users can only access their outlet sessions
-    if (req.user && req.user.role !== "admin") {
-      const { rows: userOutlets } = await pool.query(
-        "SELECT outlet_id FROM user_outlets WHERE user_id = $1",
-        [req.user.id],
-      );
-      const allowedOutlets = userOutlets.map((r) => r.outlet_id);
-      if (!allowedOutlets.includes(session.outlet_id)) {
-        return res.status(403).json({ message: "Access denied to this session." });
-      }
+    // Check permissions
+    try {
+      await checkSessionAccess(req, session.outlet_id);
+    } catch (err) {
+      return res.status(403).json({ message: "Access denied to this session." });
     }
 
     // Fetch valid products for this outlet (joined with UOM and price)
@@ -289,17 +349,7 @@ export async function getSessionDetail(req, res) {
     );
 
     // Build and return DTO
-    const dto = {
-      session_id: session.id,
-      period_month: session.month,
-      period_year: session.year,
-      outlet_name: session.outlet_name,
-      status: session.status,
-      counted_by: session.counted_by,
-      counted_date: session.counted_date,
-      valid_products: validProducts,
-      current_entries: currentEntries,
-    };
+    const dto = buildSessionDetailDTO(session, validProducts, currentEntries);
 
     console.log("Returning DTO:", JSON.stringify(dto, null, 2));
     res.json(dto);
@@ -309,8 +359,14 @@ export async function getSessionDetail(req, res) {
   }
 }
 
+// ============================================
+// SESSION ENTRIES >^.^<
+// ============================================
+
 /*
  * Save product count entries for a session
+ * URL: POST /api/stocktake/sessions/:id/entries
+ * 
  */
 export async function saveSessionEntries(req, res) {
   try {
@@ -340,15 +396,10 @@ export async function saveSessionEntries(req, res) {
     const session = sessionRows[0];
 
     // Check permissions
-    if (req.user && req.user.role !== "admin") {
-      const { rows: userOutlets } = await pool.query(
-        "SELECT outlet_id FROM user_outlets WHERE user_id = $1",
-        [req.user.id],
-      );
-      const allowedOutlets = userOutlets.map((r) => r.outlet_id);
-      if (!allowedOutlets.includes(session.outlet_id)) {
-        return res.status(403).json({ message: "Access denied to this session." });
-      }
+    try {
+      await checkSessionAccess(req, session.outlet_id);
+    } catch (err) {
+      return res.status(403).json({ message: "Access denied to this session." });
     }
 
     // Check if session is still editable
@@ -447,6 +498,7 @@ export async function saveSessionEntries(req, res) {
 
 /*
  * Submit a session for final approval
+ * URL: POST /api/stocktake/sessions/:id/submit
  */
 export async function submitSession(req, res) {
   try {
@@ -470,15 +522,10 @@ export async function submitSession(req, res) {
     const session = sessionRows[0];
 
     // Check permissions
-    if (req.user && req.user.role !== "admin") {
-      const { rows: userOutlets } = await pool.query(
-        "SELECT outlet_id FROM user_outlets WHERE user_id = $1",
-        [req.user.id],
-      );
-      const allowedOutlets = userOutlets.map((r) => r.outlet_id);
-      if (!allowedOutlets.includes(session.outlet_id)) {
-        return res.status(403).json({ message: "Access denied to this session." });
-      }
+    try {
+      await checkSessionAccess(req, session.outlet_id);
+    } catch (err) {
+      return res.status(403).json({ message: "Access denied to this session." });
     }
 
     // Check if already submitted

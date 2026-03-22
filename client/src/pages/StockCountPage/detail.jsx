@@ -219,7 +219,7 @@ export default function StockCountDetailPage() {
             {validProducts.map((product) => {
               const entry = entries.find((e) => e.product_id === product.product_id);
               const quantity = entry?.quantity || 0;
-              const unitPrice = product.unit_price || 0;
+              const unitPrice = parseFloat(product.unit_price) || 0;
               const lineTotal = quantity * unitPrice;
 
               return (
