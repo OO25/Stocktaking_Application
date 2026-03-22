@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { fetchCategories, fetchSuppliers, createProduct } from "../api/products.js";
-import { fetchUoms } from "../api/uom.js";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group.jsx";
-import { Button } from "./ui/button.jsx";
-import { Input } from "./ui/input.jsx";
+import { fetchCategories, fetchSuppliers, fetchOutlets, updateProduct } from "../../../api/products.js";
+import { fetchUoms } from "../../../api/uom.js";
+import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group.jsx";
+import { Button } from "../../../components/ui/button.jsx";
+import { Input } from "../../../components/ui/input.jsx";
+import { Badge } from "../../../components/ui/badge.jsx";
 import {
   Command,
   CommandEmpty,
@@ -11,14 +12,14 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "./ui/command.jsx";
+} from "../../../components/ui/command.jsx";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "./ui/popover.jsx";
-import { cn } from "../lib/utils.js";
-import { Check, ChevronsUpDown } from "lucide-react";
+} from "../../../components/ui/popover.jsx";
+import { cn } from "../../../lib/utils.js";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 
 const INITIAL_FORM = {
   name: "",
@@ -34,37 +35,71 @@ const INITIAL_FORM = {
 };
 
 /**
- * Full-screen modal overlay for creating a new product.
- * @param {{ open: boolean, onClose: () => void, onCreated: () => void }} props
+ * Full-screen modal overlay for editing an existing product.
+ * @param {{ open: boolean, product: any, onClose: () => void, onUpdated: () => void }} props
  */
-function AddProductModal({ open, onClose, onCreated }) {
+function EditProductModal({ open, product, onClose, onUpdated }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [categories, setCategories] = useState({ foodGroups: [], packagingTypes: [] });
   const [suppliers, setSuppliers] = useState([]);
   const [uoms, setUoms] = useState([]);
+  const [outlets, setOutlets] = useState([]);
+  const [selectedOutlets, setSelectedOutlets] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [uomOpen, setUomOpen] = useState(false);
+  const [outletOpen, setOutletOpen] = useState(false);
 
-  // Load dropdown data when modal opens
+  // Load dropdown data and pre-populate form when modal opens
   useEffect(() => {
-    if (!open) return;
+    if (!open || !product) return;
     fetchCategories().then(setCategories).catch(console.error);
     fetchSuppliers().then(setSuppliers).catch(console.error);
     fetchUoms().then(setUoms).catch(console.error);
-    setForm(INITIAL_FORM);
+    fetchOutlets().then(setOutlets).catch(console.error);
     setCategoryOpen(false);
     setSupplierOpen(false);
     setUomOpen(false);
+    setOutletOpen(false);
     setError(null);
-  }, [open]);
 
-  if (!open) return null;
+    // Pre-populate form with existing product values
+    setForm({
+      name: product.name || "",
+      is_packaging: Boolean(product.is_packaging),
+      food_group_id: product.food_group_id ? String(product.food_group_id) : "",
+      packaging_type_id: product.packaging_type_id ? String(product.packaging_type_id) : "",
+      supplier_id: product.supplier_id ? String(product.supplier_id) : "",
+      price: product.price != null ? String(product.price) : "",
+      uom_id: product.uom_id ? String(product.uom_id) : "",
+      product_code: product.product_code || "",
+      unit_size: product.unit_size || "",
+      package_size: product.package_size != null ? String(product.package_size) : "",
+    });
+
+    // Pre-populate selected outlets
+    const outletIds = Array.isArray(product.outlet_ids)
+      ? product.outlet_ids.map(String)
+      : [];
+    setSelectedOutlets(outletIds);
+  }, [open, product]);
+
+  if (!open || !product) return null;
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function toggleOutlet(id) {
+    setSelectedOutlets((prev) =>
+      prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
+    );
+  }
+
+  function removeOutlet(id) {
+    setSelectedOutlets((prev) => prev.filter((o) => o !== id));
   }
 
   async function handleSubmit(e) {
@@ -73,7 +108,7 @@ function AddProductModal({ open, onClose, onCreated }) {
     setSubmitting(true);
 
     try {
-      await createProduct({
+      await updateProduct(product.id, {
         ...form,
         food_group_id: form.food_group_id ? Number(form.food_group_id) : null,
         packaging_type_id: form.packaging_type_id ? Number(form.packaging_type_id) : null,
@@ -81,11 +116,12 @@ function AddProductModal({ open, onClose, onCreated }) {
         uom_id: form.uom_id ? Number(form.uom_id) : null,
         price: form.price ? Number(form.price) : 0,
         package_size: form.package_size ? Number(form.package_size) : null,
+        outlet_ids: selectedOutlets.map(Number),
       });
-      onCreated();
+      onUpdated();
       onClose();
     } catch (err) {
-      setError(err.message || "Failed to create product.");
+      setError(err.message || "Failed to update product.");
     } finally {
       setSubmitting(false);
     }
@@ -100,7 +136,7 @@ function AddProductModal({ open, onClose, onCreated }) {
     (cat) => String(cat.id) === String(form[categoryField])
   );
   const selectedSupplier = suppliers.find(
-    (supplier) => String(supplier.id) === String(form.supplier_id)
+    (s) => String(s.id) === String(form.supplier_id)
   );
   const selectedUom = uoms.find((u) => String(u.id) === String(form.uom_id));
 
@@ -108,19 +144,17 @@ function AddProductModal({ open, onClose, onCreated }) {
   const inputClass = "w-full";
 
   return (
-    /* Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={onClose}
     >
-      {/* Modal panel — stop click propagation so clicking inside doesn't close */}
       <div
         className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900">Add New Item</h2>
+          <h2 className="text-lg font-bold text-gray-900">Edit Item</h2>
           <button
             className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
             onClick={onClose}
@@ -138,9 +172,11 @@ function AddProductModal({ open, onClose, onCreated }) {
             <span className="text-sm font-medium text-gray-700">Type:</span>
             <RadioGroup
               value={form.is_packaging ? "packaging" : "food"}
-              onValueChange={(value) =>
-                set("is_packaging", value === "packaging")
-              }
+              onValueChange={(value) => {
+                set("is_packaging", value === "packaging");
+                set("food_group_id", "");
+                set("packaging_type_id", "");
+              }}
               className="flex items-center gap-4"
             >
               <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
@@ -156,11 +192,11 @@ function AddProductModal({ open, onClose, onCreated }) {
 
           {/* Name */}
           <div>
-            <label htmlFor="add-product-name" className={labelClass}>
+            <label htmlFor="edit-product-name" className={labelClass}>
               Name <span className="text-red-500">*</span>
             </label>
             <Input
-              id="add-product-name"
+              id="edit-product-name"
               name="name"
               type="text"
               required
@@ -184,21 +220,14 @@ function AddProductModal({ open, onClose, onCreated }) {
                   role="combobox"
                   aria-expanded={categoryOpen}
                   className={cn("w-full justify-between", !selectedCategory && "text-muted-foreground")}
-                  aria-label="Category combobox"
                 >
                   {selectedCategory ? selectedCategory.name : "Select..."}
                   <ChevronsUpDown className="opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent
-                className="w-[--radix-popover-trigger-width] p-0"
-                style={{ width: "var(--radix-popover-trigger-width)" }}
-              >
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" style={{ width: "var(--radix-popover-trigger-width)" }}>
                 <Command>
-                  <CommandInput
-                    placeholder={`Search ${form.is_packaging ? "packaging" : "food"}...`}
-                    className="h-9"
-                  />
+                  <CommandInput placeholder={`Search ${form.is_packaging ? "packaging" : "food"}...`} className="h-9" />
                   <CommandList>
                     <CommandEmpty>No category found.</CommandEmpty>
                     <CommandGroup>
@@ -206,20 +235,11 @@ function AddProductModal({ open, onClose, onCreated }) {
                         <CommandItem
                           key={cat.id}
                           value={cat.name}
-                          onSelect={() => {
-                            set(categoryField, String(cat.id));
-                            setCategoryOpen(false);
-                          }}
+                          onSelect={() => { set(categoryField, String(cat.id)); setCategoryOpen(false); }}
                           className="flex w-full items-center justify-between"
                         >
                           {cat.name}
-                          <Check
-                            className={cn(
-                              String(form[categoryField]) === String(cat.id)
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
+                          <Check className={cn(String(form[categoryField]) === String(cat.id) ? "opacity-100" : "opacity-0")} />
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -231,7 +251,9 @@ function AddProductModal({ open, onClose, onCreated }) {
 
           {/* Supplier */}
           <div>
-            <label className={labelClass}>Supplier <span className="text-red-500">*</span></label>
+            <label className={labelClass}>
+              Supplier <span className="text-red-500">*</span>
+            </label>
             <Popover open={supplierOpen} onOpenChange={setSupplierOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -239,16 +261,12 @@ function AddProductModal({ open, onClose, onCreated }) {
                   role="combobox"
                   aria-expanded={supplierOpen}
                   className={cn("w-full justify-between", !selectedSupplier && "text-muted-foreground")}
-                  aria-label="Supplier combobox"
                 >
                   {selectedSupplier ? selectedSupplier.name : "Select..."}
                   <ChevronsUpDown className="opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent
-                className="w-[--radix-popover-trigger-width] p-0"
-                style={{ width: "var(--radix-popover-trigger-width)" }}
-              >
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" style={{ width: "var(--radix-popover-trigger-width)" }}>
                 <Command>
                   <CommandInput placeholder="Search supplier..." className="h-9" />
                   <CommandList>
@@ -258,20 +276,69 @@ function AddProductModal({ open, onClose, onCreated }) {
                         <CommandItem
                           key={s.id}
                           value={s.name}
-                          onSelect={() => {
-                            set("supplier_id", String(s.id));
-                            setSupplierOpen(false);
-                          }}
+                          onSelect={() => { set("supplier_id", String(s.id)); setSupplierOpen(false); }}
                           className="flex w-full items-center justify-between"
                         >
                           {s.name}
-                          <Check
-                            className={cn(
-                              String(form.supplier_id) === String(s.id)
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
+                          <Check className={cn(String(form.supplier_id) === String(s.id) ? "opacity-100" : "opacity-0")} />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Outlets multi-select */}
+          <div>
+            <label className={labelClass}>Outlets</label>
+            <Popover open={outletOpen} onOpenChange={setOutletOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={outletOpen}
+                  className="h-auto min-h-9 w-full justify-between hover:bg-transparent"
+                >
+                  <div className="flex flex-wrap items-center gap-1 pr-2.5">
+                    {selectedOutlets.length > 0 ? (
+                      selectedOutlets.map((id) => {
+                        const outlet = outlets.find((o) => String(o.id) === String(id));
+                        return outlet ? (
+                          <Badge key={id} variant="outline" className="rounded-sm">
+                            {outlet.name}
+                            <span
+                              className="ml-1 cursor-pointer"
+                              onClick={(e) => { e.stopPropagation(); removeOutlet(id); }}
+                            >
+                              <X className="h-3 w-3" />
+                            </span>
+                          </Badge>
+                        ) : null;
+                      })
+                    ) : (
+                      <span className="text-muted-foreground">Select outlets...</span>
+                    )}
+                  </div>
+                  <ChevronsUpDown className="text-muted-foreground/80 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" style={{ width: "var(--radix-popover-trigger-width)" }}>
+                <Command>
+                  <CommandInput placeholder="Search outlet..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>No outlet found.</CommandEmpty>
+                    <CommandGroup>
+                      {outlets.map((outlet) => (
+                        <CommandItem
+                          key={outlet.id}
+                          value={outlet.name}
+                          onSelect={() => toggleOutlet(String(outlet.id))}
+                          className="flex w-full items-center justify-between"
+                        >
+                          {outlet.name}
+                          {selectedOutlets.includes(String(outlet.id)) && <Check className="h-4 w-4" />}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -284,9 +351,11 @@ function AddProductModal({ open, onClose, onCreated }) {
           {/* Price + UOM row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="add-product-price" className={labelClass}>Price ($) <span className="text-red-500">*</span></label>
+              <label htmlFor="edit-product-price" className={labelClass}>
+                Price ($) <span className="text-red-500">*</span>
+              </label>
               <Input
-                id="add-product-price"
+                id="edit-product-price"
                 name="price"
                 type="number"
                 step="0.01"
@@ -298,7 +367,9 @@ function AddProductModal({ open, onClose, onCreated }) {
               />
             </div>
             <div>
-              <label className={labelClass}>UOM <span className="text-red-500">*</span></label>
+              <label className={labelClass}>
+                UOM <span className="text-red-500">*</span>
+              </label>
               <Popover open={uomOpen} onOpenChange={setUomOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -306,7 +377,6 @@ function AddProductModal({ open, onClose, onCreated }) {
                     role="combobox"
                     aria-expanded={uomOpen}
                     className={cn("w-full justify-between", !form.uom_id && "text-muted-foreground")}
-                    aria-label="UOM combobox"
                   >
                     {selectedUom ? selectedUom.name : "Select..."}
                     <ChevronsUpDown className="opacity-50" />
@@ -322,18 +392,11 @@ function AddProductModal({ open, onClose, onCreated }) {
                           <CommandItem
                             key={u.id}
                             value={u.name}
-                            onSelect={() => {
-                              set("uom_id", String(u.id));
-                              setUomOpen(false);
-                            }}
+                            onSelect={() => { set("uom_id", String(u.id)); setUomOpen(false); }}
                             className="flex w-full items-center justify-between"
                           >
                             {u.name}
-                            <Check
-                              className={cn(
-                                String(form.uom_id) === String(u.id) ? "opacity-100" : "opacity-0"
-                              )}
-                            />
+                            <Check className={cn(String(form.uom_id) === String(u.id) ? "opacity-100" : "opacity-0")} />
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -344,24 +407,28 @@ function AddProductModal({ open, onClose, onCreated }) {
             </div>
           </div>
 
-          {/* Product code + Unit size row */}
+          {/* Package Size + Unit Size row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="add-product-barcode" className={labelClass}>Product Barcode</label>
+              <label htmlFor="edit-product-package-size" className={labelClass}>Package Size</label>
               <Input
-                id="add-product-barcode"
-                name="product_code"
-                type="text"
-                value={form.product_code}
-                onChange={(e) => set("product_code", e.target.value)}
+                id="edit-product-package-size"
+                name="package_size"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.package_size}
+                onChange={(e) => set("package_size", e.target.value)}
                 className={inputClass}
-                placeholder="Optional"
+                placeholder="e.g. 10"
               />
             </div>
             <div>
-              <label htmlFor="add-product-unit-size" className={labelClass}>Unit Size <span className="text-red-500">*</span></label>
+              <label htmlFor="edit-product-unit-size" className={labelClass}>
+                Unit Size <span className="text-red-500">*</span>
+              </label>
               <Input
-                id="add-product-unit-size"
+                id="edit-product-unit-size"
                 name="unit_size"
                 type="text"
                 value={form.unit_size}
@@ -372,19 +439,17 @@ function AddProductModal({ open, onClose, onCreated }) {
             </div>
           </div>
 
-          {/* Package size */}
+          {/* Product Barcode */}
           <div>
-            <label htmlFor="add-product-package-size" className={labelClass}>Package Size</label>
+            <label htmlFor="edit-product-barcode" className={labelClass}>Product Barcode</label>
             <Input
-              id="add-product-package-size"
-              name="package_size"
-              type="number"
-              step="0.01"
-              min="0"
-              value={form.package_size}
-              onChange={(e) => set("package_size", e.target.value)}
+              id="edit-product-barcode"
+              name="product_code"
+              type="text"
+              value={form.product_code}
+              onChange={(e) => set("product_code", e.target.value)}
               className={inputClass}
-              placeholder="e.g. 10"
+              placeholder="Optional"
             />
           </div>
 
@@ -397,11 +462,9 @@ function AddProductModal({ open, onClose, onCreated }) {
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Adding…" : "Add Item"}
+              {submitting ? "Saving…" : "Save Changes"}
             </Button>
           </div>
         </form>
@@ -410,4 +473,4 @@ function AddProductModal({ open, onClose, onCreated }) {
   );
 }
 
-export default AddProductModal;
+export default EditProductModal;
