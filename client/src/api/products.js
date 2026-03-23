@@ -73,3 +73,37 @@ export async function createProduct(product) {
   }
   return res.json();
 }
+
+/**
+ * Updates an existing product.
+ * @param {number} id
+ * @param {Object} product - The updated product data.
+ * @returns {Promise<Object>} The updated product row.
+ */
+export async function updateProduct(id, product) {
+  const res = await fetchWithAuth(`${API_BASE}/products/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(product),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/**
+ * Deletes a product.
+ * @param {number} id
+ * @returns {Promise<void>}
+ */
+export async function deleteProduct(id) {
+  const res = await fetchWithAuth(`${API_BASE}/products/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed (${res.status})`);
+  }
+}
