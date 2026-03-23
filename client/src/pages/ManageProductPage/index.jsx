@@ -58,30 +58,25 @@ function sortProducts(products, sort) {
 /** Apply active filters to a list of products. */
 function filterProducts(products, filters) {
   return products.filter((p) => {
-    // Type filter
     if (filters.type === "food" && p.is_packaging) return false;
     if (filters.type === "packaging" && !p.is_packaging) return false;
-
-    // Category filter (food_group or packaging_type name)
     if (filters.category) {
       const cat = p.is_packaging ? p.packaging_type : p.food_group;
       if (cat !== filters.category) return false;
     }
-
-    // Supplier filter
     if (filters.supplier && p.supplier !== filters.supplier) return false;
-
-    // Outlet filter — product must belong to the selected outlet
     if (filters.outlet) {
       const names = Array.isArray(p.outlet_names) ? p.outlet_names : [];
       if (!names.includes(filters.outlet)) return false;
     }
-
     return true;
   });
 }
 
 const EMPTY_FILTERS = { type: "", category: "", supplier: "", outlet: "" };
+
+// Easter egg emojis for the 67 search
+const EASTER_EMOJIS = ["6️⃣", "7️⃣", "😛", "🫴", "😂"];
 
 function ManageProductPage() {
   const [products, setProducts] = useState([]);
@@ -99,14 +94,69 @@ function ManageProductPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [easterEgg, setEasterEgg] = useState(false);
+  const [emojiList] = useState(() =>
+    Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      emoji: EASTER_EMOJIS[Math.floor(Math.random() * EASTER_EMOJIS.length)],
+      left: Math.floor(Math.random() * 100),
+      delay: Math.round(Math.random() * 150) / 100,
+      size: Math.round((1.5 + Math.random() * 1.5) * 10) / 10,
+    }))
+  );
   const successTimerRef = useRef(null);
+  const easterEggTimerRef = useRef(null);
 
-  // Dropdown option lists derived from loaded products
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [supplierOptions, setSupplierOptions] = useState([]);
   const [outletOptions, setOutletOptions] = useState([]);
 
   const debouncedSearch = useDebounce(search, 300);
+
+  // Inject easter egg CSS once on mount
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.id = "easter-egg-67-styles";
+    style.textContent = [
+      "@keyframes wobble67 {",
+      "  0%   { transform: rotate(0deg); }",
+      "  10%  { transform: rotate(-3deg) skewX(-2deg); }",
+      "  20%  { transform: rotate(3deg) skewX(2deg); }",
+      "  30%  { transform: rotate(-3deg) skewX(-2deg); }",
+      "  40%  { transform: rotate(3deg) skewX(2deg); }",
+      "  50%  { transform: rotate(-2deg); }",
+      "  60%  { transform: rotate(2deg); }",
+      "  70%  { transform: rotate(-1deg); }",
+      "  80%  { transform: rotate(1deg); }",
+      "  90%  { transform: rotate(-0.5deg); }",
+      "  100% { transform: rotate(0deg); }",
+      "}",
+      "@keyframes fall67 {",
+      "  0%   { transform: translateY(-60px) rotate(0deg); opacity: 1; }",
+      "  100% { transform: translateY(100vh) rotate(360deg); opacity: 0.6; }",
+      "}",
+      ".wobble-67 { animation: wobble67 1.2s ease-in-out 3; transform-origin: center; }",
+      ".emoji-fall { position: fixed; top: 0; font-size: 2rem; animation: fall67 2.5s linear forwards; pointer-events: none; z-index: 9999; }",
+    ].join("\n");
+    if (!document.getElementById("easter-egg-67-styles")) {
+      document.head.appendChild(style);
+    }
+    return () => {
+      const el = document.getElementById("easter-egg-67-styles");
+      if (el) el.remove();
+    };
+  }, []);
+
+  // Trigger easter egg when search is exactly "67"
+  useEffect(() => {
+    if (debouncedSearch.trim() === "67") {
+      setEasterEgg(true);
+      if (easterEggTimerRef.current) clearTimeout(easterEggTimerRef.current);
+      easterEggTimerRef.current = setTimeout(() => setEasterEgg(false), 3000);
+    } else {
+      setEasterEgg(false);
+    }
+  }, [debouncedSearch]);
 
   // Load filter option lists once on mount
   useEffect(() => {
@@ -119,17 +169,14 @@ function ManageProductPage() {
         setCategoryOptions([...new Set(all)].sort());
       })
       .catch(console.error);
-
     fetchSuppliers()
       .then((data) => setSupplierOptions(data.map((s) => s.name).sort()))
       .catch(console.error);
-
     fetchOutlets()
       .then((data) => setOutletOptions(data.map((o) => o.name).sort()))
       .catch(console.error);
   }, []);
 
-  // Show a success alert for 4 seconds
   function showSuccess(message) {
     setSuccessMessage(message);
     if (successTimerRef.current) clearTimeout(successTimerRef.current);
@@ -149,7 +196,6 @@ function ManageProductPage() {
     setPage(1);
   }
 
-  // Reset to page 1 when search changes
   const prevSearch = useRef(debouncedSearch);
   useEffect(() => {
     if (prevSearch.current !== debouncedSearch) {
@@ -158,12 +204,10 @@ function ManageProductPage() {
     }
   }, [debouncedSearch]);
 
-  // Fetch products whenever page, limit, or debounced search changes
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-
     fetchProducts({ page, limit, search: debouncedSearch })
       .then((data) => {
         if (!cancelled) {
@@ -171,17 +215,11 @@ function ManageProductPage() {
           setTotalCount(data.totalCount);
         }
       })
-      .catch((err) => {
-        if (!cancelled) setError(err.message || String(err));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
+      .catch((err) => { if (!cancelled) setError(err.message || String(err)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [page, limit, debouncedSearch]);
 
-  // Apply filters then sort
   const processedProducts = useMemo(
     () => sortProducts(filterProducts(products, filters), sort),
     [products, filters, sort]
@@ -189,8 +227,6 @@ function ManageProductPage() {
 
   const totalPages = Math.max(1, Math.ceil(processedProducts.length / limit));
   const pageProducts = processedProducts.slice((page - 1) * limit, page * limit);
-
-  // Count active filters for the badge
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
   function handleProductCreated() {
@@ -223,246 +259,212 @@ function ManageProductPage() {
   const labelClass = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 p-6">
-      <div className="px-4 py-6 mx-auto w-full max-w-7xl flex flex-1 flex-col gap-4 sm:gap-6">
-        {/* Heading */}
-        <div className="intro-row">
-          <div>
-            <h1 className="page-title">Products</h1>
-            <p className="page-description">
-              Quick access to essential metrics and management tools.
-            </p>
-          </div>
-          <div className="action-row">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button onClick={() => setShowAddModal(true)}>
-                <Plus />
-                Add New Item
-              </Button>
-            </div>
-          </div>
+    <>
+      {/* Easter egg emoji rain */}
+      {easterEgg && (
+        <div aria-hidden="true">
+          {emojiList.map((item) => (
+            <span
+              key={item.id}
+              className="emoji-fall"
+              style={{
+                left: item.left + "%",
+                animationDelay: item.delay + "s",
+                fontSize: item.size + "rem",
+              }}
+            >
+              {item.emoji}
+            </span>
+          ))}
         </div>
+      )}
 
-        {/* Success alert */}
-        <SuccessAlert
-          message={successMessage}
-          className="fixed bottom-4 right-4 z-50 w-[320px]"
-        />
+      {/* Main page */}
+      <div className={easterEgg ? "flex-1 flex flex-col bg-gray-50 p-6 wobble-67" : "flex-1 flex flex-col bg-gray-50 p-6"}>
+        <div className="px-4 py-6 mx-auto w-full max-w-7xl flex flex-1 flex-col gap-4 sm:gap-6">
 
-        {/* Table */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-          {/* Toolbar: search + filter + sort */}
-          <div className="px-5 py-4 border-b border-gray-100">
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Search */}
-              <div className="search-field flex-1 min-w-48">
-                <Search className="search-icon" />
-                <Input
-                  id="product-search"
-                  name="search"
-                  type="text"
-                  placeholder="Search by name or barcode..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-
-              {/* Filter popover */}
-              <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="relative gap-2">
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filter
-                    {activeFilterCount > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                        {activeFilterCount}
-                      </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-72 p-4 space-y-4">
-                  {/* Type */}
-                  <div>
-                    <label className={labelClass}>Type</label>
-                    <Select
-                      value={filters.type || "__all__"}
-                      onValueChange={(v) => setFilter("type", v === "__all__" ? "" : v)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Types" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__all__">All Types</SelectItem>
-                        <SelectItem value="food">Food</SelectItem>
-                        <SelectItem value="packaging">Packaging</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Category */}
-                  <div>
-                    <label className={labelClass}>Category</label>
-                    <Select
-                      value={filters.category || "__all__"}
-                      onValueChange={(v) => setFilter("category", v === "__all__" ? "" : v)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Categories" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__all__">All Categories</SelectItem>
-                        {categoryOptions.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Supplier */}
-                  <div>
-                    <label className={labelClass}>Supplier</label>
-                    <Select
-                      value={filters.supplier || "__all__"}
-                      onValueChange={(v) => setFilter("supplier", v === "__all__" ? "" : v)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Suppliers" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__all__">All Suppliers</SelectItem>
-                        {supplierOptions.map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Outlet */}
-                  <div>
-                    <label className={labelClass}>Outlet</label>
-                    <Select
-                      value={filters.outlet || "__all__"}
-                      onValueChange={(v) => setFilter("outlet", v === "__all__" ? "" : v)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Outlets" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__all__">All Outlets</SelectItem>
-                        {outletOptions.map((o) => (
-                          <SelectItem key={o} value={o}>{o}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Clear filters */}
-                  {activeFilterCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      className="w-full text-sm text-muted-foreground"
-                      onClick={clearFilters}
-                    >
-                      <X className="h-3.5 w-3.5 mr-1" />
-                      Clear all filters
-                    </Button>
-                  )}
-                </PopoverContent>
-              </Popover>
-
-              {/* Sort */}
-              <Select value={sort} onValueChange={setSort}>
-                <SelectTrigger className="w-auto min-w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  {SORT_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Heading */}
+          <div className="intro-row">
+            <div>
+              <h1 className="page-title">Products</h1>
+              <p className="page-description">Quick access to essential metrics and management tools.</p>
             </div>
-
-            {/* Active filter badges */}
-            {activeFilterCount > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {filters.type && (
-                  <Badge variant="secondary" className="gap-1 pr-1">
-                    {filters.type === "food" ? "Food" : "Packaging"}
-                    <button onClick={() => setFilter("type", "")} className="ml-1 hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                {filters.category && (
-                  <Badge variant="secondary" className="gap-1 pr-1">
-                    {filters.category}
-                    <button onClick={() => setFilter("category", "")} className="ml-1 hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                {filters.supplier && (
-                  <Badge variant="secondary" className="gap-1 pr-1">
-                    {filters.supplier}
-                    <button onClick={() => setFilter("supplier", "")} className="ml-1 hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-                {filters.outlet && (
-                  <Badge variant="secondary" className="gap-1 pr-1">
-                    {filters.outlet}
-                    <button onClick={() => setFilter("outlet", "")} className="ml-1 hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
+            <div className="action-row">
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button onClick={() => setShowAddModal(true)}>
+                  <Plus />
+                  Add New Item
+                </Button>
               </div>
-            )}
+            </div>
           </div>
 
-          <ProductTable
-            loading={loading}
-            error={error}
-            products={pageProducts}
-            search={search}
-            limit={limit}
-            page={page}
-            totalPages={totalPages}
-            onLimitChange={(nextLimit) => { setLimit(nextLimit); setPage(1); }}
-            onPageChange={(nextPage) => setPage(nextPage)}
-            onEdit={(product) => setEditingProduct(product)}
-            onDelete={(product) => { setDeleteTarget(product); setDeleteDialogOpen(true); }}
+          {/* Success alert */}
+          <SuccessAlert message={successMessage} className="fixed bottom-4 right-4 z-50 w-[320px]" />
+
+          {/* Table */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            {/* Toolbar: search + filter + sort */}
+            <div className="px-5 py-4 border-b border-gray-100">
+              <div className="flex flex-wrap items-center gap-2">
+
+                {/* Search */}
+                <div className="search-field flex-1 min-w-48">
+                  <Search className="search-icon" />
+                  <Input
+                    id="product-search"
+                    name="search"
+                    type="text"
+                    placeholder="Search by name or barcode..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10 w-full"
+                  />
+                </div>
+
+                {/* Filter popover */}
+                <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="relative gap-2">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filter
+                      {activeFilterCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 p-4 space-y-4">
+                    <div>
+                      <label className={labelClass}>Type</label>
+                      <Select value={filters.type || "__all__"} onValueChange={(v) => setFilter("type", v === "__all__" ? "" : v)}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="All Types" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__all__">All Types</SelectItem>
+                          <SelectItem value="food">Food</SelectItem>
+                          <SelectItem value="packaging">Packaging</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Category</label>
+                      <Select value={filters.category || "__all__"} onValueChange={(v) => setFilter("category", v === "__all__" ? "" : v)}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="All Categories" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__all__">All Categories</SelectItem>
+                          {categoryOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Supplier</label>
+                      <Select value={filters.supplier || "__all__"} onValueChange={(v) => setFilter("supplier", v === "__all__" ? "" : v)}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="All Suppliers" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__all__">All Suppliers</SelectItem>
+                          {supplierOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Outlet</label>
+                      <Select value={filters.outlet || "__all__"} onValueChange={(v) => setFilter("outlet", v === "__all__" ? "" : v)}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="All Outlets" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__all__">All Outlets</SelectItem>
+                          {outletOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {activeFilterCount > 0 && (
+                      <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={clearFilters}>
+                        <X className="h-3.5 w-3.5 mr-1" />
+                        Clear all filters
+                      </Button>
+                    )}
+                  </PopoverContent>
+                </Popover>
+
+                {/* Sort */}
+                <Select value={sort} onValueChange={setSort}>
+                  <SelectTrigger className="w-auto min-w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent align="end">
+                    {SORT_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Active filter badges */}
+              {activeFilterCount > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {filters.type && (
+                    <Badge variant="secondary" className="gap-1 pr-1">
+                      {filters.type === "food" ? "Food" : "Packaging"}
+                      <button onClick={() => setFilter("type", "")} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  )}
+                  {filters.category && (
+                    <Badge variant="secondary" className="gap-1 pr-1">
+                      {filters.category}
+                      <button onClick={() => setFilter("category", "")} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  )}
+                  {filters.supplier && (
+                    <Badge variant="secondary" className="gap-1 pr-1">
+                      {filters.supplier}
+                      <button onClick={() => setFilter("supplier", "")} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  )}
+                  {filters.outlet && (
+                    <Badge variant="secondary" className="gap-1 pr-1">
+                      {filters.outlet}
+                      <button onClick={() => setFilter("outlet", "")} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <ProductTable
+              loading={loading}
+              error={error}
+              products={pageProducts}
+              search={search}
+              limit={limit}
+              page={page}
+              totalPages={totalPages}
+              onLimitChange={(nextLimit) => { setLimit(nextLimit); setPage(1); }}
+              onPageChange={(nextPage) => setPage(nextPage)}
+              onEdit={(product) => setEditingProduct(product)}
+              onDelete={(product) => { setDeleteTarget(product); setDeleteDialogOpen(true); }}
+            />
+          </div>
+
+          <AddProductModal
+            open={showAddModal}
+            onClose={() => setShowAddModal(false)}
+            onCreated={handleProductCreated}
+          />
+
+          <EditProductModal
+            open={Boolean(editingProduct)}
+            product={editingProduct}
+            onClose={() => setEditingProduct(null)}
+            onUpdated={handleProductUpdated}
+          />
+
+          <ConfirmDialog
+            open={deleteDialogOpen}
+            onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setDeleteTarget(null); }}
+            title="Delete product"
+            description={"Delete \"" + (deleteTarget?.name || "this product") + "\"? This action cannot be undone."}
+            confirmLabel="Delete"
+            onConfirm={handleProductDeleteConfirm}
           />
         </div>
-
-        <AddProductModal
-          open={showAddModal}
-          onClose={() => setShowAddModal(false)}
-          onCreated={handleProductCreated}
-        />
-
-        <EditProductModal
-          open={Boolean(editingProduct)}
-          product={editingProduct}
-          onClose={() => setEditingProduct(null)}
-          onUpdated={handleProductUpdated}
-        />
-
-        <ConfirmDialog
-          open={deleteDialogOpen}
-          onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setDeleteTarget(null); }}
-          title="Delete product"
-          description={`Delete "${deleteTarget?.name || "this product"}"? This action cannot be undone.`}
-          confirmLabel="Delete"
-          onConfirm={handleProductDeleteConfirm}
-        />
       </div>
-    </div>
+    </>
   );
 }
 
