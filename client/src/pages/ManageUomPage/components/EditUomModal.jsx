@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { updateUom } from "../../../api/uom.js";
 import { Button } from "../../../components/ui/button.jsx";
 import { Input } from "../../../components/ui/input.jsx";
+import { Textarea } from "../../../components/ui/textarea.jsx";
 import ConfirmDialog from "../../../components/ConfirmDialog.jsx";
 import { cn } from "../../../lib/utils.js";
 
@@ -125,13 +126,13 @@ function EditUomModal({ open, uom, onClose, onUpdated }) {
 
             <div>
               <label htmlFor="edit-uom-description" className={labelClass}>Description</label>
-              <Input
+              <Textarea
                 id="edit-uom-description"
                 name="description"
-                type="text"
+                rows={3}
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
-                className={inputClass}
+                className={cn(inputClass, "resize-none")}
                 placeholder="e.g. Unit of weight measurement"
               />
             </div>
