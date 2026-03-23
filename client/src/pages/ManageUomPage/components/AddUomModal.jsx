@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createUom } from "../../../api/uom.js";
 import { Button } from "../../../components/ui/button.jsx";
 import { Input } from "../../../components/ui/input.jsx";
+import { Textarea } from "../../../components/ui/textarea.jsx";
 import ConfirmDialog from "../../../components/ConfirmDialog.jsx";
 import { cn } from "../../../lib/utils.js";
 
@@ -46,10 +47,9 @@ function AddUomModal({ open, onClose, onCreated }) {
   function validate() {
     const errors = {};
     if (!form.name.trim()) errors.name = true;
-    if (!form.description.trim()) errors.description = true;
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      const labels = { name: "Name", description: "Description" };
+      const labels = { name: "Name" };
       const missing = Object.keys(errors).map((k) => labels[k] || k).join(", ");
       setError(`Please fill in the following required fields: ${missing}.`);
       return false;
@@ -80,16 +80,7 @@ function AddUomModal({ open, onClose, onCreated }) {
     <>
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-        onClick={() => { 
-          console.log('dirty check:', {
-            name: form.name !== (user?.name || ''),
-            username: form.username !== (user?.username || ''),
-            password: form.password !== '',
-            role: form.role !== String(user?.role || 'manager').toLowerCase().trim(),
-            selectedOutlets,
-            userBranchIds: user?.branch_ids,
-          });
-          if (isAddUomDirty(form)) { setDiscardOpen(true); } else { onClose(); } }}
+        onClick={() => { if (isAddUomDirty(form)) { setDiscardOpen(true); } else { onClose(); } }}
       >
         <div
           className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
@@ -133,15 +124,15 @@ function AddUomModal({ open, onClose, onCreated }) {
 
             <div>
               <label htmlFor="add-uom-description" className={labelClass}>
-                Description <span className="text-red-500">*</span>
+                Description
               </label>
-              <Input
+              <Textarea
                 id="add-uom-description"
                 name="description"
-                type="text"
+                rows={3}
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
-                className={cn(inputClass, fieldErrors.description && "border-red-500 focus-visible:ring-red-500")}
+                className={cn(inputClass, "resize-none")}
                 placeholder="e.g. Kilogram"
               />
             </div>
