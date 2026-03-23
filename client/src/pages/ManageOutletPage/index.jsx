@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { fetchOutlets } from "../../api/outlets.js";
-import AddOutletModal from "../../components/AddOutletModal.jsx";
-import OutletTable from "../../components/OutletTable.jsx";
+import AddOutletModal from "./components/AddOutletModal.jsx";
+import OutletTable from "./components/OutletTable.jsx";
 import SuccessAlert from "../../components/SuccessAlert.jsx";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";

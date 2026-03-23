@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchOutlets, createOutlet } from "../api/outlets.js";
+import { fetchOutlets, createOutlet } from "../../../api/outlets.js";
 
 const INITIAL_FORM = {
   name: "",

@@ -6,8 +6,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table.jsx";
-import { Button } from "./ui/button.jsx";
+} from "../../../components/ui/table.jsx";
+import { Button } from "../../../components/ui/button.jsx";
 import { Pencil, Trash } from "lucide-react";
 import { deleteOutlet } from "@/api/outlets.js";
 
