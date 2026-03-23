@@ -75,8 +75,8 @@ function filterProducts(products, filters) {
 
 const EMPTY_FILTERS = { type: "", category: "", supplier: "", outlet: "" };
 
-// Easter egg emojis for the 67 search
-const EASTER_EMOJIS = ["6️⃣", "7️⃣", "😛", "🫴", "😂"];
+// hehehehehehehheheheh
+const EASTER_EMOJIS = ["6️⃣", "7️⃣", "😛", "🫴", "🫴"];
 
 function ManageProductPage() {
   const [products, setProducts] = useState([]);
@@ -96,11 +96,11 @@ function ManageProductPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [easterEgg, setEasterEgg] = useState(false);
   const [emojiList] = useState(() =>
-    Array.from({ length: 20 }, (_, i) => ({
+    Array.from({ length: 40 }, (_, i) => ({
       id: i,
       emoji: EASTER_EMOJIS[Math.floor(Math.random() * EASTER_EMOJIS.length)],
       left: Math.floor(Math.random() * 100),
-      delay: Math.round(Math.random() * 150) / 100,
+      delay: Math.round(Math.random() * 400) / 100,
       size: Math.round((1.5 + Math.random() * 1.5) * 10) / 10,
     }))
   );
@@ -113,7 +113,7 @@ function ManageProductPage() {
 
   const debouncedSearch = useDebounce(search, 300);
 
-  // Inject easter egg CSS once on mount
+  // more heheheheehehhhh
   useEffect(() => {
     const style = document.createElement("style");
     style.id = "easter-egg-67-styles";
@@ -135,8 +135,8 @@ function ManageProductPage() {
       "  0%   { transform: translateY(-60px) rotate(0deg); opacity: 1; }",
       "  100% { transform: translateY(100vh) rotate(360deg); opacity: 0.6; }",
       "}",
-      ".wobble-67 { animation: wobble67 1.2s ease-in-out 3; transform-origin: center; }",
-      ".emoji-fall { position: fixed; top: 0; font-size: 2rem; animation: fall67 2.5s linear forwards; pointer-events: none; z-index: 9999; }",
+      ".wobble-67 { animation: wobble67 3s ease-in-out 1; transform-origin: center; }",
+      ".emoji-fall { position: fixed; top: 0; font-size: 2rem; animation: fall67 5s linear forwards; pointer-events: none; z-index: 9999; opacity: 0; animation-fill-mode: both; }",
     ].join("\n");
     if (!document.getElementById("easter-egg-67-styles")) {
       document.head.appendChild(style);
@@ -147,12 +147,12 @@ function ManageProductPage() {
     };
   }, []);
 
-  // Trigger easter egg when search is exactly "67"
+  // 67 hehehejehhewjhjhwe
   useEffect(() => {
     if (debouncedSearch.trim() === "67") {
       setEasterEgg(true);
       if (easterEggTimerRef.current) clearTimeout(easterEggTimerRef.current);
-      easterEggTimerRef.current = setTimeout(() => setEasterEgg(false), 3000);
+      easterEggTimerRef.current = setTimeout(() => setEasterEgg(false), 9500);
     } else {
       setEasterEgg(false);
     }
