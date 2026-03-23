@@ -9,6 +9,7 @@ import {
 } from "./ui/table.jsx";
 import { Button } from "./ui/button.jsx";
 import { Pencil, Trash } from "lucide-react";
+import { deleteOutlet } from "@/api/outlets.js";
 
 function OutletTable({
   loading,
@@ -20,7 +21,22 @@ function OutletTable({
   totalPages,
   onLimitChange,
   onPageChange,
+  onDeleted,
 }) {
+  async function handleDelete(id) {
+    const confirmed = window.confirm("Are you sure you want to delete this outlet?");
+    if (!confirmed) return;
+
+    const deletedOutlet = outlets.find((outlet) => outlet.id === id);
+
+    try {
+      await deleteOutlet(id);
+      onDeleted?.(id, deletedOutlet?.name);
+    } catch (err) {
+      alert(err?.message || "Failed to delete outlet.");
+    }
+  }
+
   return (
     <div>
       <Table>
@@ -77,7 +93,7 @@ function OutletTable({
                     <Button size="sm" variant="secondary">
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="destructive">
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(outlet.id)}>
                       <Trash className="h-4 w-4" />
                     </Button>
                   </div>

@@ -27,18 +27,16 @@ export async function createOutlet({ name, cost_centre }) {
   return res.json();
 }
 
-/*export async function createOutlet(payload) {
-  const response = await fetch("/api/outlets", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
+// New function to delete outlet (Alex T.)
+export async function deleteOutlet(id) {
+  const res = await fetchWithAuth(`${API_BASE}/outlets/${id}`, {
+    method: "DELETE",
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to create outlet");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to delete outlet (${res.status})`);
   }
 
-  return response.json();
-}*/
+  return res.json();
+}
