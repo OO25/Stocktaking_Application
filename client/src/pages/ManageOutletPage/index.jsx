@@ -24,7 +24,7 @@ function ManageOutletPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
-
+  const [reloadKey, setReloadKey] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
 
   // Reset to page 1 when search changes
@@ -57,12 +57,12 @@ function ManageOutletPage() {
       });
 
     return () => { cancelled = true; };
-  }, [page, limit, debouncedSearch]);
+  }, [page, limit, debouncedSearch, reloadKey]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   function handleOutletCreated() {
-    setPage(1);
+    setReloadKey((prev) => prev + 1); // Trigger refetch in OutletTable
   }
 
   return (

@@ -26,3 +26,19 @@ export async function createOutlet({ name, cost_centre }) {
 
   return res.json();
 }
+
+/*export async function createOutlet(payload) {
+  const response = await fetch("/api/outlets", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create outlet");
+  }
+
+  return response.json();
+}*/
