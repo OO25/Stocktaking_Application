@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,6 +11,40 @@ import {
 import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
 import { Pencil, Trash } from "lucide-react";
+
+/** Shows first outlet with a +N button to reveal the rest. */
+function OutletCell({ names }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!Array.isArray(names) || names.length === 0) {
+    return <span className="text-sm text-gray-400">—</span>;
+  }
+  const first = names[0];
+  const rest = names.slice(1);
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <Badge variant="secondary">{first}</Badge>
+      {rest.length > 0 && !expanded && (
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground underline"
+          onClick={() => setExpanded(true)}
+        >
+          +{rest.length} more
+        </button>
+      )}
+      {expanded && rest.map((name) => (
+        <Badge key={name} variant="secondary">{name}</Badge>
+      ))}
+      {expanded && (
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground underline"
+          onClick={() => setExpanded(false)}
+        >
+          less
+        </button>
+      )}
+    </div>
+  );
+}
 
 /** Product table for ManageProductPage. */
 function ProductTable({
@@ -108,13 +143,7 @@ function ProductTable({
                     <Badge variant="secondary">{product.supplier ?? "—"}</Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {Array.isArray(product.outlet_names) && product.outlet_names.length > 0
-                        ? product.outlet_names.map((name) => (
-                            <Badge key={name} variant="secondary">{name}</Badge>
-                          ))
-                        : <span className="text-sm text-gray-400">—</span>}
-                    </div>
+                    <OutletCell names={product.outlet_names} />
                   </TableCell>
                   <TableCell className="text-center">
                     {product.package_size ?? "—"}

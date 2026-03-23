@@ -35,6 +35,23 @@ const INITIAL_FORM = {
   package_size: "",
 };
 
+/** Returns true if the form has been changed from its initial state. */
+function isFormDirty(form, selectedOutlets) {
+  return (
+    form.name !== "" ||
+    form.is_packaging !== false ||
+    form.food_group_id !== "" ||
+    form.packaging_type_id !== "" ||
+    form.supplier_id !== "" ||
+    form.price !== "" ||
+    form.uom_id !== "" ||
+    form.product_code !== "" ||
+    form.unit_size !== "" ||
+    form.package_size !== "" ||
+    selectedOutlets.length > 0
+  );
+}
+
 /**
  * Full-screen modal overlay for creating a new product.
  * @param {{ open: boolean, onClose: () => void, onCreated: () => void }} props
@@ -173,7 +190,7 @@ function AddProductModal({ open, onClose, onCreated }) {
       {/* Backdrop and modal */}
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-        onClick={() => setDiscardOpen(true)}
+        onClick={() => { if (isFormDirty(form, selectedOutlets)) { setDiscardOpen(true); } else { onClose(); } }}
       >
         <div
           className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
@@ -184,7 +201,7 @@ function AddProductModal({ open, onClose, onCreated }) {
             <h2 className="text-lg font-bold text-gray-900">Add New Item</h2>
             <button
               className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-              onClick={() => setDiscardOpen(true)}
+              onClick={onClose}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -491,7 +508,7 @@ function AddProductModal({ open, onClose, onCreated }) {
 
             {/* Actions */}
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={() => setDiscardOpen(true)}>
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>
