@@ -90,6 +90,8 @@ export async function getProducts(req, res) {
   }
 }
 
+// ¯\_(ツ)_/¯  it works on mine
+
 /**
  * POST /api/products
  * Creates a new product and saves outlet links.
@@ -254,6 +256,8 @@ export async function updateProduct(req, res) {
     client.release();
   }
 }
+
+// ¯\_(ツ)_/¯  it's not a bug, it's a feature shhhhhhhh
 
 /**
  * DELETE /api/products/:id

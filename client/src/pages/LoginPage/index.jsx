@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import { Eye, EyeOff } from "lucide-react";
+import { cn } from "../../lib/utils.js";
 
 function LoginPage() {
   const { login } = useAuth();
@@ -14,16 +15,30 @@ function LoginPage() {
   const [error,        setError]        = useState("");
   const [loading,      setLoading]      = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors,  setFieldErrors]  = useState({});
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    // Validate empty fields before hitting the server
+    const errors = {};
+    if (!username.trim()) errors.username = true;
+    if (!password.trim()) errors.password = true;
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError("Please enter your username and password.");
+      return;
+    }
+
     setError("");
+    setFieldErrors({});
     setLoading(true);
     try {
       await login(username, password);
       // On success, AuthContext updates user state and App.jsx shows the main app
     } catch (err) {
       setError(err.message);
+      setFieldErrors({ username: true, password: true });
     } finally {
       setLoading(false);
     }
@@ -40,9 +55,9 @@ function LoginPage() {
         </div>
 
         <div className="content">
-          <form onSubmit={handleSubmit} className="form">
+          <form onSubmit={handleSubmit} className="form" noValidate>
 
-            {/* Error message for if login fails */}
+            {/* Error message — shows for empty fields or failed login */}
             {error && (
               <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
                 {error}
@@ -50,16 +65,19 @@ function LoginPage() {
             )}
 
             {/* Username field */}
-            <div className=" mt-1 field">
+            <div className="mt-1 field">
               <label htmlFor="username" className="text-sm font-medium">Username</label>
               <Input
                 id="username"
                 type="text"
                 autoComplete="username"
                 placeholder="Enter your username"
-                required
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (fieldErrors.username) setFieldErrors((prev) => ({ ...prev, username: false }));
+                }}
+                className={cn(fieldErrors.username && "border-red-500 focus-visible:ring-red-500")}
               />
             </div>
 
@@ -72,10 +90,12 @@ function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="Enter your password"
-                  required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: false }));
+                  }}
+                  className={cn("pr-10", fieldErrors.password && "border-red-500 focus-visible:ring-red-500")}
                 />
                 {/* Eye icon to toggle show/hide password */}
                 <button
