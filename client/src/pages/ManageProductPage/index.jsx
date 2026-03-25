@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { fetchProducts, fetchCategories, fetchSuppliers, fetchOutlets, deleteProduct } from "../../api/products.js";
+import {
+  fetchProducts,
+  fetchCategories,
+  fetchSuppliers,
+  fetchOutlets,
+  deleteProduct,
+} from "../../api/products.js";
 import AddProductModal from "./components/AddProductModal.jsx";
 import EditProductModal from "./components/EditProductModal.jsx";
 import ProductTable from "./components/productTable.jsx";
@@ -23,9 +29,9 @@ import {
 import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 
 const SORT_OPTIONS = [
-  { value: "newest",     label: "Recently Created" },
-  { value: "az",         label: "Alphabetical A–Z" },
-  { value: "price_asc",  label: "Price: Low to High" },
+  { value: "newest", label: "Recently Created" },
+  { value: "az", label: "Alphabetical A–Z" },
+  { value: "price_asc", label: "Price: Low to High" },
   { value: "price_desc", label: "Price: High to Low" },
 ];
 
@@ -51,7 +57,9 @@ function sortProducts(products, sort) {
       return sorted.sort((a, b) => Number(b.price ?? 0) - Number(a.price ?? 0));
     case "newest":
     default:
-      return sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      return sorted.sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at),
+      );
   }
 }
 
@@ -178,19 +186,22 @@ function ManageProductPage() {
         if (!cancelled) setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [page, limit, debouncedSearch]);
 
   // Apply filters then sort
   const processedProducts = useMemo(
     () => sortProducts(filterProducts(products, filters), sort),
-    [products, filters, sort]
+    [products, filters, sort],
   );
 
   // Calculate total pages based on the actual count from the server, not filtered results
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-  // For client-side display, slice the processed (filtered+sorted) results
-  const pageProducts = processedProducts.slice((page - 1) * limit, page * limit);
+  // The server already applies pagination; use the processed (filtered+sorted)
+  // results returned for the current page directly instead of slicing again.
+  const pageProducts = processedProducts;
 
   // Count active filters for the badge
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
@@ -203,7 +214,10 @@ function ManageProductPage() {
   function handleProductUpdated() {
     showSuccess("Product has been updated.");
     fetchProducts({ page, limit, search: debouncedSearch })
-      .then((data) => { setProducts(data.rows); setTotalCount(data.totalCount); })
+      .then((data) => {
+        setProducts(data.rows);
+        setTotalCount(data.totalCount);
+      })
       .catch(console.error);
   }
 
@@ -215,14 +229,18 @@ function ManageProductPage() {
       setDeleteDialogOpen(false);
       setDeleteTarget(null);
       fetchProducts({ page, limit, search: debouncedSearch })
-        .then((data) => { setProducts(data.rows); setTotalCount(data.totalCount); })
+        .then((data) => {
+          setProducts(data.rows);
+          setTotalCount(data.totalCount);
+        })
         .catch(console.error);
     } catch (err) {
       setError(err.message || "Failed to delete product.");
     }
   }
 
-  const labelClass = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
+  const labelClass =
+    "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50 p-6">
@@ -289,7 +307,9 @@ function ManageProductPage() {
                     <label className={labelClass}>Type</label>
                     <Select
                       value={filters.type || "__all__"}
-                      onValueChange={(v) => setFilter("type", v === "__all__" ? "" : v)}
+                      onValueChange={(v) =>
+                        setFilter("type", v === "__all__" ? "" : v)
+                      }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="All Types" />
@@ -307,7 +327,9 @@ function ManageProductPage() {
                     <label className={labelClass}>Category</label>
                     <Select
                       value={filters.category || "__all__"}
-                      onValueChange={(v) => setFilter("category", v === "__all__" ? "" : v)}
+                      onValueChange={(v) =>
+                        setFilter("category", v === "__all__" ? "" : v)
+                      }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="All Categories" />
@@ -315,7 +337,9 @@ function ManageProductPage() {
                       <SelectContent>
                         <SelectItem value="__all__">All Categories</SelectItem>
                         {categoryOptions.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -326,7 +350,9 @@ function ManageProductPage() {
                     <label className={labelClass}>Supplier</label>
                     <Select
                       value={filters.supplier || "__all__"}
-                      onValueChange={(v) => setFilter("supplier", v === "__all__" ? "" : v)}
+                      onValueChange={(v) =>
+                        setFilter("supplier", v === "__all__" ? "" : v)
+                      }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="All Suppliers" />
@@ -334,7 +360,9 @@ function ManageProductPage() {
                       <SelectContent>
                         <SelectItem value="__all__">All Suppliers</SelectItem>
                         {supplierOptions.map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -345,7 +373,9 @@ function ManageProductPage() {
                     <label className={labelClass}>Outlet</label>
                     <Select
                       value={filters.outlet || "__all__"}
-                      onValueChange={(v) => setFilter("outlet", v === "__all__" ? "" : v)}
+                      onValueChange={(v) =>
+                        setFilter("outlet", v === "__all__" ? "" : v)
+                      }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="All Outlets" />
@@ -353,7 +383,9 @@ function ManageProductPage() {
                       <SelectContent>
                         <SelectItem value="__all__">All Outlets</SelectItem>
                         {outletOptions.map((o) => (
-                          <SelectItem key={o} value={o}>{o}</SelectItem>
+                          <SelectItem key={o} value={o}>
+                            {o}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -394,7 +426,10 @@ function ManageProductPage() {
                 {filters.type && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     {filters.type === "food" ? "Food" : "Packaging"}
-                    <button onClick={() => setFilter("type", "")} className="ml-1 hover:text-destructive">
+                    <button
+                      onClick={() => setFilter("type", "")}
+                      className="ml-1 hover:text-destructive"
+                    >
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
@@ -402,7 +437,10 @@ function ManageProductPage() {
                 {filters.category && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     {filters.category}
-                    <button onClick={() => setFilter("category", "")} className="ml-1 hover:text-destructive">
+                    <button
+                      onClick={() => setFilter("category", "")}
+                      className="ml-1 hover:text-destructive"
+                    >
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
@@ -410,7 +448,10 @@ function ManageProductPage() {
                 {filters.supplier && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     {filters.supplier}
-                    <button onClick={() => setFilter("supplier", "")} className="ml-1 hover:text-destructive">
+                    <button
+                      onClick={() => setFilter("supplier", "")}
+                      className="ml-1 hover:text-destructive"
+                    >
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
@@ -418,7 +459,10 @@ function ManageProductPage() {
                 {filters.outlet && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     {filters.outlet}
-                    <button onClick={() => setFilter("outlet", "")} className="ml-1 hover:text-destructive">
+                    <button
+                      onClick={() => setFilter("outlet", "")}
+                      className="ml-1 hover:text-destructive"
+                    >
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
@@ -435,10 +479,16 @@ function ManageProductPage() {
             limit={limit}
             page={page}
             totalPages={totalPages}
-            onLimitChange={(nextLimit) => { setLimit(nextLimit); setPage(1); }}
+            onLimitChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
             onPageChange={(nextPage) => setPage(nextPage)}
             onEdit={(product) => setEditingProduct(product)}
-            onDelete={(product) => { setDeleteTarget(product); setDeleteDialogOpen(true); }}
+            onDelete={(product) => {
+              setDeleteTarget(product);
+              setDeleteDialogOpen(true);
+            }}
           />
         </div>
 
@@ -457,7 +507,10 @@ function ManageProductPage() {
 
         <ConfirmDialog
           open={deleteDialogOpen}
-          onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setDeleteTarget(null); }}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) setDeleteTarget(null);
+          }}
           title="Delete product"
           description={`Delete "${deleteTarget?.name || "this product"}"? This action cannot be undone.`}
           confirmLabel="Delete"
