@@ -187,6 +187,4 @@ function AddOutletModal({ open, onClose, onCreated }) {
   );
 }
 
-
-
 export default AddOutletModal;

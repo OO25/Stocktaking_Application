@@ -22,6 +22,7 @@ function OutletTable({
   onLimitChange,
   onPageChange,
   onDeleted,
+  onEdit = () => {},
 }) {
   async function handleDelete(id) {
     const confirmed = window.confirm("Are you sure you want to delete this outlet?");
@@ -37,6 +38,9 @@ function OutletTable({
     }
   }
 
+  function handleEdit(outlet) {
+    onEdit?.(outlet);
+  }
   return (
     <div>
       <Table>
@@ -90,7 +94,7 @@ function OutletTable({
               <TableCell>
                 <div className="flex justify-end">
                   <div className="inline-flex items-center justify-center gap-2 w-[120px]">
-                    <Button size="sm" variant="secondary">
+                    <Button size="sm" variant="secondary" onClick={() => onEdit(outlet)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button size="sm" variant="destructive" onClick={() => handleDelete(outlet.id)}>

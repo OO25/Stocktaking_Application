@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { fetchOutlets } from "../../api/outlets.js";
 import AddOutletModal from "./components/AddOutletModal.jsx";
 import OutletTable from "./components/OutletTable.jsx";
+import EditOutletModal from "./components/EditOutletModal.jsx";
 import SuccessAlert from "../../components/SuccessAlert.jsx";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
@@ -28,6 +29,7 @@ function ManageOutletPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
+  const [editingOutlet, setEditingOutlet] = useState(null);
 
   // Reset to page 1 when search changes
   const prevSearch = useRef(debouncedSearch);
@@ -65,6 +67,10 @@ function ManageOutletPage() {
 
   function handleOutletCreated() {
     setReloadKey((prev) => prev + 1); // Trigger refetch in OutletTable
+  }
+
+  function handleOutletEdit(outlet) {
+    setEditingOutlet(outlet);
   }
 // New function to handle outlet deletion (Alex T.)
   function handleOutletDeleted(deletedId, deletedName) {
@@ -125,6 +131,7 @@ function ManageOutletPage() {
             onLimitChange={(nextLimit) => { setLimit(nextLimit); setPage(1); }}
             onPageChange={(nextPage) => setPage(nextPage)}
             onDeleted={handleOutletDeleted} // Pass deletion handler to OutletTable (Alex T.)
+            onEdit={handleOutletEdit} // Pass edit handler to OutletTable (Alex T.)
           />
         </div>
 
@@ -132,6 +139,13 @@ function ManageOutletPage() {
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
           onCreated={handleOutletCreated}
+        />
+
+        <EditOutletModal
+          open={!!editingOutlet}
+          outlet={editingOutlet}
+          onClose={() => setEditingOutlet(null)}
+          onUpdated={handleOutletCreated}
         />
       </div>
     </div>
