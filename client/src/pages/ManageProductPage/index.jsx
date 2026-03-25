@@ -187,7 +187,9 @@ function ManageProductPage() {
     [products, filters, sort]
   );
 
-  const totalPages = Math.max(1, Math.ceil(processedProducts.length / limit));
+  // Calculate total pages based on the actual count from the server, not filtered results
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  // For client-side display, slice the processed (filtered+sorted) results
   const pageProducts = processedProducts.slice((page - 1) * limit, page * limit);
 
   // Count active filters for the badge

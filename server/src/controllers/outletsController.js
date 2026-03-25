@@ -16,8 +16,9 @@ export async function getOutlets(req, res) {
     const values = [];
 
     if (search) {
-      values.push(`%${search}%`);
-      conditions.push(`(name ILIKE $${values.length} OR cost_centre ILIKE $${values.length})`);
+      values.push(search);
+      const idx = values.length;
+      conditions.push(`(name ILIKE $${idx} OR cost_centre ILIKE $${idx} OR similarity(name, $${idx}) > 0.2 OR similarity(cost_centre, $${idx}) > 0.2)`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";

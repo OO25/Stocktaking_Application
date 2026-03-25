@@ -15,13 +15,15 @@ export async function getProducts(req, res) {
     const params = [];
 
     if (search) {
-      const pattern = `%${search}%`;
-      params.push(pattern);
+      params.push(search);
       const idx = params.length;
       conditions.push(`(
         p.name         ILIKE $${idx} OR
         s.name         ILIKE $${idx} OR
-        p.product_code ILIKE $${idx}
+        p.product_code ILIKE $${idx} OR
+        similarity(p.name, $${idx}) > 0.2 OR
+        similarity(s.name, $${idx}) > 0.2 OR
+        similarity(p.product_code, $${idx}) > 0.2
       )`);
     }
 
@@ -72,7 +74,7 @@ export async function getProducts(req, res) {
           '{}'::text[]
         ) AS outlet_names
       ${baseFrom}
-      GROUP BY p.id, u.name, fg.name, pt.name, s.name
+      GROUP BY p.id, p.name, p.is_packaging, p.uom_id, p.product_code, p.unit_size, p.package_size, p.price, p.food_group_id, p.packaging_type_id, p.supplier_id, p.last_price_check, p.created_at, u.name, fg.name, pt.name, s.name
       ORDER BY p.name
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limit, offset]
