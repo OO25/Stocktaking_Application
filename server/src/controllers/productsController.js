@@ -208,7 +208,8 @@ export async function updateProduct(req, res) {
            uom_id             = $7,
            product_code       = $8,
            unit_size          = $9,
-           package_size       = $10
+           package_size       = $10,
+           updated_at         = NOW()
        WHERE id = $11
        RETURNING *`,
       [
