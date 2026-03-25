@@ -7,7 +7,10 @@ import pool from "../config/db.js";
 export async function getProducts(req, res) {
   try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.limit, 10) || 10),
+    );
     const search = (req.query.search ?? "").trim();
     const offset = (page - 1) * limit;
 
@@ -15,19 +18,22 @@ export async function getProducts(req, res) {
     const params = [];
 
     if (search) {
-      params.push(search);
-      const idx = params.length;
+      // Provide both a wildcard param for ILIKE and a plain param for similarity()
+      const idxWildcard = params.length + 1;
+      const idxPlain = params.length + 2;
+      params.push(`%${search}%`, search);
       conditions.push(`(
-        p.name         ILIKE $${idx} OR
-        s.name         ILIKE $${idx} OR
-        p.product_code ILIKE $${idx} OR
-        similarity(p.name, $${idx}) > 0.2 OR
-        similarity(s.name, $${idx}) > 0.2 OR
-        similarity(p.product_code, $${idx}) > 0.2
+        p.name         ILIKE $${idxWildcard} OR
+        s.name         ILIKE $${idxWildcard} OR
+        p.product_code ILIKE $${idxWildcard} OR
+        similarity(p.name, $${idxPlain}) > 0.2 OR
+        similarity(s.name, $${idxPlain}) > 0.2 OR
+        similarity(p.product_code, $${idxPlain}) > 0.2
       )`);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     // Outlet joins are inside baseFrom so they work with the WHERE clause and COUNT query
     const baseFrom = `
@@ -43,7 +49,7 @@ export async function getProducts(req, res) {
 
     const countQuery = pool.query(
       `SELECT COUNT(DISTINCT p.id) AS total ${baseFrom}`,
-      params
+      params,
     );
 
     const rowsQuery = pool.query(
@@ -77,10 +83,13 @@ export async function getProducts(req, res) {
       GROUP BY p.id, p.name, p.is_packaging, p.uom_id, p.product_code, p.unit_size, p.package_size, p.price, p.food_group_id, p.packaging_type_id, p.supplier_id, p.last_price_check, p.created_at, u.name, fg.name, pt.name, s.name
       ORDER BY p.name
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, limit, offset]
+      [...params, limit, offset],
     );
 
-    const [countResult, rowsResult] = await Promise.all([countQuery, rowsQuery]);
+    const [countResult, rowsResult] = await Promise.all([
+      countQuery,
+      rowsQuery,
+    ]);
 
     res.json({
       rows: rowsResult.rows,
@@ -129,15 +138,15 @@ export async function createProduct(req, res) {
       [
         name.trim(),
         is_packaging,
-        is_packaging ? null : (food_group_id || null),
-        is_packaging ? (packaging_type_id || null) : null,
+        is_packaging ? null : food_group_id || null,
+        is_packaging ? packaging_type_id || null : null,
         supplier_id || null,
         price,
         uom_id || null,
         product_code || null,
         unit_size || null,
         package_size || null,
-      ]
+      ],
     );
 
     const newProduct = rows[0];
@@ -151,7 +160,7 @@ export async function createProduct(req, res) {
       await client.query(
         `INSERT INTO outlet_products (product_id, outlet_id)
          SELECT $1, UNNEST($2::int[])`,
-        [newProduct.id, outletIds]
+        [newProduct.id, outletIds],
       );
     }
 
@@ -216,8 +225,8 @@ export async function updateProduct(req, res) {
       [
         name.trim(),
         is_packaging,
-        is_packaging ? null : (food_group_id || null),
-        is_packaging ? (packaging_type_id || null) : null,
+        is_packaging ? null : food_group_id || null,
+        is_packaging ? packaging_type_id || null : null,
         supplier_id || null,
         price,
         uom_id || null,
@@ -225,7 +234,7 @@ export async function updateProduct(req, res) {
         unit_size || null,
         package_size || null,
         id,
-      ]
+      ],
     );
 
     if (!rows.length) {
@@ -234,7 +243,9 @@ export async function updateProduct(req, res) {
     }
 
     // Replace outlet links — delete existing then insert new
-    await client.query("DELETE FROM outlet_products WHERE product_id = $1", [id]);
+    await client.query("DELETE FROM outlet_products WHERE product_id = $1", [
+      id,
+    ]);
 
     const outletIds = Array.isArray(outlet_ids)
       ? outlet_ids.map(Number).filter((oid) => Number.isInteger(oid) && oid > 0)
@@ -244,7 +255,7 @@ export async function updateProduct(req, res) {
       await client.query(
         `INSERT INTO outlet_products (product_id, outlet_id)
          SELECT $1, UNNEST($2::int[])`,
-        [id, outletIds]
+        [id, outletIds],
       );
     }
 
@@ -278,7 +289,7 @@ export async function deleteProduct(req, res) {
 
     const { rows } = await pool.query(
       "DELETE FROM products WHERE id = $1 RETURNING id",
-      [id]
+      [id],
     );
 
     if (!rows.length) {

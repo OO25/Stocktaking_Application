@@ -31,9 +31,12 @@ function OutletCell({ names }) {
           +{rest.length} more
         </button>
       )}
-      {expanded && rest.map((name) => (
-        <Badge key={name} variant="secondary">{name}</Badge>
-      ))}
+      {expanded &&
+        rest.map((name) => (
+          <Badge key={name} variant="secondary">
+            {name}
+          </Badge>
+        ))}
       {expanded && (
         <button
           className="text-xs text-muted-foreground hover:text-foreground underline"
@@ -79,8 +82,10 @@ function ProductTable({
             </TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {loading && (
+        <TableBody
+          className={`transition-opacity duration-200 ease-out ${loading ? "opacity-50" : "opacity-100"}`}
+        >
+          {loading && products.length === 0 && (
             <TableRow>
               <TableCell colSpan={8} className="py-12 text-center text-sm">
                 Loading products…
@@ -114,12 +119,14 @@ function ProductTable({
           {!loading && error === null && products.length === 0 && (
             <TableRow>
               <TableCell colSpan={8} className="py-12 text-center text-sm">
-                {search ? "No products match your search." : "No products found."}
+                {search
+                  ? "No products match your search."
+                  : "No products found."}
               </TableCell>
             </TableRow>
           )}
 
-          {!loading &&
+          {(!loading || products.length > 0) &&
             error === null &&
             products.map((product) => {
               const category = product.is_packaging
@@ -177,7 +184,7 @@ function ProductTable({
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell colSpan={4}>
+            <TableCell colSpan={7}>
               <div className="flex items-center gap-3 pl-4">
                 <span>Rows per page</span>
                 <select
@@ -194,8 +201,8 @@ function ProductTable({
                 </span>
               </div>
             </TableCell>
-            <TableCell colSpan={3} className="text-right">
-              <div className="inline-flex items-center gap-3 pr-4">
+            <TableCell colSpan={1} className="text-right pr-4">
+              <div className="inline-flex items-center gap-3">
                 <Button
                   size="sm"
                   variant="outline"
