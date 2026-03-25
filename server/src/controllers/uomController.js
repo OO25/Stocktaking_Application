@@ -26,15 +26,15 @@ export async function createUom(req, res) {
   try {
     const { name, description } = req.body;
 
-    if (!name || !description) {
-      return res.status(400).json({ error: "Name and description are required." });
+    if (!name) {
+      return res.status(400).json({ error: "Name is required." });
     }
 
     const { rows } = await pool.query(
       `INSERT INTO units_of_measure (name, description)
        VALUES ($1, $2)
        RETURNING id, name, description, created_at, updated_at`,
-      [name.trim(), description.trim()]
+      [name.trim(), description ? description.trim() : null]
     );
 
     res.status(201).json(rows[0]);
@@ -57,8 +57,8 @@ export async function updateUom(req, res) {
       return res.status(400).json({ error: "Invalid UOM id." });
     }
 
-    if (!name || !description) {
-      return res.status(400).json({ error: "Name and description are required." });
+    if (!name) {
+      return res.status(400).json({ error: "Name is required." });
     }
 
     const { rows } = await pool.query(
@@ -68,7 +68,7 @@ export async function updateUom(req, res) {
            updated_at = NOW()
        WHERE id = $3
        RETURNING id, name, description, created_at, updated_at`,
-      [name.trim(), description.trim(), id]
+      [name.trim(), description ? description.trim() : null, id]
     );
 
     if (!rows.length) {

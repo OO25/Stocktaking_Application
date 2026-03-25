@@ -1,16 +1,50 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
   TableCell,
-  TableCaption,
   TableFooter,
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table.jsx";
-import { Button } from "./ui/button.jsx";
-import { Badge } from "./ui/badge.jsx";
+} from "../../../components/ui/table.jsx";
+import { Button } from "../../../components/ui/button.jsx";
+import { Badge } from "../../../components/ui/badge.jsx";
 import { Pencil, Trash } from "lucide-react";
+
+/** Shows first outlet with a +N button to reveal the rest. */
+function OutletCell({ names }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!Array.isArray(names) || names.length === 0) {
+    return <span className="text-sm text-gray-400">—</span>;
+  }
+  const first = names[0];
+  const rest = names.slice(1);
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <Badge variant="secondary">{first}</Badge>
+      {rest.length > 0 && !expanded && (
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground underline"
+          onClick={() => setExpanded(true)}
+        >
+          +{rest.length} more
+        </button>
+      )}
+      {expanded && rest.map((name) => (
+        <Badge key={name} variant="secondary">{name}</Badge>
+      ))}
+      {expanded && (
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground underline"
+          onClick={() => setExpanded(false)}
+        >
+          less
+        </button>
+      )}
+    </div>
+  );
+}
 
 /** Product table for ManageProductPage. */
 function ProductTable({
@@ -23,18 +57,21 @@ function ProductTable({
   totalPages,
   onLimitChange,
   onPageChange,
+  onEdit,
+  onDelete,
 }) {
   return (
     <div className="">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-70 py-4 pl-6">Name</TableHead>
-            <TableHead className="w-28 py-4">Price</TableHead>
-            <TableHead className="w-40 py-4">Category</TableHead>
-            <TableHead className="w-25 py-4">Supplier</TableHead>
-            <TableHead className="w-13 text-center py-4">PKG</TableHead>
-            <TableHead className="w-23 text-center py-4">UOM</TableHead>
+            <TableHead className="w-48 py-4 pl-6">Name</TableHead>
+            <TableHead className="w-24 py-4">Price</TableHead>
+            <TableHead className="w-32 py-4">Category</TableHead>
+            <TableHead className="w-28 py-4">Supplier</TableHead>
+            <TableHead className="w-56 py-4">Outlets</TableHead>
+            <TableHead className="w-16 text-center py-4">PKG</TableHead>
+            <TableHead className="w-16 text-center py-4">UOM</TableHead>
             <TableHead className="w-40 py-4">
               <div className="flex justify-end">
                 <div className="w-30 text-center">Action</div>
@@ -45,7 +82,7 @@ function ProductTable({
         <TableBody>
           {loading && (
             <TableRow>
-              <TableCell colSpan={7} className="py-12 text-center text-sm">
+              <TableCell colSpan={8} className="py-12 text-center text-sm">
                 Loading products…
               </TableCell>
             </TableRow>
@@ -53,7 +90,7 @@ function ProductTable({
 
           {!loading && error !== null && (
             <TableRow>
-              <TableCell colSpan={7} className="py-4">
+              <TableCell colSpan={8} className="py-4">
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                   <svg
                     className="w-4 h-4 shrink-0"
@@ -76,10 +113,8 @@ function ProductTable({
 
           {!loading && error === null && products.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="py-12 text-center text-sm">
-                {search
-                  ? "No products match your search."
-                  : "No products found."}
+              <TableCell colSpan={8} className="py-12 text-center text-sm">
+                {search ? "No products match your search." : "No products found."}
               </TableCell>
             </TableRow>
           )}
@@ -107,8 +142,11 @@ function ProductTable({
                   <TableCell>
                     <Badge variant="secondary">{product.supplier ?? "—"}</Badge>
                   </TableCell>
+                  <TableCell>
+                    <OutletCell names={product.outlet_names} />
+                  </TableCell>
                   <TableCell className="text-center">
-                    {product.pack_size ?? 1}
+                    {product.package_size ?? "—"}
                   </TableCell>
                   <TableCell className="text-center">
                     {product.uom ?? "—"}
@@ -116,10 +154,18 @@ function ProductTable({
                   <TableCell>
                     <div className="flex justify-end">
                       <div className="inline-flex items-center justify-center gap-2 w-30">
-                        <Button size="sm" variant="secondary">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => onEdit?.(product)}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="destructive">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => onDelete?.(product)}
+                        >
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>
