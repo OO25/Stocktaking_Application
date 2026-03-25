@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchOutlets, createOutlet } from "../api/outlets.js";
+import { fetchOutlets, createOutlet } from "../../../api/outlets.js";
 
 const INITIAL_FORM = {
   name: "",
@@ -20,7 +20,10 @@ function AddOutletModal({ open, onClose, onCreated }) {
   // Load existing outlets for duplicate checking when modal opens
   useEffect(() => {
     if (!open) return;
-    fetchOutlets().then(setExistingOutlets).catch(console.error);
+    //Added new function to fetch outlets without pagination for duplicate checking (Alex T.)
+    fetchOutlets()
+      .then((data) => setExistingOutlets(data?.rows || []))
+      .catch(console.error);
     setForm(INITIAL_FORM);
     setError(null);
     setFieldErrors({});
@@ -46,10 +49,10 @@ function AddOutletModal({ open, onClose, onCreated }) {
     }
 
     // Check for duplicates against existing outlets
-    const duplicateName = existingOutlets.find(
+    const duplicateName = (existingOutlets || []).find(
       (b) => b.name.trim().toLowerCase() === trimmedName
     );
-    const duplicateNumber = existingOutlets.find(
+    const duplicateNumber = (existingOutlets || []).find(
       (b) => String(b.cost_centre) === String(num)
     );
 
@@ -60,8 +63,10 @@ function AddOutletModal({ open, onClose, onCreated }) {
   }
 
   async function handleSubmit(e) {
+    // Debug Test, uncommented 'setError(null)' to allow error messages to show (Alex T.)
     e.preventDefault();
-    setError(null);
+    console.log("Submitting:", form);
+    //setError(null);
 
     const errors = validate();
     if (Object.keys(errors).length > 0) {
@@ -73,7 +78,7 @@ function AddOutletModal({ open, onClose, onCreated }) {
     try {
       await createOutlet({
         name: form.name.trim(),
-        cost_centre: Number(form.cost_centre),
+        cost_centre: form.cost_centre, //removed 'Number' to intentionally store as integer
       });
       onCreated();
       onClose();
@@ -93,7 +98,7 @@ function AddOutletModal({ open, onClose, onCreated }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
+      //onClick={onClose} // Disasbled clicking outside to close to prevent accidental closure (Alex T.)
     >
       <div
         className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
@@ -171,7 +176,7 @@ function AddOutletModal({ open, onClose, onCreated }) {
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-5 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
             >
               {submitting ? "Adding…" : "Add Outlet"}
             </button>

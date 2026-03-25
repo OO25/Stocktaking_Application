@@ -26,3 +26,33 @@ export async function createOutlet({ name, cost_centre }) {
 
   return res.json();
 }
+
+// New function to delete outlet (Alex T.)
+export async function deleteOutlet(id) {
+  const res = await fetchWithAuth(`${API_BASE}/outlets/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to delete outlet (${res.status})`);
+  }
+
+  return res.json();
+}
+
+// New function to update outlet (Alex T.)
+export async function updateOutlet(id, { name, cost_centre }) {
+  const res = await fetchWithAuth(`${API_BASE}/outlets/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, cost_centre }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to update outlet (${res.status})`);
+  }
+
+  return res.json();
+}

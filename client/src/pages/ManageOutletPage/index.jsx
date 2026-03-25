@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { fetchOutlets } from "../../api/outlets.js";
-import AddOutletModal from "../../components/AddOutletModal.jsx";
-import OutletTable from "../../components/OutletTable.jsx";
+import AddOutletModal from "./components/AddOutletModal.jsx";
+import OutletTable from "./components/OutletTable.jsx";
+import EditOutletModal from "./components/EditOutletModal.jsx";
+import SuccessAlert from "../../components/SuccessAlert.jsx";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import { Plus, Search } from "lucide-react";
@@ -23,9 +25,11 @@ function ManageOutletPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-
+  const [reloadKey, setReloadKey] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
+  const [editingOutlet, setEditingOutlet] = useState(null);
 
   // Reset to page 1 when search changes
   const prevSearch = useRef(debouncedSearch);
@@ -57,13 +61,30 @@ function ManageOutletPage() {
       });
 
     return () => { cancelled = true; };
-  }, [page, limit, debouncedSearch]);
+  }, [page, limit, debouncedSearch, reloadKey]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   function handleOutletCreated() {
-    setPage(1);
+    setReloadKey((prev) => prev + 1); // Trigger refetch in OutletTable
   }
+
+  function handleOutletEdit(outlet) {
+    setEditingOutlet(outlet);
+  }
+// New function to handle outlet deletion (Alex T.)
+  function handleOutletDeleted(deletedId, deletedName) {
+    setOutlets((prev) => prev.filter((outlet) => outlet.id !== deletedId));
+    setTotalCount((prev) => Math.max(0, prev - 1));
+    setSuccessMessage(`Outlet${deletedName ? ` \"${deletedName}\"` : ""} deleted.`);
+    setReloadKey((prev) => prev + 1);
+  }
+
+  useEffect(() => {
+    if (!successMessage) return undefined;
+    const id = setTimeout(() => setSuccessMessage(""), 3000);
+    return () => clearTimeout(id);
+  }, [successMessage]);
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50 p-6">
@@ -80,6 +101,8 @@ function ManageOutletPage() {
             Add New Outlet
           </Button>
         </div>
+
+        {successMessage && <SuccessAlert message={successMessage} />}
 
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
@@ -107,6 +130,8 @@ function ManageOutletPage() {
             totalPages={totalPages}
             onLimitChange={(nextLimit) => { setLimit(nextLimit); setPage(1); }}
             onPageChange={(nextPage) => setPage(nextPage)}
+            onDeleted={handleOutletDeleted} // Pass deletion handler to OutletTable (Alex T.)
+            onEdit={handleOutletEdit} // Pass edit handler to OutletTable (Alex T.)
           />
         </div>
 
@@ -114,6 +139,13 @@ function ManageOutletPage() {
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
           onCreated={handleOutletCreated}
+        />
+
+        <EditOutletModal
+          open={!!editingOutlet}
+          outlet={editingOutlet}
+          onClose={() => setEditingOutlet(null)}
+          onUpdated={handleOutletCreated}
         />
       </div>
     </div>

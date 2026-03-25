@@ -6,9 +6,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table.jsx";
-import { Button } from "./ui/button.jsx";
+} from "../../../components/ui/table.jsx";
+import { Button } from "../../../components/ui/button.jsx";
 import { Pencil, Trash } from "lucide-react";
+import { deleteOutlet } from "@/api/outlets.js";
 
 function OutletTable({
   loading,
@@ -20,7 +21,26 @@ function OutletTable({
   totalPages,
   onLimitChange,
   onPageChange,
+  onDeleted,
+  onEdit = () => {},
 }) {
+  async function handleDelete(id) {
+    const confirmed = window.confirm("Are you sure you want to delete this outlet?");
+    if (!confirmed) return;
+
+    const deletedOutlet = outlets.find((outlet) => outlet.id === id);
+
+    try {
+      await deleteOutlet(id);
+      onDeleted?.(id, deletedOutlet?.name);
+    } catch (err) {
+      alert(err?.message || "Failed to delete outlet.");
+    }
+  }
+
+  function handleEdit(outlet) {
+    onEdit?.(outlet);
+  }
   return (
     <div>
       <Table>
@@ -74,10 +94,10 @@ function OutletTable({
               <TableCell>
                 <div className="flex justify-end">
                   <div className="inline-flex items-center justify-center gap-2 w-[120px]">
-                    <Button size="sm" variant="secondary">
+                    <Button size="sm" variant="secondary" onClick={() => onEdit(outlet)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="destructive">
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(outlet.id)}>
                       <Trash className="h-4 w-4" />
                     </Button>
                   </div>
