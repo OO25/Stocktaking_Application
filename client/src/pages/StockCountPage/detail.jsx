@@ -39,6 +39,17 @@ export default function StockCountDetailPage() {
     loadSessionDetail();
   }, [id]);
 
+  useEffect(() => {
+    if (!session?.assignment_name) return;
+    const sessionId = String(id);
+    sessionStorage.setItem(`stockcount-name:${sessionId}`, session.assignment_name);
+    window.dispatchEvent(
+      new CustomEvent("stockcount-name", {
+        detail: { id: sessionId, name: session.assignment_name },
+      })
+    );
+  }, [id, session]);
+
   const loadSessionDetail = async () => {
     try {
       setLoading(true);
