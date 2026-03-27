@@ -27,18 +27,18 @@ import {
 } from "lucide-react"
 
 const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard" },
-  { key: "stock-count", label: "Stock Count" },
-  { key: "inventory", label: "Inventory" },
-  { key: "products", label: "Product", roles: ["admin", "manager"] },
-  { key: "branches", label: "Outlet", roles: ["admin", "manager"] },
+  { key: "dashboard", label: "Dashboard", roles: ["admin", "manager"]  },
+  { key: "stock-count", label: "Stock Count", roles: ["admin", "manager"]  },
+  { key: "inventory", label: "Inventory", roles: ["admin", "manager"]  },
+  { key: "products", label: "Product", roles: ["admin"] },
+  { key: "branches", label: "Outlet", roles: ["admin"] },
   { key: "categories", label: "Category", roles: ["admin"] },
-  { key: "suppliers", label: "Suppliers", roles: ["admin", "manager"] },
-  { key: "uom", label: "UOM", roles: ["admin", "manager"] },
+  { key: "suppliers", label: "Suppliers", roles: ["admin"]},
+  { key: "uom", label: "UOM", roles: ["admin"] },
   {
     key: "branch-assignment",
     label: "Outlet Assignment",
-    roles: ["admin", "manager"],
+    roles: ["admin"],
   },
   { key: "users", label: "Users", roles: ["admin"] },
 ]
