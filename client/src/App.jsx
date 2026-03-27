@@ -70,7 +70,6 @@ function App() {
         <Route path="dashboard" element={<Placeholder />} />
         <Route path="stock-count" element={<StockCountPage />} />
         <Route path="stock-count/:id" element={<StockCountDetailPage />} />
-        <Route path="inventory" element={<Placeholder />} />
         <Route path="products" element={<ManageProductPage />} />
         <Route path="branches" element={<ManageOutletPage />} />
         <Route path="categories" element={<ManageCategoryPage />} />

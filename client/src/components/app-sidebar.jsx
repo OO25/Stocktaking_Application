@@ -29,7 +29,6 @@ import {
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", roles: ["admin", "manager"]  },
   { key: "stock-count", label: "Stock Count", roles: ["admin", "manager"]  },
-  { key: "inventory", label: "Inventory", roles: ["admin", "manager"]  },
   { key: "products", label: "Product", roles: ["admin"] },
   { key: "branches", label: "Outlet", roles: ["admin"] },
   { key: "categories", label: "Category", roles: ["admin"] },
@@ -116,8 +115,6 @@ function NavIcon({ itemKey }) {
       return <ClipboardListIcon className={cls} />
     case "products":
       return <PackageIcon className={cls} />
-    case "inventory":
-      return <BoxesIcon className={cls} />
     case "branches":
       return <StoreIcon className={cls} />
     case "categories":
