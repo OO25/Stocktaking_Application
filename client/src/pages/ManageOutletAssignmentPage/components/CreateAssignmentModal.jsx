@@ -72,12 +72,12 @@ function CreateAssignmentModal({ open, onClose, onCreated }) {
 
     setSubmitting(true);
     try {
-      await createSession({
+      const created = await createSession({
         month: Number(month),
         year: Number(year),
         outlet_id: Number(outletId),
       });
-      onCreated();
+      onCreated(created);
       onClose();
     } catch (err) {
       setError(err.message || "Failed to create assignment.");

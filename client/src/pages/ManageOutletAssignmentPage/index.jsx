@@ -88,8 +88,15 @@ function ManageOutletAssignmentPage() {
     }, 4000);
   }
 
-  function handleAssignmentCreated() {
-    loadSessions();
+  function handleAssignmentCreated(createdSession) {
+    if (createdSession) {
+      setSessions((prev) => {
+        if (prev.some((s) => s.id === createdSession.id)) return prev;
+        return [createdSession, ...prev];
+      });
+    } else {
+      loadSessions();
+    }
     showSuccess("Stocktake assignment created.");
   }
 

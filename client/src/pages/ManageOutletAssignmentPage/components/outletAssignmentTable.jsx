@@ -11,17 +11,22 @@ import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
 import { Trash } from "lucide-react";
 
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
 const STATUS_VARIANT = {
   draft: "secondary",
   in_progress: "default",
   submitted: "outline",
   locked: "destructive",
 };
+
+function formatCurrency(value) {
+  const number = Number(value);
+  if (Number.isNaN(number)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(number);
+}
 
 /** Outlet assignment table for ManageOutletAssignmentPage. */
 function OutletAssignmentTable({
@@ -41,8 +46,9 @@ function OutletAssignmentTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[220px] py-4 pl-6">Period</TableHead>
-          <TableHead className="w-[200px] py-4">Outlet</TableHead>
+          <TableHead className="w-[220px] py-4 pl-6">Name</TableHead>
+          <TableHead className="w-[220px] py-4">Outlet Name</TableHead>
+          <TableHead className="w-[160px] py-4 text-right">Total Value</TableHead>
           <TableHead className="w-[140px] py-4">Status</TableHead>
           <TableHead className="w-[160px] py-4">Counted By</TableHead>
           {isAdmin && (
@@ -57,7 +63,7 @@ function OutletAssignmentTable({
       <TableBody>
         {loading && (
           <TableRow>
-            <TableCell colSpan={isAdmin ? 5 : 4} className="py-12 text-center text-sm">
+            <TableCell colSpan={isAdmin ? 6 : 5} className="py-12 text-center text-sm">
               Loading assignments…
             </TableCell>
           </TableRow>
@@ -65,7 +71,7 @@ function OutletAssignmentTable({
 
         {!loading && error !== null && (
           <TableRow>
-            <TableCell colSpan={isAdmin ? 5 : 4} className="py-4">
+            <TableCell colSpan={isAdmin ? 6 : 5} className="py-4">
               <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                 <svg
                   className="w-4 h-4 flex-shrink-0"
@@ -88,7 +94,7 @@ function OutletAssignmentTable({
 
         {!loading && error === null && sessions.length === 0 && (
           <TableRow>
-            <TableCell colSpan={isAdmin ? 5 : 4} className="py-12 text-center text-sm">
+            <TableCell colSpan={isAdmin ? 6 : 5} className="py-12 text-center text-sm">
               {search
                 ? "No assignments match your search."
                 : "No assignments found."}
@@ -101,9 +107,14 @@ function OutletAssignmentTable({
           sessions.map((session) => (
             <TableRow key={session.id}>
               <TableCell className="font-semibold pl-6">
-                {MONTH_NAMES[(session.month || 1) - 1]} {session.year}
+                {session.name || "—"}
               </TableCell>
-              <TableCell>{session.outlet_name || "—"}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {session.outlet_name || "—"}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(session.total_value)}
+              </TableCell>
               <TableCell>
                 <Badge variant={STATUS_VARIANT[session.status] || "secondary"}>
                   {session.status}
@@ -135,7 +146,7 @@ function OutletAssignmentTable({
       </TableBody>
       <TableFooter>
         <TableRow>
-          <TableCell colSpan={isAdmin ? 4 : 3}>
+          <TableCell colSpan={isAdmin ? 5 : 4}>
             <div className="flex items-center gap-3 pl-4">
               <span>Rows per page</span>
               <select

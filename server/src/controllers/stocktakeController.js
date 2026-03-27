@@ -145,11 +145,25 @@ export async function getSessions(req, res) {
          sp.month,
          sp.year,
          sp.status AS period_status,
-         o.name   AS outlet_name
+         o.name   AS outlet_name,
+         COALESCE(SUM(se.quantity * se.unit_price), 0) AS total_value
        FROM stocktake_sessions ss
        JOIN stocktake_periods sp ON sp.id = ss.period_id
        JOIN outlets o            ON o.id  = ss.outlet_id
+       LEFT JOIN stocktake_entries se ON se.session_id = ss.id
        ${where}
+       GROUP BY
+         ss.id,
+         ss.period_id,
+         ss.outlet_id,
+         ss.name,
+         ss.status,
+         ss.counted_by,
+         ss.counted_date,
+         sp.month,
+         sp.year,
+         sp.status,
+         o.name
        ORDER BY sp.year DESC, sp.month DESC, o.name`,
       params,
     );
