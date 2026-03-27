@@ -22,7 +22,6 @@ export function TopNavigation() {
   const pageTitles = {
     "/dashboard": "Dashboard",
     "/stock-count": "Stock Count",
-    "/inventory": "Inventory",
     "/products": "Products",
     "/branches": "Branches",
     "/categories": "Categories",
