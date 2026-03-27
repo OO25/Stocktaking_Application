@@ -6,17 +6,9 @@ import {
   submitSession,
 } from "../../api/stocktake.js";
 import { Button } from "../../components/ui/button.jsx";
-import { Input } from "../../components/ui/input.jsx";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table.jsx";
 import { Badge } from "../../components/ui/badge.jsx";
 import { Alert, AlertDescription } from "../../components/ui/alert.jsx";
+import StockCountProductTable from "./components/stockcountProductTable.jsx";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -201,59 +193,12 @@ export default function StockCountDetailPage() {
       </div>
 
       {/* Products Table */}
-      <div className="mb-6 rounded-lg border border-gray-200 bg-white overflow-hidden">
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Products</h2>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead>UOM</TableHead>
-              <TableHead>Unit Price</TableHead>
-              <TableHead className="w-32 text-right">Quantity</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {validProducts.map((product) => {
-              const entry = entries.find((e) => e.product_id === product.product_id);
-              const quantity = entry?.quantity || 0;
-              const unitPrice = parseFloat(product.unit_price) || 0;
-              const lineTotal = quantity * unitPrice;
-
-              return (
-                <TableRow key={product.product_id}>
-                  <TableCell className="font-medium">
-                    {product.product_name}
-                  </TableCell>
-                  <TableCell>{product.uom_name || "-"}</TableCell>
-                  <TableCell>${unitPrice.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={quantity}
-                      onChange={(e) =>
-                        updateEntryQuantity(
-                          product.product_id,
-                          parseFloat(e.target.value) || 0
-                        )
-                      }
-                      disabled={!isEditable}
-                      className="w-28 ml-auto"
-                    />
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    ${lineTotal.toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      <StockCountProductTable
+        validProducts={validProducts}
+        entries={entries}
+        isEditable={isEditable}
+        onUpdate={updateEntryQuantity}
+      />
 
       {/* Actions */}
       {isEditable && (
@@ -275,7 +220,7 @@ export default function StockCountDetailPage() {
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
-                className="bg-green-600 hover:bg-green-700"
+                className=""
                 disabled={saving || submitting}
               >
                 {submitting ? "Finalizing..." : "Finalize & Submit"}

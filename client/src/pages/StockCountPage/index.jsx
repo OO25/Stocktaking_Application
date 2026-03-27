@@ -1,17 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { fetchSessions, deleteSession } from "../../api/stocktake.js";
-import { Button } from "../../components/ui/button.jsx";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table.jsx";
-import { Badge } from "../../components/ui/badge.jsx";
-import { Alert, AlertDescription } from "../../components/ui/alert.jsx";
+import StockCountTable from "./components/stockcountTable.jsx";
 
 /*
  * Displays list of all stocktake sessions for the user
@@ -20,6 +9,10 @@ export default function StockCountPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [previousPage, setPreviousPage] = useState(1);
+  const [previousLimit, setPreviousLimit] = useState(10);
 
   // Load sessions on mount
   useEffect(() => {
@@ -52,93 +45,102 @@ export default function StockCountPage() {
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      draft: "bg-gray-200 text-gray-800",
-      in_progress: "bg-blue-200 text-blue-800",
-      submitted: "bg-green-200 text-green-800",
-      locked: "bg-red-200 text-red-800",
-    };
-    return colors[status] || "bg-gray-200 text-gray-800";
-  };
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
 
-  if (loading) {
-    return (
-      <div className="p-8">
-        <p className="text-gray-600">Loading sessions...</p>
-      </div>
-    );
-  }
+  const currentSessions = sessions.filter(
+    (session) =>
+      Number(session.month) === currentMonth &&
+      Number(session.year) === currentYear
+  );
+  const previousSessions = sessions.filter(
+    (session) =>
+      Number(session.month) !== currentMonth ||
+      Number(session.year) !== currentYear
+  );
+
+  const totalCount = currentSessions.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const startIndex = (page - 1) * limit;
+  const pageSessions = currentSessions.slice(startIndex, startIndex + limit);
+
+  const previousTotalCount = previousSessions.length;
+  const previousTotalPages = Math.max(
+    1,
+    Math.ceil(previousTotalCount / previousLimit)
+  );
+  const previousStartIndex = (previousPage - 1) * previousLimit;
+  const previousPageSessions = previousSessions.slice(
+    previousStartIndex,
+    previousStartIndex + previousLimit
+  );
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    if (previousPage > previousTotalPages) {
+      setPreviousPage(previousTotalPages);
+    }
+  }, [previousPage, previousTotalPages]);
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Stock Count</h1>
-        <p className="mt-1 text-gray-600">View and manage stocktake sessions</p>
+    <div className="flex-1 flex flex-col bg-gray-50 p-6">
+      <div className="px-4 py-6 mx-auto w-full max-w-7xl flex flex-1 flex-col gap-4 sm:gap-6">
+        <div className="mb-2">
+          <h1 className="text-3xl font-bold text-gray-900">Stock Count</h1>
+          <p className="mt-1 text-gray-600">
+            View and manage stocktake sessions
+          </p>
+        </div>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">
+            Current Month Stocktakes
+          </h2>
+          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+            <StockCountTable
+              loading={loading}
+              error={error}
+              sessions={pageSessions}
+              limit={limit}
+              page={page}
+              totalPages={totalPages}
+              onLimitChange={(nextLimit) => {
+                setLimit(nextLimit);
+                setPage(1);
+              }}
+              onPageChange={(nextPage) => setPage(nextPage)}
+              onDelete={handleDelete}
+              emptyMessage="No stocktake sessions found for this month."
+            />
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">
+            Previous Stocktakes
+          </h2>
+          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+            <StockCountTable
+              loading={loading}
+              error={error}
+              sessions={previousPageSessions}
+              limit={previousLimit}
+              page={previousPage}
+              totalPages={previousTotalPages}
+              onLimitChange={(nextLimit) => {
+                setPreviousLimit(nextLimit);
+                setPreviousPage(1);
+              }}
+              onPageChange={(nextPage) => setPreviousPage(nextPage)}
+              onDelete={handleDelete}
+              emptyMessage="No previous stocktake sessions found."
+            />
+          </div>
+        </div>
       </div>
-
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {sessions.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-          <p className="text-gray-600">No stocktake sessions found</p>
-        </div>
-      ) : (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Period</TableHead>
-                <TableHead>Outlet</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Counted By</TableHead>
-                <TableHead>Counted Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sessions.map((session) => (
-                <TableRow key={session.id}>
-                  <TableCell>
-                    {session.month}/{session.year}
-                  </TableCell>
-                  <TableCell>{session.outlet_name}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(session.status)}>
-                      {session.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{session.counted_by || "-"}</TableCell>
-                  <TableCell>{session.counted_date || "-"}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Link to={`/stock-count/${session.id}`}>
-                      <Button variant="outline" size="sm">
-                        {session.status === "draft" ||
-                        session.status === "in_progress"
-                          ? "Edit"
-                          : "View"}
-                      </Button>
-                    </Link>
-                    {session.status === "draft" && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(session.id)}
-                      >
-                        Delete
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
     </div>
   );
 }
