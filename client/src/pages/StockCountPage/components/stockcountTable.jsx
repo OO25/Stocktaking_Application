@@ -119,7 +119,10 @@ function StockCountTable({
               <TableCell>
                 <div className="flex justify-end">
                   <div className="inline-flex items-center justify-center gap-2 w-32">
-                    <Link to={`/stock-count/${session.id}`}>
+                    <Link
+                      to={`/stock-count/${session.id}`}
+                      state={{ assignmentName: session.name || session.assignment_name || "" }}
+                    >
                       <Button variant="outline" size="sm">
                         {session.status === "draft" ||
                         session.status === "in_progress"
