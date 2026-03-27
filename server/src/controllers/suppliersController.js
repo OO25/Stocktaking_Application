@@ -1,13 +1,29 @@
 import pool from "../config/db.js";
 
 /**
- * GET /api/suppliers
- * Returns all suppliers ordered by name.
+ * GET /api/suppliers?search=
+ * Returns all suppliers ordered by name. Supports optional fuzzy text search.
  */
-export async function getSuppliers(_req, res) {
+export async function getSuppliers(req, res) {
   try {
+    const search = (req.query.search ?? "").trim();
+
+    const conditions = [];
+    const params = [];
+
+    if (search) {
+      params.push(search);
+      conditions.push(`name % $${params.length}`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
     const { rows } = await pool.query(
-      "SELECT id, name, contact_name, email, phone, website_url AS website, created_at, updated_at FROM suppliers ORDER BY name"
+      `SELECT id, name, contact_name, email, phone, website_url AS website, created_at, updated_at 
+       FROM suppliers 
+       ${where}
+       ORDER BY name`,
+      params
     );
     res.json(rows);
   } catch (err) {

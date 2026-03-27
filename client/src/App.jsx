@@ -9,11 +9,14 @@ import ManageCategoryPage from "./pages/ManageCategoryPage/index.jsx";
 import ManageUomPage from "./pages/ManageUomPage/index.jsx";
 import ManageOutletAssignmentPage from "./pages/ManageOutletAssignmentPage/index.jsx";
 import ManageUsersPage from "./pages/ManageUsersPage/index.jsx";
+import StockCountPage from "./pages/StockCountPage/index.jsx";
+import StockCountDetailPage from "./pages/StockCountPage/detail.jsx";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "./components/ui/sidebar.jsx";
+import { TopNavigation } from "./components/top-navigation.jsx";
 
 /*
  * Wraps all protected routes, if you're not logged in you get
@@ -31,12 +34,7 @@ function AuthLayout() {
       <div className="flex min-h-svh w-full overflow-hidden">
         <AppSidebar collapsible="icon" variant="sidebar" />
         <SidebarInset className="flex-1 min-h-svh w-full overflow-y-auto bg-gray-50">
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-gray-200 bg-white/80 px-4 backdrop-blur">
-            <SidebarTrigger />
-            <span className="text-sm font-semibold text-gray-900">
-              Stocktake
-            </span>
-          </header>
+          <TopNavigation />
           <Outlet />
         </SidebarInset>
       </div>
@@ -70,7 +68,8 @@ function App() {
       <Route element={<AuthLayout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Placeholder />} />
-        <Route path="stock-count" element={<Placeholder />} />
+        <Route path="stock-count" element={<StockCountPage />} />
+        <Route path="stock-count/:id" element={<StockCountDetailPage />} />
         <Route path="inventory" element={<Placeholder />} />
         <Route path="products" element={<ManageProductPage />} />
         <Route path="branches" element={<ManageOutletPage />} />

@@ -6,6 +6,9 @@ import {
   getSessions,
   createSession,
   deleteSession,
+  getSessionDetail,
+  saveSessionEntries,
+  submitSession,
 } from "../controllers/stocktakeController.js";
 
 const router = Router();
@@ -19,6 +22,9 @@ router.post("/periods", requireRole("admin"), createPeriod);
 // Sessions
 router.get("/sessions", getSessions);
 router.post("/sessions", requireRole("admin"), createSession);
+router.get("/sessions/:id/detail", getSessionDetail);
+router.put("/sessions/:id/entries", saveSessionEntries);
+router.post("/sessions/:id/submit", submitSession);
 router.delete("/sessions/:id", requireRole("admin"), deleteSession);
 
 export default router;
