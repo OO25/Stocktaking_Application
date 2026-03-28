@@ -29,6 +29,7 @@ import {
 import { fetchOutlets } from "../../api/outlets.js";
 import { fetchSessionDetail, fetchSessions } from "../../api/stocktake.js";
 import { fetchCategories, fetchProducts } from "../../api/products.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 import { Button } from "../../components/ui/button.jsx";
 import { Badge } from "../../components/ui/badge.jsx";
 import { Calendar } from "../../components/ui/calendar.jsx";
@@ -256,6 +257,7 @@ function getAlertTone(urgency) {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [outlets, setOutlets] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [products, setProducts] = useState([]);
@@ -267,6 +269,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
+  const accessibleOutletIds = Array.isArray(user?.outlet_ids)
+    ? user.outlet_ids.map(String)
+    : [];
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     let cancelled = false;
@@ -291,6 +297,11 @@ export default function DashboardPage() {
         if (cancelled) return;
 
         const safeOutlets = Array.isArray(outletData?.rows) ? outletData.rows : [];
+        const visibleOutlets = isAdmin
+          ? safeOutlets
+          : safeOutlets.filter((outlet) =>
+              accessibleOutletIds.includes(String(outlet.id))
+            );
         const safeSessions = Array.isArray(sessionData) ? sessionData : [];
         const safeProducts = Array.isArray(productData?.rows) ? productData.rows : [];
         const safeCategories = [
@@ -300,7 +311,7 @@ export default function DashboardPage() {
           ]),
         ].sort((first, second) => first.localeCompare(second));
 
-        setOutlets(safeOutlets);
+        setOutlets(visibleOutlets);
         setSessions(safeSessions);
         setProducts(safeProducts);
         setCategoryOptions(safeCategories);
@@ -345,7 +356,19 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedOutlet, selectedMonth]);
+  }, [accessibleOutletIds, isAdmin, selectedOutlet, selectedMonth]);
+
+  useEffect(() => {
+    if (isAdmin) return;
+    if (!accessibleOutletIds.length) return;
+    if (selectedOutlet === ALL_OUTLETS) {
+      setSelectedOutlet(String(accessibleOutletIds[0]));
+      return;
+    }
+    if (!accessibleOutletIds.includes(String(selectedOutlet))) {
+      setSelectedOutlet(String(accessibleOutletIds[0]));
+    }
+  }, [accessibleOutletIds, isAdmin, selectedOutlet]);
 
   const visibleMonthKeys = new Set(getLastSixMonths(selectedMonth).map(getMonthKey));
   const visibleSessions = sessions.filter((session) =>
@@ -607,7 +630,9 @@ export default function DashboardPage() {
                     <SelectValue placeholder="Select outlet" />
                   </SelectTrigger>
                   <SelectContent align="start">
-                    <SelectItem value={ALL_OUTLETS}>All outlets</SelectItem>
+                    {isAdmin ? (
+                      <SelectItem value={ALL_OUTLETS}>All outlets</SelectItem>
+                    ) : null}
                     {outlets.map((outlet) => (
                       <SelectItem key={outlet.id} value={String(outlet.id)}>
                         {outlet.name}
