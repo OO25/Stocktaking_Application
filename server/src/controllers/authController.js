@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import pool from "../config/db.js";
 import { findByUsername, createUser } from "../models/userModel.js";
 
 const BCRYPT_SALT_ROUNDS = 10;
@@ -33,13 +34,25 @@ export async function login(req, res) {
       return res.status(401).json({ message: "Invalid username or password." });
     }
 
-    // Sign a JWT containing the user's id, username and role
+    const { rows: outletRows } = await pool.query(
+      `SELECT COALESCE(
+          ARRAY_AGG(outlet_id) FILTER (WHERE outlet_id IS NOT NULL),
+          '{}'::int[]
+        ) AS outlet_ids
+       FROM user_outlets
+       WHERE user_id = $1`,
+      [user.id]
+    );
+    const outletIds = outletRows[0]?.outlet_ids ?? [];
+
+    // Sign a JWT containing the user's id, username, role, and outlet access
     const token = jwt.sign(
       {
         id: user.id,
         name: user.name,
         username: user.username,
         role: user.role,
+        outlet_ids: outletIds,
       },
       process.env.JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN },
@@ -52,6 +65,7 @@ export async function login(req, res) {
         name: user.name,
         username: user.username,
         role: user.role,
+        outlet_ids: outletIds,
       },
     });
   } catch (err) {

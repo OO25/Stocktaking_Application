@@ -30,6 +30,7 @@ function getStoredAuth() {
         username: payload.username,
         role: payload.role,
         name: payload.name || "",
+        outlet_ids: Array.isArray(payload.outlet_ids) ? payload.outlet_ids : [],
       },
       token: storedToken,
     };
