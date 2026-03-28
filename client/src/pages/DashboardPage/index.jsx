@@ -212,7 +212,7 @@ function SummaryCard({ title, value, description, icon: Icon }) {
 const INVENTORY_ALERTS = [
   {
     id: 1,
-    product: "Flat White Cups 12oz",
+    product: "12oz Coffee Cups",
     outlet: "Refuel",
     stockLeft: 8,
     reorderLevel: 24,
@@ -220,7 +220,7 @@ const INVENTORY_ALERTS = [
   },
   {
     id: 2,
-    product: "Caramel Syrup",
+    product: "Takeaway Lids",
     outlet: "Groove",
     stockLeft: 3,
     reorderLevel: 10,
@@ -236,7 +236,7 @@ const INVENTORY_ALERTS = [
   },
   {
     id: 4,
-    product: "Espresso Beans",
+    product: "Carry Bags",
     outlet: "Refuel",
     stockLeft: 6,
     reorderLevel: 20,
@@ -906,7 +906,7 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="max-h-[320px] space-y-3 overflow-y-auto pr-1">
+              <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
                 {INVENTORY_ALERTS.map((alert) => (
                   <div
                     key={alert.id}
@@ -951,7 +951,7 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="max-h-[320px] space-y-3 overflow-y-auto pr-1">
+              <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
                 {loading ? (
                   <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
                     Loading dashboard data...
