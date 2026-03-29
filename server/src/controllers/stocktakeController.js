@@ -374,7 +374,8 @@ export async function getSessionDetail(req, res) {
          p.id AS product_id,
          p.name AS product_name,
          u.name AS uom_name,
-         p.price AS unit_price
+         p.price AS unit_price,
+         p.product_code AS barcode
        FROM outlet_products op
        JOIN products p ON p.id = op.product_id
        LEFT JOIN units_of_measure u ON u.id = p.uom_id
