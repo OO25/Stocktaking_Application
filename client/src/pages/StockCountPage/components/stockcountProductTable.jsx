@@ -19,7 +19,13 @@ import {
 } from "../../../components/ui/tabs.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
 
-function StockCountProductTable({ validProducts, entries, isEditable, onUpdate }) {
+function StockCountProductTable({
+  validProducts,
+  entries,
+  isEditable,
+  onUpdate,
+  onOpenCount,
+}) {
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -141,13 +147,14 @@ function StockCountProductTable({ validProducts, entries, isEditable, onUpdate }
             <TableHead className="w-32 py-4">UOM</TableHead>
             <TableHead className="w-40 py-4 text-right">Unit Price</TableHead>
             <TableHead className="w-32 py-4 text-right">Quantity</TableHead>
-            <TableHead className="w-40 py-4 text-right pr-6">Total</TableHead>
+            <TableHead className="w-40 py-4 text-right">Total</TableHead>
+            <TableHead className="w-28 py-4 text-right pr-6">Count</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredProducts.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="py-12 text-center text-sm">
+              <TableCell colSpan={6} className="py-12 text-center text-sm">
                 No products to show.
               </TableCell>
             </TableRow>
@@ -185,8 +192,18 @@ function StockCountProductTable({ validProducts, entries, isEditable, onUpdate }
                     className="w-28 ml-auto text-right"
                   />
                 </TableCell>
-                <TableCell className="text-right font-semibold pr-6">
+                <TableCell className="text-right font-semibold">
                   ${lineTotal.toFixed(2)}
+                </TableCell>
+                <TableCell className="text-right pr-6">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!isEditable}
+                    onClick={() => onOpenCount?.(product)}
+                  >
+                    Count
+                  </Button>
                 </TableCell>
               </TableRow>
             );
@@ -194,7 +211,7 @@ function StockCountProductTable({ validProducts, entries, isEditable, onUpdate }
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell colSpan={4}>
+            <TableCell colSpan={5}>
               <div className="flex items-center gap-3 pl-4">
                 <span>Rows per page</span>
                 <select
