@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   fetchProducts,
   fetchCategories,
@@ -13,7 +13,16 @@ import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import { Badge } from "../../components/ui/badge.jsx";
 import SuccessAlert from "../../components/SuccessAlert.jsx";
-import ConfirmDialog from "../../components/ConfirmDialog.jsx";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/alert-dialog.jsx";
 import {
   Select,
   SelectContent,
@@ -45,50 +54,6 @@ function useDebounce(value, delay = 300) {
   return debounced;
 }
 
-/** Sort a list of products by the given sort key. */
-function sortProducts(products, sort) {
-  const sorted = [...products];
-  switch (sort) {
-    case "az":
-      return sorted.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
-    case "price_asc":
-      return sorted.sort((a, b) => Number(a.price ?? 0) - Number(b.price ?? 0));
-    case "price_desc":
-      return sorted.sort((a, b) => Number(b.price ?? 0) - Number(a.price ?? 0));
-    case "newest":
-    default:
-      return sorted.sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at),
-      );
-  }
-}
-
-/** Apply active filters to a list of products. */
-function filterProducts(products, filters) {
-  return products.filter((p) => {
-    // Type filter
-    if (filters.type === "food" && p.is_packaging) return false;
-    if (filters.type === "packaging" && !p.is_packaging) return false;
-
-    // Category filter (food_group or packaging_type name)
-    if (filters.category) {
-      const cat = p.is_packaging ? p.packaging_type : p.food_group;
-      if (cat !== filters.category) return false;
-    }
-
-    // Supplier filter
-    if (filters.supplier && p.supplier !== filters.supplier) return false;
-
-    // Outlet filter — product must belong to the selected outlet
-    if (filters.outlet) {
-      const names = Array.isArray(p.outlet_names) ? p.outlet_names : [];
-      if (!names.includes(filters.outlet)) return false;
-    }
-
-    return true;
-  });
-}
-
 const EMPTY_FILTERS = { type: "", category: "", supplier: "", outlet: "" };
 
 function ManageProductPage() {
@@ -106,6 +71,7 @@ function ManageProductPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const successTimerRef = useRef(null);
 
@@ -166,13 +132,22 @@ function ManageProductPage() {
     }
   }, [debouncedSearch]);
 
-  // Fetch products whenever page, limit, or debounced search changes
+  // Fetch products whenever page, limit, debounced search, filters, or sort changes
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetchProducts({ page, limit, search: debouncedSearch })
+    fetchProducts({
+      page,
+      limit,
+      search: debouncedSearch,
+      sort,
+      type: filters.type,
+      category: filters.category,
+      supplier: filters.supplier,
+      outlet: filters.outlet,
+    })
       .then((data) => {
         if (!cancelled) {
           setProducts(data.rows);
@@ -189,36 +164,53 @@ function ManageProductPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, limit, debouncedSearch]);
+  }, [page, limit, debouncedSearch, filters, sort]);
 
-  // Apply filters then sort
-  const processedProducts = useMemo(
-    () => sortProducts(filterProducts(products, filters), sort),
-    [products, filters, sort],
-  );
+  async function refreshProducts({ nextPage = page } = {}) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchProducts({
+        page: nextPage,
+        limit,
+        search: debouncedSearch,
+        sort,
+        type: filters.type,
+        category: filters.category,
+        supplier: filters.supplier,
+        outlet: filters.outlet,
+      });
+      setProducts(data.rows);
+      setTotalCount(data.totalCount);
+      if (nextPage !== page) setPage(nextPage);
+    } catch (err) {
+      setError(err.message || String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  // Calculate total pages based on the actual count from the server, not filtered results
+  // Pagination is already applied server-side.
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-  // The server already applies pagination; use the processed (filtered+sorted)
-  // results returned for the current page directly instead of slicing again.
-  const pageProducts = processedProducts;
+  const pageProducts = products;
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   // Count active filters for the badge
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
   function handleProductCreated() {
-    setPage(1);
     showSuccess("New product has been created.");
+    refreshProducts({ nextPage: 1 }).catch(console.error);
   }
 
   function handleProductUpdated() {
     showSuccess("Product has been updated.");
-    fetchProducts({ page, limit, search: debouncedSearch })
-      .then((data) => {
-        setProducts(data.rows);
-        setTotalCount(data.totalCount);
-      })
-      .catch(console.error);
+    refreshProducts().catch(console.error);
   }
 
   async function handleProductDeleteConfirm() {
@@ -228,14 +220,13 @@ function ManageProductPage() {
       showSuccess("Product has been deleted.");
       setDeleteDialogOpen(false);
       setDeleteTarget(null);
-      fetchProducts({ page, limit, search: debouncedSearch })
-        .then((data) => {
-          setProducts(data.rows);
-          setTotalCount(data.totalCount);
-        })
-        .catch(console.error);
+      setDeleteError("");
+      refreshProducts().catch(console.error);
     } catch (err) {
-      setError(err.message || "Failed to delete product.");
+      setDeleteError(
+        err.message || "Failed to delete product. Please try again.",
+      );
+      setDeleteDialogOpen(true);
     }
   }
 
@@ -505,17 +496,43 @@ function ManageProductPage() {
           onUpdated={handleProductUpdated}
         />
 
-        <ConfirmDialog
+        <AlertDialog
           open={deleteDialogOpen}
           onOpenChange={(open) => {
             setDeleteDialogOpen(open);
-            if (!open) setDeleteTarget(null);
+            if (!open) {
+              setDeleteTarget(null);
+              setDeleteError("");
+            }
           }}
-          title="Delete product"
-          description={`Delete "${deleteTarget?.name || "this product"}"? This action cannot be undone.`}
-          confirmLabel="Delete"
-          onConfirm={handleProductDeleteConfirm}
-        />
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete product</AlertDialogTitle>
+              {!deleteError ? (
+                <AlertDialogDescription>
+                  {`Delete "${deleteTarget?.name || "this product"}"? This action cannot be undone.`}
+                </AlertDialogDescription>
+              ) : null}
+              {deleteError ? (
+                <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                  {deleteError}
+                </div>
+              ) : null}
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              {!deleteError ? (
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={handleProductDeleteConfirm}
+                >
+                  Delete
+                </AlertDialogAction>
+              ) : null}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
