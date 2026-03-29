@@ -49,11 +49,16 @@ function StockCountProductTable({ validProducts, entries, isEditable, onUpdate }
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
     return validProducts.filter((product) => {
+      // Filter by search term: product name or barcode (product_code)
       if (query) {
+        // Search across both product name and product_code (barcode)
+        // Using includes() for fuzzy matching on product name and barcode
         const haystack = `${product.product_name} ${product.barcode || ""}`
           .toLowerCase();
         if (!haystack.includes(query)) return false;
       }
+      
+      // Filter by tab: all, uncounted, counted, or count0
       const entry = entries.find(
         (e) => e.product_id === product.product_id
       );

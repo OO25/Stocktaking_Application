@@ -96,9 +96,10 @@ export async function createPeriod(req, res) {
 // SESSIONS >^.^<
 // ============================================
 
-/*
+/**
  * Gets all stocktake sessions with their period and outlet info
  * Non-admin users only see sessions for outlets they're assigned to
+ * Managers (non-admin users) see only stocktakes for their assigned outlets.
  * URL: GET /api/stocktake/sessions
  * 
  */
@@ -115,20 +116,24 @@ export async function getSessions(req, res) {
       conditions.push(`ss.outlet_id = $${params.length}`);
     }
 
-    // Permission check
+    // Permission check: Non-admin users can only see sessions for their assigned outlets
     if (req.user && req.user.role !== "admin") {
-      const userOutlets = await pool.query(
+      const { rows: userOutlets } = await pool.query(
         "SELECT outlet_id FROM user_outlets WHERE user_id = $1",
         [req.user.id],
       );
-      const outletIds = userOutlets.rows.map((r) => r.outlet_id);
+      const outletIds = userOutlets.map((r) => r.outlet_id);
 
+      // If user has no assigned outlets, return empty list
       if (outletIds.length === 0) {
+        console.log(`User ${req.user.id} (${req.user.role}) has no assigned outlets`);
         return res.json([]);
       }
 
+      // Add user's outlet restriction to conditions
       params.push(outletIds);
-      conditions.push(`ss.outlet_id = ANY($${params.length})`);
+      conditions.push(`ss.outlet_id = ANY($${params.length}::integer[])`);
+      console.log(`User ${req.user.id} (${req.user.role}) can access ${outletIds.length} outlets`);
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -369,10 +374,12 @@ export async function getSessionDetail(req, res) {
     }
 
     // Fetch valid products for this outlet (joined with UOM and price)
+    // Includes product_code (barcode) for search functionality
     const { rows: validProducts } = await pool.query(
       `SELECT
          p.id AS product_id,
          p.name AS product_name,
+         p.product_code AS barcode,
          u.name AS uom_name,
          p.price AS unit_price
        FROM outlet_products op
