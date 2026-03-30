@@ -31,7 +31,7 @@ export async function getOutlets(req, res) {
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
     // Get data
-    let query = `SELECT id, name, cost_centre FROM outlets ${where} ORDER BY name`;
+    let query = `SELECT id, name, cost_centre, created_at, updated_at FROM outlets ${where} ORDER BY name`;
     const queryValues = [...values];
 
     if (page && limit) {
@@ -68,7 +68,7 @@ export async function createOutlet(req, res) {
     const { rows } = await pool.query(
       `INSERT INTO outlets (name, cost_centre)
        VALUES ($1, $2)
-       RETURNING id, name, cost_centre`,
+       RETURNING id, name, cost_centre, created_at, updated_at`,
       [name.trim(), String(cost_centre).trim()]
     );
     res.status(201).json(rows[0]);
@@ -133,9 +133,10 @@ export async function updateOutlet(req, res) {
     const { rows } = await pool.query(
       `UPDATE outlets
        SET name = $1,
-           cost_centre = $2
+           cost_centre = $2,
+           updated_at = NOW()
        WHERE id = $3
-       RETURNING id, name, cost_centre`,
+       RETURNING id, name, cost_centre, created_at, updated_at`,
       [name.trim(), String(cost_centre).trim(), outletId]
     );
 

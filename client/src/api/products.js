@@ -4,11 +4,29 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 /**
  * Fetches a paginated list of products from the backend.
- * @param {{ page?: number, limit?: number, search?: string, category?: string }} params
+ * @param {{ page?: number, limit?: number, search?: string, category?: string, type?: string, supplier?: string, outlet?: string, sort?: string }} params
  * @returns {Promise<{ rows: Array, totalCount: number }>}
  */
-export async function fetchProducts({ page = 1, limit = 10, search = "", category = "" } = {}) {
-  const qs = new URLSearchParams({ page, limit, search, category });
+export async function fetchProducts({
+  page = 1,
+  limit = 10,
+  search = "",
+  category = "",
+  type = "",
+  supplier = "",
+  outlet = "",
+  sort = "",
+} = {}) {
+  const qs = new URLSearchParams({
+    page,
+    limit,
+    search,
+    category,
+    type,
+    supplier,
+    outlet,
+    sort,
+  });
   const res = await fetchWithAuth(`${API_BASE}/products?${qs}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
