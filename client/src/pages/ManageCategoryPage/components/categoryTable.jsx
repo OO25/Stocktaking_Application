@@ -22,6 +22,10 @@ function CategoryTable({
   totalPages,
   onLimitChange,
   onPageChange,
+  onEdit,
+  onDelete,
+  typeFilter,
+  onTypeFilterChange,
 }) {
   return (
     <Table>
@@ -115,10 +119,18 @@ function CategoryTable({
               <TableCell>
                 <div className="flex justify-end">
                   <div className="inline-flex items-center justify-center gap-2 w-30">
-                    <Button size="sm" variant="secondary" disabled>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => onEdit?.(category)}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="destructive" disabled>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onDelete?.(category)}
+                    >
                       <Trash className="h-4 w-4" />
                     </Button>
                   </div>
