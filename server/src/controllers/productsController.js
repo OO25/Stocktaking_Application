@@ -29,18 +29,36 @@ export async function getProducts(req, res) {
     }
 
     if (search) {
-      // Provide both a wildcard param for ILIKE and a plain param for similarity()
+      // Determine if search term looks like a barcode (all digits) for exact matching
+      // Otherwise use fuzzy matching for product names and suppliers
+      const isLikelyBarcode = /^\d+$/.test(search);
       const idxWildcard = params.length + 1;
       const idxPlain = params.length + 2;
       params.push(`%${search}%`, search);
-      conditions.push(`(
-        p.name         ILIKE $${idxWildcard} OR
-        s.name         ILIKE $${idxWildcard} OR
-        p.product_code ILIKE $${idxWildcard} OR
-        similarity(p.name, $${idxPlain}) > 0.2 OR
-        similarity(s.name, $${idxPlain}) > 0.2 OR
-        similarity(p.product_code, $${idxPlain}) > 0.2
-      )`);
+      
+      if (isLikelyBarcode) {
+        // For barcode searches (numeric only), use exact match on product_code
+        const idxExact = params.length + 1;
+        params.push(search);
+        conditions.push(`(
+          p.product_code = $${idxExact} OR
+          p.name         ILIKE $${idxWildcard} OR
+          s.name         ILIKE $${idxWildcard} OR
+          similarity(p.name, $${idxPlain}) > 0.2 OR
+          similarity(s.name, $${idxPlain}) > 0.2 OR
+          similarity(p.product_code, $${idxPlain}) > 0.2
+        )`);
+      } else {
+        // For non-barcode searches, use fuzzy matching on name/supplier/product_code
+        conditions.push(`(
+          p.name         ILIKE $${idxWildcard} OR
+          s.name         ILIKE $${idxWildcard} OR
+          p.product_code ILIKE $${idxWildcard} OR
+          similarity(p.name, $${idxPlain}) > 0.2 OR
+          similarity(s.name, $${idxPlain}) > 0.2 OR
+          similarity(p.product_code, $${idxPlain}) > 0.2
+        )`);
+      }
     }
 
     if (category) {

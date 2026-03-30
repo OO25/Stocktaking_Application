@@ -80,19 +80,35 @@ export default function StockCountDetailPage() {
     }
   };
 
-  // Update quantity for an entry
+  /**
+   * Updates the quantity for a product in the current session.
+   * When updating an existing entry, preserves the unit_price to ensure
+   * correct total calculations. When creating a new entry, fetches unit_price
+   * from the valid products list.
+   */
   const updateEntryQuantity = (productId, quantity) => {
     setEntries((prev) => {
+      // Find existing entry for this product
       const existing = prev.find((e) => e.product_id === productId);
+      // Get the product details including its unit price
       const product = validProducts.find((p) => p.product_id === productId);
       const unitPrice = product?.unit_price || 0;
+      // Coerce quantity to number and validate it's not NaN
+      const numericQuantity = parseFloat(quantity) || 0;
       
       if (existing) {
+        // Update existing entry, PRESERVING unit_price to prevent total calc errors
         return prev.map((e) =>
-          e.product_id === productId ? { ...e, quantity } : e
+          e.product_id === productId
+            ? { ...e, quantity: numericQuantity, unit_price: unitPrice }
+            : e
         );
       }
-      return [...prev, { product_id: productId, quantity, unit_price: unitPrice }];
+      // Create new entry with product_id, quantity, and unit_price
+      return [
+        ...prev,
+        { product_id: productId, quantity: numericQuantity, unit_price: unitPrice },
+      ];
     });
   };
 
@@ -175,22 +191,35 @@ export default function StockCountDetailPage() {
     }
   };
 
-  // Submit session
+  /**
+   * Saves and finalizes the stocktake session.
+   * Sets counted_date and marks session as submitted in one operation.
+   * Includes proper error handling and timing to prevent race conditions.
+   */
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
       setError(null);
-      // Save entries with finalize flag
+      
+      // Save entries with finalize flag: this sets status to "submitted" and counted_date
+      // No separate submitSession() call needed - finalize flag handles submission
       const saveResult = await saveSessionEntries(id, entries, true);
-      // Then submit
-      await submitSession(id);
-      // Reload and redirect
+      if (!saveResult || !saveResult.success) {
+        throw new Error("Failed to finalize session");
+      }
+      
+      // Wait a small delay to ensure database transaction is committed
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      // Reload session detail to fetch updated counted_date and status from server
       await loadSessionDetail();
-      // Show success and redirect
+      
+      // Show success and redirect after data is loaded
       setTimeout(() => {
         navigate("/stock-count");
       }, 1500);
     } catch (err) {
+      console.error("Submit error:", err);
       setError(err.message || "Failed to submit session");
     } finally {
       setSubmitting(false);
