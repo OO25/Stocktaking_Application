@@ -272,6 +272,7 @@ export default function DashboardPage() {
   const accessibleOutletIds = Array.isArray(user?.outlet_ids)
     ? user.outlet_ids.map(String)
     : [];
+  const accessibleOutletIdsKey = accessibleOutletIds.join(",");
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
@@ -356,19 +357,19 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [accessibleOutletIds, isAdmin, selectedOutlet, selectedMonth]);
+  }, [accessibleOutletIdsKey, isAdmin, selectedOutlet, selectedMonth]);
 
   useEffect(() => {
     if (isAdmin) return;
-    if (!accessibleOutletIds.length) return;
-    if (selectedOutlet === ALL_OUTLETS) {
-      setSelectedOutlet(String(accessibleOutletIds[0]));
+    if (selectedOutlet === ALL_OUTLETS) return;
+    if (!accessibleOutletIds.length) {
+      setSelectedOutlet(ALL_OUTLETS);
       return;
     }
     if (!accessibleOutletIds.includes(String(selectedOutlet))) {
-      setSelectedOutlet(String(accessibleOutletIds[0]));
+      setSelectedOutlet(ALL_OUTLETS);
     }
-  }, [accessibleOutletIds, isAdmin, selectedOutlet]);
+  }, [accessibleOutletIdsKey, isAdmin, selectedOutlet]);
 
   const visibleMonthKeys = new Set(getLastSixMonths(selectedMonth).map(getMonthKey));
   const visibleSessions = sessions.filter((session) =>
@@ -630,9 +631,9 @@ export default function DashboardPage() {
                     <SelectValue placeholder="Select outlet" />
                   </SelectTrigger>
                   <SelectContent align="start">
-                    {isAdmin ? (
-                      <SelectItem value={ALL_OUTLETS}>All outlets</SelectItem>
-                    ) : null}
+                    <SelectItem value={ALL_OUTLETS}>
+                      {isAdmin ? "All outlets" : "All accessible outlets"}
+                    </SelectItem>
                     {outlets.map((outlet) => (
                       <SelectItem key={outlet.id} value={String(outlet.id)}>
                         {outlet.name}
