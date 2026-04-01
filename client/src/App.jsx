@@ -11,10 +11,10 @@ import ManageOutletAssignmentPage from "./pages/ManageOutletAssignmentPage/index
 import ManageUsersPage from "./pages/ManageUsersPage/index.jsx";
 import StockCountPage from "./pages/StockCountPage/index.jsx";
 import StockCountDetailPage from "./pages/StockCountPage/detail.jsx";
+import DashboardPage from "./pages/DashboardPage/index.jsx";
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "./components/ui/sidebar.jsx";
 import { TopNavigation } from "./components/top-navigation.jsx";
 
@@ -42,19 +42,6 @@ function AuthLayout() {
   );
 }
 
-function Placeholder() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-900">
-        Stocktaking Application
-      </h1>
-      <p className="mt-2 text-gray-600">
-        Select a page from the sidebar to get started.
-      </p>
-    </div>
-  );
-}
-
 function App() {
   const { user } = useAuth();
 
@@ -67,10 +54,9 @@ function App() {
 
       <Route element={<AuthLayout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Placeholder />} />
+        <Route path="dashboard" element={<DashboardPage />} />
         <Route path="stock-count" element={<StockCountPage />} />
         <Route path="stock-count/:id" element={<StockCountDetailPage />} />
-        <Route path="inventory" element={<Placeholder />} />
         <Route path="products" element={<ManageProductPage />} />
         <Route path="branches" element={<ManageOutletPage />} />
         <Route path="categories" element={<ManageCategoryPage />} />

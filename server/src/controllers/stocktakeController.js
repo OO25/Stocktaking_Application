@@ -29,6 +29,7 @@ async function checkSessionAccess(req, sessionOutletId) {
 function buildSessionDetailDTO(session, validProducts, currentEntries) {
   return {
     session_id: session.id,
+    assignment_name: session.name,
     period_month: session.month,
     period_year: session.year,
     outlet_name: session.outlet_name,
@@ -95,9 +96,10 @@ export async function createPeriod(req, res) {
 // SESSIONS >^.^<
 // ============================================
 
-/*
+/**
  * Gets all stocktake sessions with their period and outlet info
  * Non-admin users only see sessions for outlets they're assigned to
+ * Managers (non-admin users) see only stocktakes for their assigned outlets.
  * URL: GET /api/stocktake/sessions
  * 
  */
@@ -114,20 +116,24 @@ export async function getSessions(req, res) {
       conditions.push(`ss.outlet_id = $${params.length}`);
     }
 
-    // Permission check
+    // Permission check: Non-admin users can only see sessions for their assigned outlets
     if (req.user && req.user.role !== "admin") {
-      const userOutlets = await pool.query(
+      const { rows: userOutlets } = await pool.query(
         "SELECT outlet_id FROM user_outlets WHERE user_id = $1",
         [req.user.id],
       );
-      const outletIds = userOutlets.rows.map((r) => r.outlet_id);
+      const outletIds = userOutlets.map((r) => r.outlet_id);
 
+      // If user has no assigned outlets, return empty list
       if (outletIds.length === 0) {
+        console.log(`User ${req.user.id} (${req.user.role}) has no assigned outlets`);
         return res.json([]);
       }
 
+      // Add user's outlet restriction to conditions
       params.push(outletIds);
-      conditions.push(`ss.outlet_id = ANY($${params.length})`);
+      conditions.push(`ss.outlet_id = ANY($${params.length}::integer[])`);
+      console.log(`User ${req.user.id} (${req.user.role}) can access ${outletIds.length} outlets`);
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -137,17 +143,32 @@ export async function getSessions(req, res) {
          ss.id,
          ss.period_id,
          ss.outlet_id,
+         ss.name,
          ss.status,
          ss.counted_by,
          ss.counted_date,
          sp.month,
          sp.year,
          sp.status AS period_status,
-         o.name   AS outlet_name
+         o.name   AS outlet_name,
+         COALESCE(SUM(se.quantity * se.unit_price), 0) AS total_value
        FROM stocktake_sessions ss
        JOIN stocktake_periods sp ON sp.id = ss.period_id
        JOIN outlets o            ON o.id  = ss.outlet_id
+       LEFT JOIN stocktake_entries se ON se.session_id = ss.id
        ${where}
+       GROUP BY
+         ss.id,
+         ss.period_id,
+         ss.outlet_id,
+         ss.name,
+         ss.status,
+         ss.counted_by,
+         ss.counted_date,
+         sp.month,
+         sp.year,
+         sp.status,
+         o.name
        ORDER BY sp.year DESC, sp.month DESC, o.name`,
       params,
     );
@@ -205,11 +226,36 @@ export async function createSession(req, res) {
         return res.status(409).json({ message: "A stocktake session already exists for this outlet and period." });
       }
 
-      const { rows } = await client.query(
-        `INSERT INTO stocktake_sessions (period_id, outlet_id)
-         VALUES ($1, $2)
-         RETURNING id, period_id, outlet_id, status, counted_by, counted_date`,
+      const { rows: namingRows } = await client.query(
+        `SELECT
+           o.name AS outlet_name,
+           sp.month,
+           sp.year
+         FROM outlets o
+         JOIN stocktake_periods sp ON sp.id = $1
+         WHERE o.id = $2`,
         [period_id, outlet_id],
+      );
+
+      if (namingRows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: "Invalid outlet_id or period_id." });
+      }
+
+      const { outlet_name, month: periodMonth, year: periodYear } = namingRows[0];
+
+      const monthNames = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      ];
+
+      const assignmentName = `${outlet_name} - ${monthNames[periodMonth - 1]} ${periodYear}`;
+
+      const { rows } = await client.query(
+        `INSERT INTO stocktake_sessions (period_id, outlet_id, name)
+         VALUES ($1, $2, $3)
+         RETURNING id, period_id, outlet_id, name, status, counted_by, counted_date`,
+        [period_id, outlet_id, assignmentName],
       );
 
       await client.query("COMMIT");
@@ -217,8 +263,16 @@ export async function createSession(req, res) {
       // After session is created, gets all joined data
       const { rows: full } = await pool.query(
         `SELECT
-           ss.id, ss.period_id, ss.outlet_id, ss.status, ss.counted_by, ss.counted_date,
-           sp.month, sp.year, sp.status AS period_status,
+           ss.id,
+           ss.period_id,
+           ss.outlet_id,
+           ss.name,
+           ss.status,
+           ss.counted_by,
+           ss.counted_date,
+           sp.month,
+           sp.year,
+           sp.status AS period_status,
            o.name AS outlet_name
          FROM stocktake_sessions ss
          JOIN stocktake_periods sp ON sp.id = ss.period_id
@@ -290,6 +344,7 @@ export async function getSessionDetail(req, res) {
          ss.id,
          ss.period_id,
          ss.outlet_id,
+         ss.name,
          ss.status,
          ss.counted_by,
          ss.counted_date,
@@ -319,12 +374,15 @@ export async function getSessionDetail(req, res) {
     }
 
     // Fetch valid products for this outlet (joined with UOM and price)
+    // Includes product_code (barcode) for search functionality
     const { rows: validProducts } = await pool.query(
       `SELECT
          p.id AS product_id,
          p.name AS product_name,
+         p.product_code AS barcode,
          u.name AS uom_name,
-         p.price AS unit_price
+         p.price AS unit_price,
+         p.product_code AS barcode
        FROM outlet_products op
        JOIN products p ON p.id = op.product_id
        LEFT JOIN units_of_measure u ON u.id = p.uom_id

@@ -5,35 +5,99 @@ import pool from "../config/db.js";
  * Returns a paginated list of products with their outlet IDs and names.
  */
 export async function getProducts(req, res) {
-  try {
+ try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(
       100,
       Math.max(1, parseInt(req.query.limit, 10) || 10),
     );
     const search = (req.query.search ?? "").trim();
+    const type = (req.query.type ?? "").trim();
+    const category = (req.query.category ?? "").trim();
+    const supplier = (req.query.supplier ?? "").trim();
+    const outlet = (req.query.outlet ?? "").trim();
+    const sort = (req.query.sort ?? "az").trim();
     const offset = (page - 1) * limit;
 
     const conditions = [];
     const params = [];
 
+    if (type === "food") {
+      conditions.push("p.is_packaging = false");
+    } else if (type === "packaging") {
+      conditions.push("p.is_packaging = true");
+    }
+
     if (search) {
-      // Provide both a wildcard param for ILIKE and a plain param for similarity()
+      // Determine if search term looks like a barcode (all digits) for exact matching
+      // Otherwise use fuzzy matching for product names and suppliers
+      const isLikelyBarcode = /^\d+$/.test(search);
       const idxWildcard = params.length + 1;
       const idxPlain = params.length + 2;
       params.push(`%${search}%`, search);
+      
+      if (isLikelyBarcode) {
+        // For barcode searches (numeric only), use exact match on product_code
+        const idxExact = params.length + 1;
+        params.push(search);
+        conditions.push(`(
+          p.product_code = $${idxExact} OR
+          p.name         ILIKE $${idxWildcard} OR
+          s.name         ILIKE $${idxWildcard} OR
+          similarity(p.name, $${idxPlain}) > 0.2 OR
+          similarity(s.name, $${idxPlain}) > 0.2 OR
+          similarity(p.product_code, $${idxPlain}) > 0.2
+        )`);
+      } else {
+        // For non-barcode searches, use fuzzy matching on name/supplier/product_code
+        conditions.push(`(
+          p.name         ILIKE $${idxWildcard} OR
+          s.name         ILIKE $${idxWildcard} OR
+          p.product_code ILIKE $${idxWildcard} OR
+          similarity(p.name, $${idxPlain}) > 0.2 OR
+          similarity(s.name, $${idxPlain}) > 0.2 OR
+          similarity(p.product_code, $${idxPlain}) > 0.2
+        )`);
+      }
+    }
+
+    if (category) {
+      const idx = params.length + 1;
+      params.push(category);
       conditions.push(`(
-        p.name         ILIKE $${idxWildcard} OR
-        s.name         ILIKE $${idxWildcard} OR
-        p.product_code ILIKE $${idxWildcard} OR
-        similarity(p.name, $${idxPlain}) > 0.2 OR
-        similarity(s.name, $${idxPlain}) > 0.2 OR
-        similarity(p.product_code, $${idxPlain}) > 0.2
+        (p.is_packaging = true AND pt.name = $${idx}) OR
+        (p.is_packaging = false AND fg.name = $${idx})
       )`);
+    }
+
+    if (supplier) {
+      const idx = params.length + 1;
+      params.push(supplier);
+      conditions.push(`s.name = $${idx}`);
+    }
+
+    if (outlet) {
+      const idx = params.length + 1;
+      params.push(outlet);
+      conditions.push(`o.name = $${idx}`);
     }
 
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const orderBy = (() => {
+      switch (sort) {
+        case "newest":
+          return "p.created_at DESC, p.id DESC";
+        case "price_asc":
+          return "p.price ASC NULLS LAST, p.name ASC, p.id ASC";
+        case "price_desc":
+          return "p.price DESC NULLS LAST, p.name ASC, p.id ASC";
+        case "az":
+        default:
+          return "LOWER(p.name) ASC NULLS LAST, p.name ASC, p.id ASC";
+      }
+    })();
 
     // Outlet joins are inside baseFrom so they work with the WHERE clause and COUNT query
     const baseFrom = `
@@ -81,7 +145,7 @@ export async function getProducts(req, res) {
         ) AS outlet_names
       ${baseFrom}
       GROUP BY p.id, p.name, p.is_packaging, p.uom_id, p.product_code, p.unit_size, p.package_size, p.price, p.food_group_id, p.packaging_type_id, p.supplier_id, p.last_price_check, p.created_at, u.name, fg.name, pt.name, s.name
-      ORDER BY p.name
+      ORDER BY ${orderBy}
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limit, offset],
     );
@@ -298,6 +362,12 @@ export async function deleteProduct(req, res) {
 
     res.json({ success: true });
   } catch (err) {
+    if (err?.code === "23503") {
+      return res.status(400).json({
+        error:
+          "This product cannot be deleted because it has stocktake entries.",
+      });
+    }
     console.error("deleteProduct error:", err);
     res.status(500).json({ error: err.message || "Failed to delete product." });
   }

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -9,35 +10,53 @@ import {
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
-import { Pencil, Trash } from "lucide-react";
+import { Trash } from "lucide-react";
 
-/** Category table for ManageCategoryPage. */
-function CategoryTable({
+function getStatusColor(status) {
+  const colors = {
+    draft: "bg-gray-200 text-gray-800",
+    in_progress: "bg-blue-200 text-blue-800",
+    submitted: "bg-green-200 text-green-800",
+    locked: "bg-red-200 text-red-800",
+  };
+  return colors[status] || "bg-gray-200 text-gray-800";
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function StockCountTable({
   loading,
   error,
-  categories,
-  search,
+  sessions,
   limit,
   page,
   totalPages,
   onLimitChange,
   onPageChange,
-  onEdit,
   onDelete,
-  typeFilter,
-  onTypeFilterChange,
+  emptyMessage = "No stocktake sessions found.",
 }) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-65 py-4 pl-6">Name</TableHead>
-          <TableHead className="w-60 py-4">Type</TableHead>
-          <TableHead className="w-50 py-4">Created At</TableHead>
-          <TableHead className="w-40 py-4">Updated At</TableHead>
-          <TableHead className="w-30 py-4">
+          <TableHead className="w-50 py-4 pl-6">Period</TableHead>
+          <TableHead className="w-60 py-4">Outlet</TableHead>
+          <TableHead className="w-40 py-4">Status</TableHead>
+          <TableHead className="w-50 py-4">Counted By</TableHead>
+          <TableHead className="w-50 py-4">Counted Date</TableHead>
+          <TableHead className="w-40 py-4">
             <div className="flex justify-end">
-              <div className="w-30 text-center">Action</div>
+              <div className="w-32 text-center">Actions</div>
             </div>
           </TableHead>
         </TableRow>
@@ -45,15 +64,15 @@ function CategoryTable({
       <TableBody>
         {loading && (
           <TableRow>
-            <TableCell colSpan={5} className="py-12 text-center text-sm">
-              Loading categories…
+            <TableCell colSpan={6} className="py-12 text-center text-sm">
+              Loading sessions…
             </TableCell>
           </TableRow>
         )}
 
         {!loading && error !== null && (
           <TableRow>
-            <TableCell colSpan={5} className="py-4">
+            <TableCell colSpan={6} className="py-4">
               <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                 <svg
                   className="w-4 h-4 shrink-0"
@@ -74,65 +93,53 @@ function CategoryTable({
           </TableRow>
         )}
 
-        {!loading && error === null && categories.length === 0 && (
+        {!loading && error === null && sessions.length === 0 && (
           <TableRow>
-            <TableCell colSpan={5} className="py-12 text-center text-sm">
-              {search
-                ? "No categories match your search."
-                : "No categories found."}
+            <TableCell colSpan={6} className="py-12 text-center text-sm">
+              {emptyMessage}
             </TableCell>
           </TableRow>
         )}
 
         {!loading &&
           error === null &&
-          categories.map((category) => (
-            <TableRow key={category.key}>
+          sessions.map((session) => (
+            <TableRow key={session.id}>
               <TableCell className="font-semibold pl-6">
-                {category.name}
+                {session.month}/{session.year}
               </TableCell>
-              <TableCell className="text-gray-600">
-                {category.type ? (
-                  <Badge variant="secondary">{category.type}</Badge>
-                ) : (
-                  "—"
-                )}
-              </TableCell>
+              <TableCell>{session.outlet_name}</TableCell>
               <TableCell>
-                {category.created_at ? (
-                  <span className="text-sm text-gray-900">
-                    {category.created_at}
-                  </span>
-                ) : (
-                  <span className="text-sm text-gray-500">—</span>
-                )}
+                <Badge className={getStatusColor(session.status)}>
+                  {session.status}
+                </Badge>
               </TableCell>
-              <TableCell>
-                {category.updated_at ? (
-                  <span className="text-sm text-gray-900">
-                    {category.updated_at}
-                  </span>
-                ) : (
-                  <span className="text-sm text-gray-500">—</span>
-                )}
-              </TableCell>
+              <TableCell>{session.counted_by || "-"}</TableCell>
+              <TableCell>{formatDate(session.counted_date)}</TableCell>
               <TableCell>
                 <div className="flex justify-end">
-                  <div className="inline-flex items-center justify-center gap-2 w-30">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => onEdit?.(category)}
+                  <div className="inline-flex items-center justify-center gap-2 w-32">
+                    <Link
+                      to={`/stock-count/${session.id}`}
+                      state={{ assignmentName: session.name || session.assignment_name || "" }}
                     >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onDelete?.(category)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                      <Button variant="outline" size="sm">
+                        {session.status === "draft" ||
+                        session.status === "in_progress"
+                          ? "Edit"
+                          : "View"}
+                      </Button>
+                    </Link>
+                    {session.status === "draft" && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => onDelete?.(session.id)}
+                        aria-label="Delete session"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </TableCell>
@@ -141,7 +148,7 @@ function CategoryTable({
       </TableBody>
       <TableFooter>
         <TableRow>
-          <TableCell colSpan={4}>
+          <TableCell colSpan={5}>
             <div className="flex items-center gap-3 pl-4">
               <span>Rows per page</span>
               <select
@@ -184,4 +191,4 @@ function CategoryTable({
   );
 }
 
-export default CategoryTable;
+export default StockCountTable;

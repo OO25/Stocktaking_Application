@@ -49,10 +49,11 @@ function isFormDirty(form, selectedOutlets, original) {
   if (normalizedRole === "admin") return false;
 
   let originalOutletIds = [];
-  if (Array.isArray(original.branch_ids)) {
-    originalOutletIds = original.branch_ids.map(String).filter(Boolean);
-  } else if (typeof original.branch_ids === "string") {
-    const trimmed = original.branch_ids.replace(/[{}]/g, "");
+  const savedOutletIds = original.outlet_ids ?? original.branch_ids;
+  if (Array.isArray(savedOutletIds)) {
+    originalOutletIds = savedOutletIds.map(String).filter(Boolean);
+  } else if (typeof savedOutletIds === "string") {
+    const trimmed = savedOutletIds.replace(/[{}]/g, "");
     originalOutletIds = trimmed ? trimmed.split(",").map((id) => id.trim()).filter(Boolean) : [];
   }
 
@@ -92,10 +93,11 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
     setDiscardOpen(false);
 
     let outletIds = [];
-    if (Array.isArray(user.branch_ids)) {
-      outletIds = user.branch_ids.map(String);
-    } else if (typeof user.branch_ids === "string") {
-      const trimmed = user.branch_ids.replace(/[{}]/g, "");
+    const savedOutletIds = user.outlet_ids ?? user.branch_ids;
+    if (Array.isArray(savedOutletIds)) {
+      outletIds = savedOutletIds.map(String);
+    } else if (typeof savedOutletIds === "string") {
+      const trimmed = savedOutletIds.replace(/[{}]/g, "");
       outletIds = trimmed ? trimmed.split(",").map((id) => id.trim()).filter(Boolean) : [];
     }
     setSelectedOutlets(outletIds);
@@ -143,7 +145,7 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
         name: form.name,
         username: form.username,
         role: form.role,
-        branch_ids: selectedOutlets.map((id) => Number(id)),
+        outlet_ids: selectedOutlets.map((id) => Number(id)),
       };
       if (form.password) payload.password = form.password;
       await updateUser(user.id, payload);
@@ -161,6 +163,17 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
   const visibleOutlets = expandedOutlets ? selectedOutlets : selectedOutlets.slice(0, 2);
   const hiddenOutletCount = selectedOutlets.length > visibleOutlets.length
     ? selectedOutlets.length - visibleOutlets.length : 0;
+  let persistedOutletIds = [];
+  const savedOutletIds = user.outlet_ids ?? user.branch_ids;
+  if (Array.isArray(savedOutletIds)) {
+    persistedOutletIds = savedOutletIds.map(String).filter(Boolean);
+  } else if (typeof savedOutletIds === "string") {
+    const trimmed = savedOutletIds.replace(/[{}]/g, "");
+    persistedOutletIds = trimmed ? trimmed.split(",").map((id) => id.trim()).filter(Boolean) : [];
+  }
+  const persistedOutletNames = persistedOutletIds
+    .map((id) => outlets.find((item) => String(item.id) === String(id))?.name)
+    .filter(Boolean);
 
   function toggleOutlet(id) {
     setSelectedOutlets((prev) =>
@@ -272,6 +285,7 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
             {roleValue !== "admin" && (
               <div>
                 <label className={labelClass}>Outlet Access</label>
+                
                 <Popover open={outletOpen} onOpenChange={setOutletOpen}>
                   <PopoverTrigger asChild>
                     <Button

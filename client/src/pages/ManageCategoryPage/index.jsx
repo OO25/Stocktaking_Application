@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchCategories } from "../../api/products.js";
+import {
+  fetchCategories,
+  deleteFoodGroup,
+  deletePackagingType,
+} from "../../api/categories.js";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
+import SuccessAlert from "../../components/SuccessAlert.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import {
   Select,
   SelectContent,
@@ -9,8 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select.jsx";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../components/ui/popover.jsx";
 import CategoryTable from "./components/categoryTable.jsx";
-import { Plus, Search } from "lucide-react";
+import AddCategoryModal from "./components/AddCategoryModal.jsx";
+import EditCategoryModal from "./components/EditCategoryModal.jsx";
+import { Plus, Search, SlidersHorizontal } from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
 function useDebounce(value, delay = 300) {
@@ -29,14 +42,23 @@ function ManageCategoryPage() {
   });
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const successTimerRef = useRef(null);
 
   const debouncedSearch = useDebounce(search, 300);
+  const activeFilterCount = typeFilter ? 1 : 0;
 
-  useEffect(() => {
+  // Load all categories from the API
+  function loadCategories() {
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -55,6 +77,49 @@ function ManageCategoryPage() {
     return () => {
       cancelled = true;
     };
+  }
+
+  // Show a success message for 4 seconds
+  function showSuccess(message) {
+    setSuccessMessage(message);
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    successTimerRef.current = setTimeout(() => {
+      setSuccessMessage("");
+      successTimerRef.current = null;
+    }, 4000);
+  }
+
+  function handleCategoryCreated() {
+    loadCategories();
+    showSuccess("New category has been created.");
+  }
+
+  function handleCategoryUpdated() {
+    loadCategories();
+    showSuccess("Category has been updated.");
+  }
+
+  async function handleCategoryDeleteConfirm() {
+    if (!deleteTarget) return;
+    try {
+      const isFoodGroup = deleteTarget.code !== undefined;
+      if (isFoodGroup) {
+        await deleteFoodGroup(deleteTarget.id);
+      } else {
+        await deletePackagingType(deleteTarget.id);
+      }
+      loadCategories();
+      showSuccess("Category has been deleted.");
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(err.message || "Failed to delete category.");
+    }
+  }
+
+  // Load categories
+  useEffect(() => {
+    return loadCategories();
   }, []);
 
   // Reset to page 1 when search or filter changes
@@ -73,14 +138,17 @@ function ManageCategoryPage() {
 
   const allCategories = useMemo(() => {
     const foodGroups = (categoryGroups.foodGroups || []).map((item) => ({
+      id: item.id,
       key: `food-${item.id}`,
       name: item.name,
+      code: item.code,
       type: "Food group",
       created_at: item.created_at ?? null,
       updated_at: item.updated_at ?? null,
     }));
 
     const packagingTypes = (categoryGroups.packagingTypes || []).map((item) => ({
+      id: item.id,
       key: `packaging-${item.id}`,
       name: item.name,
       type: "Packaging type",
@@ -128,7 +196,7 @@ function ManageCategoryPage() {
           {/* Action */}
           <div className="action-row">
             <div className="flex gap-2 w-full sm:w-auto">
-              <Button disabled title="Category creation coming soon">
+              <Button onClick={() => setShowAddModal(true)}>
                 <Plus />
                 Add New Category
               </Button>
@@ -136,42 +204,76 @@ function ManageCategoryPage() {
           </div>
         </div>
 
+        {/* Success message */}
+        <SuccessAlert message={successMessage} />
+
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-          {/* Card header: search + type filter */}
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
-            <div className="flex flex-1 flex-col-reverse items-start gap-y-2 sm:flex-row sm:items-center sm:space-x-2">
-              <div className="search-field">
-                <Search className="search-icon" />
-                <Input
-                  id="category-search"
-                  name="search"
-                  type="text"
-                  placeholder="Search by name or type..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-              <div className="ml-auto w-full md:w-auto">
-                <Select
-                  name="type"
-                  value={typeFilter || "__all__"}
-                  onValueChange={(value) =>
-                    setTypeFilter(value === "__all__" ? "" : value)
-                  }
-                >
-                  <SelectTrigger id="category-type-filter" className="w-full md:min-w-56 md:w-auto">
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent align="end">
-                    <SelectItem value="__all__">All Types</SelectItem>
-                    <SelectItem value="Food group">Food group</SelectItem>
-                    <SelectItem value="Packaging type">Packaging type</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Card header: search + filter */}
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+            <div className="search-field flex-1">
+              <Search className="search-icon" />
+              <Input
+                id="category-search"
+                name="search"
+                type="text"
+                placeholder="Search by name or type..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 w-full"
+              />
             </div>
+            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="relative gap-2 shrink-0">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filter
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+
+              <PopoverContent align="end" className="w-72 p-4 space-y-4">
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Type</label>
+                  <Select
+                    value={typeFilter || "__all__"}
+                    onValueChange={(value) =>
+                      setTypeFilter(value === "__all__" ? "" : value)
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All Types</SelectItem>
+                      <SelectItem value="Food group">Food group</SelectItem>
+                      <SelectItem value="Packaging type">Packaging type</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setTypeFilter("");
+                    }}
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setFilterOpen(false)}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <CategoryTable
@@ -187,9 +289,41 @@ function ManageCategoryPage() {
               setPage(1);
             }}
             onPageChange={(nextPage) => setPage(nextPage)}
+            onEdit={(category) => setEditingCategory(category)}
+            onDelete={(category) => {
+              setDeleteTarget(category);
+              setDeleteDialogOpen(true);
+            }}
+            typeFilter={typeFilter}
+            onTypeFilterChange={(value) => setTypeFilter(value)}
           />
         </div>
       </div>
+
+      {/* Modals */}
+      <AddCategoryModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onCreated={handleCategoryCreated}
+      />
+
+      <EditCategoryModal
+        open={editingCategory !== null}
+        category={editingCategory}
+        onClose={() => setEditingCategory(null)}
+        onUpdated={handleCategoryUpdated}
+      />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete category?"
+        description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleCategoryDeleteConfirm}
+        confirmVariant="destructive"
+      />
     </div>
   );
 }

@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
-import { Pencil, Trash } from "lucide-react";
+import { Globe, Mail, Pencil, Phone, Trash } from "lucide-react";
 
 /** Supplier table for ManageSupplierPage. */
 function SupplierTable({
@@ -90,22 +90,37 @@ function SupplierTable({
                 {supplier.name}
               </TableCell>
               <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-900">
-                    {supplier.contact_name || "—"}
+                <div className="flex flex-col gap-1">
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                    <Mail className="w-3 h-3 text-gray-400" />
+                    {supplier.email || "N/A"}
                   </span>
-                  <span className="text-xs text-gray-500">
-                    {supplier.email || "—"}
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                    <Phone className="w-3 h-3 text-gray-400" />
+                    {supplier.phone || "N/A"}
                   </span>
                 </div>
               </TableCell>
               <TableCell>
                 {supplier.website ? (
-                  <span className="text-sm text-gray-900">
+                  <a
+                    href={
+                      supplier.website.startsWith("http")
+                        ? supplier.website
+                        : `https://${supplier.website}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-gray-900 hover:underline"
+                  >
+                    <Globe className="w-3 h-3 text-gray-400" />
                     {supplier.website}
-                  </span>
+                  </a>
                 ) : (
-                  <span className="text-sm text-gray-500">—</span>
+                  <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                    <Globe className="w-3 h-3 text-gray-400" />
+                    N/A
+                  </span>
                 )}
               </TableCell>
               <TableCell>

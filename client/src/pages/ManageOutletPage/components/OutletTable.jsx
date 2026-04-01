@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,6 +11,29 @@ import {
 import { Button } from "../../../components/ui/button.jsx";
 import { Pencil, Trash } from "lucide-react";
 import { deleteOutlet } from "@/api/outlets.js";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../../components/ui/alert-dialog.jsx";
+
+function formatDateTime(value) {
+  if (!value) return "â€”";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "â€”";
+  return date.toLocaleString("en-NZ", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 function OutletTable({
   loading,
@@ -24,17 +48,24 @@ function OutletTable({
   onDeleted,
   onEdit = () => {},
 }) {
-  async function handleDelete(id) {
-    const confirmed = window.confirm("Are you sure you want to delete this outlet?");
-    if (!confirmed) return;
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
 
-    const deletedOutlet = outlets.find((outlet) => outlet.id === id);
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
 
     try {
-      await deleteOutlet(id);
-      onDeleted?.(id, deletedOutlet?.name);
+      await deleteOutlet(deleteTarget.id);
+      onDeleted?.(deleteTarget.id, deleteTarget?.name);
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+      setDeleteError("");
     } catch (err) {
-      alert(err?.message || "Failed to delete outlet.");
+      setDeleteError(
+        err?.message || "Failed to delete outlet. Please try again.",
+      );
+      setDeleteDialogOpen(true);
     }
   }
 
@@ -46,9 +77,11 @@ function OutletTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[80px] py-4 pl-6">Cost Centre</TableHead>
-            <TableHead className="py-4">Name</TableHead>
-            <TableHead className="py-4">
+            <TableHead className="w-[130px] py-4 pl-6 pr-20">Cost Centre</TableHead>
+            <TableHead className="min-w-[220px] py-4 pr-6">Name</TableHead>
+            <TableHead className="min-w-[190px] py-4 pr-6">Created At</TableHead>
+            <TableHead className="min-w-[190px] py-4 pr-6">Updated At</TableHead>
+            <TableHead className="w-[160px] py-4">
               <div className="flex justify-end">
                 <div className="w-[120px] text-center">Action</div>
               </div>
@@ -58,7 +91,7 @@ function OutletTable({
         <TableBody>
           {loading && (
             <TableRow>
-              <TableCell colSpan={3} className="py-12 text-center text-sm">
+              <TableCell colSpan={5} className="py-12 text-center text-sm">
                 Loading outlets…
               </TableCell>
             </TableRow>
@@ -66,7 +99,7 @@ function OutletTable({
 
           {!loading && error !== null && (
             <TableRow>
-              <TableCell colSpan={3} className="py-4">
+              <TableCell colSpan={5} className="py-4">
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -79,7 +112,7 @@ function OutletTable({
 
           {!loading && error === null && outlets.length === 0 && (
             <TableRow>
-              <TableCell colSpan={3} className="py-12 text-center text-sm">
+              <TableCell colSpan={5} className="py-12 text-center text-sm">
                 {search ? "No outlets match your search." : "No outlets found."}
               </TableCell>
             </TableRow>
@@ -87,17 +120,31 @@ function OutletTable({
 
           {!loading && error === null && outlets.map((outlet) => (
             <TableRow key={outlet.id}>
-              <TableCell className="pl-6 font-mono">
+              <TableCell className="pl-6 pr-20 font-mono">
                 {String(outlet.cost_centre).padStart(3, "0")}
               </TableCell>
-              <TableCell className="font-semibold">{outlet.name}</TableCell>
+              <TableCell className="pr-6 font-semibold">{outlet.name}</TableCell>
+              <TableCell className="pr-6 text-sm text-gray-600 whitespace-nowrap">
+                {formatDateTime(outlet.created_at)}
+              </TableCell>
+              <TableCell className="pr-6 text-sm text-gray-600 whitespace-nowrap">
+                {formatDateTime(outlet.updated_at)}
+              </TableCell>
               <TableCell>
                 <div className="flex justify-end">
                   <div className="inline-flex items-center justify-center gap-2 w-[120px]">
                     <Button size="sm" variant="secondary" onClick={() => onEdit(outlet)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleDelete(outlet.id)}>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        setDeleteTarget(outlet);
+                        setDeleteError("");
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
                       <Trash className="h-4 w-4" />
                     </Button>
                   </div>
@@ -108,7 +155,7 @@ function OutletTable({
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell colSpan={1}>
+            <TableCell colSpan={3}>
               <div className="flex items-center gap-3 pl-4">
                 <span className="text-sm">Rows per page</span>
                 <select
@@ -138,6 +185,44 @@ function OutletTable({
           </TableRow>
         </TableFooter>
       </Table>
+
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) {
+            setDeleteTarget(null);
+            setDeleteError("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete outlet</AlertDialogTitle>
+            {!deleteError ? (
+              <AlertDialogDescription>
+                {`Delete "${deleteTarget?.name || "this outlet"}"? This action cannot be undone.`}
+              </AlertDialogDescription>
+            ) : null}
+            {deleteError ? (
+              <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {deleteError}
+              </div>
+            ) : null}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {!deleteError ? (
+              <AlertDialogAction
+                variant="destructive"
+                onClick={handleDeleteConfirm}
+              >
+                Delete
+              </AlertDialogAction>
+            ) : null}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
