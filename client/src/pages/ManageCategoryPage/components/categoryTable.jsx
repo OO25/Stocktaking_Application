@@ -11,6 +11,19 @@ import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
 import { Pencil, Trash } from "lucide-react";
 
+function formatDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-NZ", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 /** Category table for ManageCategoryPage. */
 function CategoryTable({
   loading,
@@ -99,22 +112,14 @@ function CategoryTable({
                 )}
               </TableCell>
               <TableCell>
-                {category.created_at ? (
-                  <span className="text-sm text-gray-900">
-                    {category.created_at}
-                  </span>
-                ) : (
-                  <span className="text-sm text-gray-500">—</span>
-                )}
+                <span className="text-sm text-gray-900 whitespace-nowrap">
+                  {formatDateTime(category.created_at)}
+                </span>
               </TableCell>
               <TableCell>
-                {category.updated_at ? (
-                  <span className="text-sm text-gray-900">
-                    {category.updated_at}
-                  </span>
-                ) : (
-                  <span className="text-sm text-gray-500">—</span>
-                )}
+                <span className="text-sm text-gray-900 whitespace-nowrap">
+                  {formatDateTime(category.updated_at)}
+                </span>
               </TableCell>
               <TableCell>
                 <div className="flex justify-end">
