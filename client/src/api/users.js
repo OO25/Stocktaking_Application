@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 /**
  * Fetches all users.
- * @returns {Promise<Array<{ id: number, name: string, username: string, password_hash: string | null, role: string | null, created_at: string | null, updated_at: string | null }>>}
+ * @returns {Promise<Array<{ id: number, name: string, username: string, role: string | null, created_at: string | null, updated_at: string | null }>>}
  */
 export async function fetchUsers() {
   const res = await fetchWithAuth(`${API_BASE}/users`);
