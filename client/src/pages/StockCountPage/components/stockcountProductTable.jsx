@@ -179,8 +179,8 @@ function StockCountProductTable({
               <TableRow key={product.product_id}>
                 <TableCell className="font-semibold pl-6">
                   <div className="flex items-center gap-2">
-                    <span className="flex aspect-square size-12 items-center justify-center rounded-lg bg-muted text-primary-primary">
-                      <ProductIcon className="size-5 text-muted-foreground" />
+                    <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+                      <ProductIcon className="size-4 text-muted-foreground" />
                     </span>
                     <div>
                       <div>{product.product_name}</div>
