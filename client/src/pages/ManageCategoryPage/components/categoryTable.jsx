@@ -9,7 +9,7 @@ import {
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
-import { Pencil, Trash } from "lucide-react";
+import { Box, Pencil, Trash, UtensilsCrossed } from "lucide-react";
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -19,8 +19,6 @@ function formatDateTime(value) {
     day: "2-digit",
     month: "short",
     year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
   });
 }
 
@@ -43,11 +41,10 @@ function CategoryTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead className="w-65 py-4 pl-6">Name</TableHead>
-          <TableHead className="w-60 py-4">Type</TableHead>
-          <TableHead className="w-50 py-4">Created At</TableHead>
-          <TableHead className="w-40 py-4">Updated At</TableHead>
+          <TableRow>
+            <TableHead className="w-65 py-4 pl-6">Name</TableHead>
+            <TableHead className="w-60 py-4">Type</TableHead>
+          <TableHead className="w-50 py-4">Created & Updated Dates</TableHead>
           <TableHead className="w-30 py-4">
             <div className="flex justify-end">
               <div className="w-30 text-center">Action</div>
@@ -58,7 +55,7 @@ function CategoryTable({
       <TableBody>
         {loading && (
           <TableRow>
-            <TableCell colSpan={5} className="py-12 text-center text-sm">
+            <TableCell colSpan={4} className="py-12 text-center text-sm">
               Loading categories…
             </TableCell>
           </TableRow>
@@ -66,7 +63,7 @@ function CategoryTable({
 
         {!loading && error !== null && (
           <TableRow>
-            <TableCell colSpan={5} className="py-4">
+            <TableCell colSpan={4} className="py-4">
               <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                 <svg
                   className="w-4 h-4 shrink-0"
@@ -89,7 +86,7 @@ function CategoryTable({
 
         {!loading && error === null && categories.length === 0 && (
           <TableRow>
-            <TableCell colSpan={5} className="py-12 text-center text-sm">
+            <TableCell colSpan={4} className="py-12 text-center text-sm">
               {search
                 ? "No categories match your search."
                 : "No categories found."}
@@ -97,13 +94,22 @@ function CategoryTable({
           </TableRow>
         )}
 
-        {!loading &&
-          error === null &&
-          categories.map((category) => (
-            <TableRow key={category.key}>
-              <TableCell className="font-semibold pl-6">
-                {category.name}
-              </TableCell>
+          {!loading &&
+            error === null &&
+          categories.map((category) => {
+            const CategoryIcon =
+              category.type === "Packaging type" ? Box : UtensilsCrossed;
+
+            return (
+              <TableRow key={category.key}>
+                <TableCell className="font-semibold pl-6">
+                  <div className="flex items-center gap-2">
+                    <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+                      <CategoryIcon className="size-4" />
+                    </span>
+                    {category.name}
+                  </div>
+                </TableCell>
               <TableCell className="text-gray-600">
                 {category.type ? (
                   <Badge variant="secondary">{category.type}</Badge>
@@ -112,14 +118,12 @@ function CategoryTable({
                 )}
               </TableCell>
               <TableCell>
-                <span className="text-sm text-gray-900 whitespace-nowrap">
-                  {formatDateTime(category.created_at)}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-gray-900 whitespace-nowrap">
-                  {formatDateTime(category.updated_at)}
-                </span>
+                <div className="text-sm text-gray-900 whitespace-nowrap">
+                  Created: {formatDateTime(category.created_at)}
+                </div>
+                <div className="text-sm font-light text-gray-500 whitespace-nowrap">
+                  Updated: {formatDateTime(category.updated_at)}
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex justify-end">
@@ -141,12 +145,13 @@ function CategoryTable({
                   </div>
                 </div>
               </TableCell>
-            </TableRow>
-          ))}
+              </TableRow>
+            );
+          })}
       </TableBody>
       <TableFooter>
         <TableRow>
-          <TableCell colSpan={4}>
+          <TableCell colSpan={3}>
             <div className="flex items-center gap-3 pl-4">
               <span>Rows per page</span>
               <select

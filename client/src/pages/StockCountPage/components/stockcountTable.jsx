@@ -57,6 +57,15 @@ function formatDateTime(value) {
   return `${formattedDate}, ${formattedTime}`;
 }
 
+function formatPeriod(month, year) {
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return `${date.toLocaleDateString("en-GB", {
+    month: "short",
+  })} ${year}`;
+}
+
 function StockCountTable({
   loading,
   error,
@@ -139,7 +148,7 @@ function StockCountTable({
                     <div>
                       <div>{session.outlet_name}</div>
                       <div className="text-sm font-light text-gray-500">
-                        Period {session.month}/{session.year}
+                        Period {formatPeriod(session.month, session.year)}
                       </div>
                     </div>
                   </div>

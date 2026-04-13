@@ -69,6 +69,16 @@ export async function deleteSession(id) {
   });
 }
 
+/**
+ * Updates a stocktake session status
+ */
+export async function updateSessionStatus(id, status) {
+  return request(`${API_BASE}/stocktake/sessions/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
 // ============================================================================
 // ENTRIES >^.^<
 // ============================================================================
