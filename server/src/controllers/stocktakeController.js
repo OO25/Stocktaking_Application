@@ -379,12 +379,16 @@ export async function getSessionDetail(req, res) {
       `SELECT
          p.id AS product_id,
          p.name AS product_name,
+         p.is_packaging,
          p.product_code AS barcode,
+         COALESCE(fg.name, pt.name) AS category_name,
          u.name AS uom_name,
          p.price AS unit_price,
          p.product_code AS barcode
        FROM outlet_products op
        JOIN products p ON p.id = op.product_id
+       LEFT JOIN food_groups fg ON fg.id = p.food_group_id
+       LEFT JOIN packaging_types pt ON pt.id = p.packaging_type_id
        LEFT JOIN units_of_measure u ON u.id = p.uom_id
        WHERE op.outlet_id = $1
        ORDER BY p.name`,
