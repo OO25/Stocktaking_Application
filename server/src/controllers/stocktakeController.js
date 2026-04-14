@@ -379,12 +379,16 @@ export async function getSessionDetail(req, res) {
       `SELECT
          p.id AS product_id,
          p.name AS product_name,
+         p.is_packaging,
          p.product_code AS barcode,
+         COALESCE(fg.name, pt.name) AS category_name,
          u.name AS uom_name,
          p.price AS unit_price,
          p.product_code AS barcode
        FROM outlet_products op
        JOIN products p ON p.id = op.product_id
+       LEFT JOIN food_groups fg ON fg.id = p.food_group_id
+       LEFT JOIN packaging_types pt ON pt.id = p.packaging_type_id
        LEFT JOIN units_of_measure u ON u.id = p.uom_id
        WHERE op.outlet_id = $1
        ORDER BY p.name`,
@@ -607,5 +611,47 @@ export async function submitSession(req, res) {
   } catch (err) {
     console.error("submitSession error:", err);
     res.status(500).json({ message: "Failed to submit session." });
+  }
+}
+
+/*
+ * Update a stocktake session status
+ * URL: PATCH /api/stocktake/sessions/:id/status
+ */
+export async function updateSessionStatus(req, res) {
+  try {
+    const sessionId = Number(req.params.id);
+    const { status } = req.body || {};
+    const allowedStatuses = ["draft", "in_progress", "submitted", "locked"];
+
+    if (!Number.isInteger(sessionId)) {
+      return res.status(400).json({ message: "Invalid session id." });
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid session status." });
+    }
+
+    const { rows: sessionRows } = await pool.query(
+      `SELECT id, status FROM stocktake_sessions WHERE id = $1`,
+      [sessionId],
+    );
+
+    if (sessionRows.length === 0) {
+      return res.status(404).json({ message: "Session not found." });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE stocktake_sessions
+       SET status = $1
+       WHERE id = $2
+       RETURNING id, status`,
+      [status, sessionId],
+    );
+
+    res.json({ success: true, session: rows[0] });
+  } catch (err) {
+    console.error("updateSessionStatus error:", err);
+    res.status(500).json({ message: "Failed to update session status." });
   }
 }

@@ -14,7 +14,6 @@ export async function getUsers(_req, res) {
       `SELECT u.id,
               u.name,
               u.username,
-              u.password_hash,
               u.role,
               u.created_at,
               u.updated_at,

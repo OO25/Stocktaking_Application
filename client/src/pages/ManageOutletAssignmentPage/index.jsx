@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { fetchOutlets } from "../../api/products.js";
-import { fetchSessions, deleteSession } from "../../api/stocktake.js";
+import {
+  fetchSessions,
+  deleteSession,
+  updateSessionStatus,
+} from "../../api/stocktake.js";
 import { Button } from "../../components/ui/button.jsx";
 import SuccessAlert from "../../components/SuccessAlert.jsx";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
@@ -20,6 +24,11 @@ import { Plus, Search } from "lucide-react";
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
+];
+
+const MONTH_SHORT_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
 /** Debounce a value by `delay` ms. */
@@ -47,6 +56,10 @@ function ManageOutletAssignmentPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [nextStatus, setNextStatus] = useState("in_progress");
+  const [statusSubmitting, setStatusSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const successTimerRef = useRef(null);
 
@@ -114,6 +127,50 @@ function ManageOutletAssignmentPage() {
     } catch (err) {
       setError(err.message || "Failed to delete assignment.");
     }
+  }
+
+  async function handleEditStatus(session) {
+    if (!session) return;
+
+    setStatusTarget(session);
+    setNextStatus(
+      ["in_progress", "submitted", "locked"].includes(session.status)
+        ? session.status
+        : "in_progress"
+    );
+    setStatusDialogOpen(true);
+  }
+
+  async function handleStatusUpdateConfirm(event) {
+    event?.preventDefault();
+    if (!statusTarget) return;
+
+    setStatusSubmitting(true);
+    try {
+      await updateSessionStatus(statusTarget.id, nextStatus);
+      setSessions((prev) =>
+        prev.map((item) =>
+          item.id === statusTarget.id ? { ...item, status: nextStatus } : item
+        )
+      );
+      setStatusDialogOpen(false);
+      setStatusTarget(null);
+      showSuccess("Assignment status has been updated.");
+    } catch (err) {
+      setError(err.message || "Failed to update assignment status.");
+    } finally {
+      setStatusSubmitting(false);
+    }
+  }
+
+  function closeStatusDialog() {
+    setStatusDialogOpen(false);
+    setStatusTarget(null);
+  }
+
+  function formatPeriod(month, year) {
+    const monthName = MONTH_SHORT_NAMES[(Number(month) || 1) - 1] || "-";
+    return `${monthName} ${year || ""}`.trim();
   }
 
   useEffect(() => {
@@ -247,6 +304,7 @@ function ManageOutletAssignmentPage() {
               setDeleteTarget(session);
               setDeleteDialogOpen(true);
             }}
+            onEditStatus={handleEditStatus}
           />
         </div>
 
@@ -269,6 +327,84 @@ function ManageOutletAssignmentPage() {
           confirmLabel="Delete"
           onConfirm={handleDeleteConfirm}
         />
+
+        {statusDialogOpen && statusTarget ? (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            onClick={closeStatusDialog}
+          >
+            <div
+              className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    Edit Assignment Status
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {statusTarget.outlet_name || "Outlet"} -{" "}
+                    {formatPeriod(statusTarget.month, statusTarget.year)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={closeStatusDialog}
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <form
+                onSubmit={handleStatusUpdateConfirm}
+                className="px-6 py-5 space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <Select value={nextStatus} onValueChange={setNextStatus}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="submitted">Completed</SelectItem>
+                      <SelectItem value="locked">Locked</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={closeStatusDialog}
+                    disabled={statusSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={statusSubmitting}>
+                    {statusSubmitting ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

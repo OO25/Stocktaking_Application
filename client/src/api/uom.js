@@ -1,3 +1,5 @@
+import { fetchWithAuth } from "../lib/fetchWithAuth.js";
+
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 /**
@@ -5,10 +7,12 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
  * @returns {Promise<Array<{ id: number, name: string, description?: string | null, created_at?: string | null, updated_at?: string | null }>>}
  */
 export async function fetchUoms() {
-  const res = await fetch(`${API_BASE}/uom`);
+  const res = await fetchWithAuth(`${API_BASE}/uom`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Request failed (${res.status})`);
+    throw new Error(
+      body.message || body.error || `Request failed (${res.status})`,
+    );
   }
   return res.json();
 }
@@ -19,14 +23,16 @@ export async function fetchUoms() {
  * @returns {Promise<Object>} The newly created UOM.
  */
 export async function createUom(uom) {
-  const res = await fetch(`${API_BASE}/uom`, {
+  const res = await fetchWithAuth(`${API_BASE}/uom`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(uom),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+    throw new Error(
+      body.message || body.error || `Request failed (${res.status})`,
+    );
   }
   return res.json();
 }
@@ -38,14 +44,16 @@ export async function createUom(uom) {
  * @returns {Promise<Object>} The updated UOM.
  */
 export async function updateUom(id, uom) {
-  const res = await fetch(`${API_BASE}/uom/${id}`, {
+  const res = await fetchWithAuth(`${API_BASE}/uom/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(uom),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+    throw new Error(
+      body.message || body.error || `Request failed (${res.status})`,
+    );
   }
   return res.json();
 }
@@ -56,11 +64,13 @@ export async function updateUom(id, uom) {
  * @returns {Promise<void>}
  */
 export async function deleteUom(id) {
-  const res = await fetch(`${API_BASE}/uom/${id}`, {
+  const res = await fetchWithAuth(`${API_BASE}/uom/${id}`, {
     method: "DELETE",
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+    throw new Error(
+      body.message || body.error || `Request failed (${res.status})`,
+    );
   }
 }

@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
+  ArrowLeft,
+  ArrowUpRight,
+  PackageIcon,
+  Save,
+  SendHorizonal,
+} from "lucide-react";
+import {
   fetchSessionDetail,
   saveSessionEntries,
   submitSession,
@@ -36,6 +43,7 @@ export default function StockCountDetailPage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [scanProduct, setScanProduct] = useState(null);
   const [scanQuantity, setScanQuantity] = useState("");
   // Barcode scanners type very fast so capture those keystrokes in a buffer.
@@ -43,6 +51,7 @@ export default function StockCountDetailPage() {
   // Tracks time between keys to ignore slower, human typing.
   const scanLastKeyRef = useRef(0);
   const scanInputRef = useRef(null);
+  const productsSectionRef = useRef(null);
   const isEditable =
     session?.status === "draft" || session?.status === "in_progress";
 
@@ -191,6 +200,57 @@ export default function StockCountDetailPage() {
     }
   };
 
+  const handleAddItemClick = () => {
+    productsSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
+  const formatCountedDate = (value) => {
+    if (!value) return "-";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(date).replace(/(\d+ \w+) (\d+)/, "$1, $2");
+  };
+
+  const getStatusStyles = (status) => {
+    switch (status) {
+      case "submitted":
+        return {
+          dot: "bg-green-800",
+          text: "text-green-800",
+        };
+      case "in_progress":
+        return {
+          dot: "bg-blue-800",
+          text: "text-blue-800",
+        };
+      case "draft":
+      default:
+        return {
+          dot: "bg-gray-800",
+          text: "text-gray-800",
+        };
+    }
+  };
+
+  const formatStatus = (status) => status?.replace(/_/g, " ") || "-";
+
+  const formatPeriodDueDate = (month, year) => {
+    const numericMonth = Number(month);
+    const numericYear = Number(year);
+    if (!numericMonth || !numericYear) return "-";
+
+    return formatCountedDate(new Date(numericYear, numericMonth, 0));
+  };
+
   /**
    * Saves and finalizes the stocktake session.
    * Sets counted_date and marks session as submitted in one operation.
@@ -276,9 +336,6 @@ export default function StockCountDetailPage() {
     <div className="p-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Stock Count</h1>
-        <p className="mt-1 text-gray-600">
-          Period {session.period_month}/{session.period_year} - {session.outlet_name}
-        </p>
       </div>
 
       {error && (
@@ -288,41 +345,146 @@ export default function StockCountDetailPage() {
       )}
 
       {/* Session Header */}
-      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div>
-            <p className="text-sm font-medium text-gray-600">Status</p>
-            <Badge className="mt-2">{session.status}</Badge>
+      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_minmax(320px,1.8fr)]">
+        <div className="rounded-lg border border-gray-200 bg-white p-4 md:col-span-2 xl:col-span-2">
+          <p className="text-lg font-semibold text-gray-900">
+            {session.outlet_name} - Period {session.period_month}/
+            {session.period_year}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+            <span>Counted By: {session.counted_by || "-"}</span>
+            <span className="text-gray-300">|</span>
+            <Badge
+              className={`gap-1.5 bg-muted ${getStatusStyles(session.status).text}`}
+            >
+              <span
+                className={`size-2 rounded-full ${getStatusStyles(session.status).dot}`}
+              />
+              {formatStatus(session.status)}
+            </Badge>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-600">Counted By</p>
-            <p className="mt-2 text-gray-900">{session.counted_by || "-"}</p>
+          <p className="mt-2 text-sm font-light text-gray-500">
+            Last updated: {formatCountedDate(session.counted_date)}
+          </p>
+          <p className="mt-1 text-sm font-light text-gray-500">
+            Due date:{" "}
+            {formatPeriodDueDate(session.period_month, session.period_year)}
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-4 md:col-span-1 xl:col-span-1">
+          <p className="text-sm font-medium text-gray-600">Total Products</p>
+          <p className="mt-2 text-2xl font-semibold text-gray-900">
+            {validProducts.length}
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-4 md:col-span-1 xl:col-span-1">
+          <p className="text-sm font-medium text-gray-600">Total Value</p>
+          <p className="mt-2 text-2xl font-semibold text-gray-900">
+            ${total.toFixed(2)}
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:col-span-2 md:grid-cols-2 xl:col-span-1 xl:grid-cols-1">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 flex gap-2 items-center">
+            <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+              <PackageIcon className="size-4" />
+            </span>
+            <p className="text-sm font-medium text-gray-600">Add Item</p>
+            <Button
+              type="button"
+              className="xl:ml-auto"
+              onClick={handleAddItemClick}
+              disabled={session.status === "submitted"}
+            >
+              Add Product +
+            </Button>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-600">Counted Date</p>
-            <p className="mt-2 text-gray-900">{session.counted_date || "-"}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-600">Total Value</p>
-            <p className="mt-2 text-lg font-semibold text-gray-900">
-              ${total.toFixed(2)}
-            </p>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-4 flex gap-2 items-center">
+            <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+              <ArrowUpRight className="size-4" />
+            </span>
+            <p className="text-sm font-medium text-gray-600">Action</p>
+            {isEditable ? (
+              <>
+                <div className="flex gap-2 xl:ml-auto">
+                  <Button
+                    variant="outline"
+                    onClick={handleSave}
+                    disabled={saving || submitting}
+                  >
+                    
+                    {saving ? "Saving..." : "Save"}
+                    <Save />
+                  </Button>
+                  <Button
+                    type="button"
+                    className='bg-green-600/10 text-green-600 hover:bg-green-600/20 focus-visible:ring-green-600/20 dark:bg-green-400/10 dark:text-green-400 dark:hover:bg-green-400/20 dark:focus-visible:ring-green-400/40'
+                    onClick={() => setSubmitDialogOpen(true)}
+                    disabled={saving || submitting}
+                  >
+                    
+                    {submitting ? "Finalizing..." : "Submit"}
+                    <SendHorizonal />
+                  </Button>
+                </div>
+
+                <AlertDialog
+                  open={submitDialogOpen}
+                  onOpenChange={setSubmitDialogOpen}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Submit Stocktake?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to submit this stocktake? Once
+                        submitted, it cannot be edited.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogAction
+                      onClick={() => {
+                        setSubmitDialogOpen(false);
+                        handleSubmit();
+                      }}
+                      disabled={submitting}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {submitting ? "Submitting..." : "Yes, Submit"}
+                    </AlertDialogAction>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                className="xl:ml-auto"
+                onClick={() => navigate("/stock-count")}
+              >
+                Back to List
+                <ArrowLeft />
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Products Table */}
-      <StockCountProductTable
-        validProducts={validProducts}
-        entries={entries}
-        isEditable={isEditable}
-        onUpdate={updateEntryQuantity}
-        onOpenCount={(product) => {
-          if (!isEditable) return;
-          setScanProduct(product);
-          setScanDialogOpen(true);
-        }}
-      />
+      <div ref={productsSectionRef}>
+        <StockCountProductTable
+          validProducts={validProducts}
+          entries={entries}
+          isEditable={isEditable}
+          onUpdate={updateEntryQuantity}
+          onOpenCount={(product) => {
+            if (!isEditable) return;
+            setScanProduct(product);
+            setScanDialogOpen(true);
+          }}
+        />
+      </div>
 
       <AlertDialog
         open={scanDialogOpen}
@@ -396,64 +558,6 @@ export default function StockCountDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Actions */}
-      {isEditable && (
-        <div className="flex gap-3 justify-end">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/stock-count")}
-            disabled={saving || submitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || submitting}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {saving ? "Saving..." : "Save as Draft"}
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                className=""
-                disabled={saving || submitting}
-              >
-                {submitting ? "Finalizing..." : "Finalize & Submit"}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Submit Stocktake?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to submit this stocktake? Once submitted,
-                  it cannot be edited.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogAction
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {submitting ? "Submitting..." : "Yes, Submit"}
-              </AlertDialogAction>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      )}
-
-      {!isEditable && (
-        <div className="flex gap-3 justify-end">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/stock-count")}
-          >
-            Back to List
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

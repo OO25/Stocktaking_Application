@@ -5,12 +5,15 @@ import {
   updateUom,
   deleteUom
 } from "../controllers/uomController.js";
+import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
+router.use(requireAuth);
+
 router.get("/", getUoms);
-router.post("/", createUom);
-router.put("/:id", updateUom);
-router.delete("/:id", deleteUom);
+router.post("/", requireRole("admin"), createUom);
+router.put("/:id", requireRole("admin"), updateUom);
+router.delete("/:id", requireRole("admin"), deleteUom);
 
 export default router;

@@ -10,7 +10,7 @@ import {
 } from "../../../components/ui/table.jsx";
 import { Input } from "../../../components/ui/input.jsx";
 import { Button } from "../../../components/ui/button.jsx";
-import { Search } from "lucide-react";
+import { Box, Search, UtensilsCrossed } from "lucide-react";
 import {
   Tabs,
   TabsContent,
@@ -97,10 +97,20 @@ function StockCountProductTable({
       <div className="px-5 py-4 border-b border-gray-100 flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-gray-900">Products</h2>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+          <div className="search-field flex-1 min-w-48 sm:min-w-64 md:min-w-80 ">
+            <Search className="search-icon" />
+            <Input
+              type="text"
+              placeholder="Search by name or barcode..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 w-full"
+            />
+          </div>
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
-            className="gap-0 lg:self-center"
+            className="gap-0 self-start lg:ml-auto lg:self-center"
           >
             <TabsList className="bg-transparent p-0 h-10 items-center gap-2">
               <TabsTrigger value="all" className="flex items-center gap-1 border border-gray-200 data-[state=active]:bg-muted">
@@ -133,33 +143,25 @@ function StockCountProductTable({
             <TabsContent value="counted" />
             <TabsContent value="count0" />
           </Tabs>
-          <div className="search-field flex-1 min-w-48 sm:min-w-64 md:min-w-80 lg:ml-auto">
-            <Search className="search-icon" />
-            <Input
-              type="text"
-              placeholder="Search by name or barcode..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 w-full"
-            />
-          </div>
+          
         </div>
       </div>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-80 py-4 pl-6">Product</TableHead>
+            <TableHead className="w-120 py-4 pl-6">Product</TableHead>
             <TableHead className="w-32 py-4">UOM</TableHead>
-            <TableHead className="w-40 py-4 text-right">Unit Price</TableHead>
-            <TableHead className="w-32 py-4 text-right">Quantity</TableHead>
-            <TableHead className="w-40 py-4 text-right">Total</TableHead>
-            <TableHead className="w-28 py-4 text-right pr-6">Count</TableHead>
+            <TableHead className="w-44 py-4 text-left">
+              Unit & Total Price
+            </TableHead>
+            <TableHead className="w-32 py-4 text-left">Quantity</TableHead>
+            <TableHead className="w-20 py-4 text-left pr-6">Count</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredProducts.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="py-12 text-center text-sm">
+              <TableCell colSpan={5} className="py-12 text-center text-sm">
                 No products to show.
               </TableCell>
             </TableRow>
@@ -171,17 +173,37 @@ function StockCountProductTable({
             const quantity = entry?.quantity || 0;
             const unitPrice = parseFloat(product.unit_price) || 0;
             const lineTotal = quantity * unitPrice;
+            const ProductIcon = product.is_packaging ? Box : UtensilsCrossed;
 
             return (
               <TableRow key={product.product_id}>
                 <TableCell className="font-semibold pl-6">
-                  {product.product_name}
+                  <div className="flex items-center gap-2">
+                    <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+                      <ProductIcon className="size-4 text-muted-foreground" />
+                    </span>
+                    <div>
+                      <div>{product.product_name}</div>
+                      {product.category_name ? (
+                        <div className="text-sm font-light text-gray-500">
+                          {product.category_name}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                 </TableCell>
-                <TableCell>{product.uom_name || "-"}</TableCell>
-                <TableCell className="text-right">
-                  ${unitPrice.toFixed(2)}
+                <TableCell>
+                  <Badge className="bg-muted text-gray-600 hover:bg-muted">
+                    {product.uom_name || "-"}
+                  </Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-left">
+                  <div className="font-semibold">${lineTotal.toFixed(2)}</div>
+                  <div className="text-sm font-light text-gray-500">
+                    Unit: ${unitPrice.toFixed(2)}
+                  </div>
+                </TableCell>
+                <TableCell className="text-left">
                   <Input
                     type="number"
                     step="0.01"
@@ -194,16 +216,14 @@ function StockCountProductTable({
                       )
                     }
                     disabled={!isEditable}
-                    className="w-28 ml-auto text-right"
+                    className="w-28 text-left"
                   />
-                </TableCell>
-                <TableCell className="text-right font-semibold">
-                  ${lineTotal.toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right pr-6">
                   <Button
                     size="sm"
                     variant="outline"
+                    className="w-full"
                     disabled={!isEditable}
                     onClick={() => onOpenCount?.(product)}
                   >
@@ -216,7 +236,7 @@ function StockCountProductTable({
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell colSpan={5}>
+            <TableCell colSpan={4}>
               <div className="flex items-center gap-3 pl-4">
                 <span>Rows per page</span>
                 <select

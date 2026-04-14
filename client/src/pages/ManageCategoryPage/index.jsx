@@ -15,15 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select.jsx";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../../components/ui/popover.jsx";
 import CategoryTable from "./components/categoryTable.jsx";
 import AddCategoryModal from "./components/AddCategoryModal.jsx";
 import EditCategoryModal from "./components/EditCategoryModal.jsx";
-import { Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
 function useDebounce(value, delay = 300) {
@@ -41,8 +36,7 @@ function ManageCategoryPage() {
     packagingTypes: [],
   });
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
@@ -55,7 +49,6 @@ function ManageCategoryPage() {
   const successTimerRef = useRef(null);
 
   const debouncedSearch = useDebounce(search, 300);
-  const activeFilterCount = typeFilter ? 1 : 0;
 
   // Load all categories from the API
   function loadCategories() {
@@ -162,7 +155,8 @@ function ManageCategoryPage() {
   const filteredCategories = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
     return allCategories.filter((category) => {
-      if (typeFilter && category.type !== typeFilter) return false;
+      if (typeFilter === "food" && category.type !== "Food group") return false;
+      if (typeFilter === "packing" && category.type !== "Packaging type") return false;
       if (!query) return true;
       const haystack = `${category.name} ${category.type || ""}`.toLowerCase();
       return haystack.includes(query);
@@ -210,7 +204,7 @@ function ManageCategoryPage() {
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
           {/* Card header: search + filter */}
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-4">
             <div className="search-field flex-1">
               <Search className="search-icon" />
               <Input
@@ -223,57 +217,18 @@ function ManageCategoryPage() {
                 className="pl-10 w-full"
               />
             </div>
-            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="relative gap-2 shrink-0">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Filter
-                  {activeFilterCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-
-              <PopoverContent align="end" className="w-72 p-4 space-y-4">
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700">Type</label>
-                  <Select
-                    value={typeFilter || "__all__"}
-                    onValueChange={(value) =>
-                      setTypeFilter(value === "__all__" ? "" : value)
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">All Types</SelectItem>
-                      <SelectItem value="Food group">Food group</SelectItem>
-                      <SelectItem value="Packaging type">Packaging type</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setTypeFilter("");
-                    }}
-                  >
-                    Reset
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setFilterOpen(false)}
-                  >
-                    Apply
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-center gap-2 shrink-0">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="food">Food</SelectItem>
+                  <SelectItem value="packing">Packing</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <CategoryTable

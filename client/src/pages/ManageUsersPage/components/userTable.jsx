@@ -1,4 +1,3 @@
-import { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,7 +9,7 @@ import {
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
-import { Eye, EyeOff, Pencil, Trash } from "lucide-react";
+import { Pencil, Trash, UserIcon } from "lucide-react";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -37,32 +36,14 @@ function UserTable({
   onEdit,
   onDelete,
 }) {
-  const [revealedIds, setRevealedIds] = useState(() => new Set());
-
-  const revealedSet = useMemo(() => new Set(revealedIds), [revealedIds]);
-
-  function toggleReveal(id) {
-    setRevealedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead className="w-50 py-4 pl-6">Name</TableHead>
           <TableHead className="w-50 py-4">Username</TableHead>
-          <TableHead className="w-60 py-4">Password (hashed)</TableHead>
           <TableHead className="w-35 py-4">Role</TableHead>
-          <TableHead className="w-40 py-4">Created At</TableHead>
-          <TableHead className="w-40 py-4">Updated At</TableHead>
+          <TableHead className="w-40 py-4">Created & Updated Dates</TableHead>
           <TableHead className="w-40 py-4">
             <div className="flex justify-end">
               <div className="w-32 text-center">Action</div>
@@ -73,7 +54,7 @@ function UserTable({
       <TableBody>
         {loading && (
           <TableRow>
-            <TableCell colSpan={7} className="py-12 text-center text-sm">
+            <TableCell colSpan={5} className="py-12 text-center text-sm">
               Loading users…
             </TableCell>
           </TableRow>
@@ -81,7 +62,7 @@ function UserTable({
 
         {!loading && error !== null && (
           <TableRow>
-            <TableCell colSpan={7} className="py-4">
+            <TableCell colSpan={5} className="py-4">
               <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                 <svg
                   className="w-4 h-4 shrink-0"
@@ -104,7 +85,7 @@ function UserTable({
 
         {!loading && error === null && users.length === 0 && (
           <TableRow>
-            <TableCell colSpan={7} className="py-12 text-center text-sm">
+            <TableCell colSpan={5} className="py-12 text-center text-sm">
               {search ? "No users match your search." : "No users found."}
             </TableCell>
           </TableRow>
@@ -113,40 +94,17 @@ function UserTable({
         {!loading &&
           error === null &&
           users.map((user) => {
-            const isRevealed = revealedSet.has(user.id);
             return (
               <TableRow key={user.id}>
                 <TableCell className="font-semibold pl-6">
-                  {user.name}
-                </TableCell>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600 truncate max-w-45">
-                      {isRevealed
-                        ? user.password_hash || "-"
-                        : user.password_hash
-                        ? "••••••••••••"
-                        : "-"}
+                    <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+                      <UserIcon className="size-4" />
                     </span>
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="h-8 w-8"
-                      disabled={!user.password_hash}
-                      onClick={() => toggleReveal(user.id)}
-                      aria-label={
-                        isRevealed ? "Hide password" : "Show password"
-                      }
-                    >
-                      {isRevealed ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
+                    {user.name}
                   </div>
                 </TableCell>
+                <TableCell>{user.username}</TableCell>
                 <TableCell>
                   {user.role ? (
                     <Badge variant="secondary">{user.role}</Badge>
@@ -155,14 +113,12 @@ function UserTable({
                   )}
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-gray-900">
-                    {formatDate(user.created_at)}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-gray-900">
-                    {formatDate(user.updated_at)}
-                  </span>
+                  <div className="text-sm text-gray-900">
+                    Created: {formatDate(user.created_at)}
+                  </div>
+                  <div className="text-sm font-light text-gray-500">
+                    Updated: {formatDate(user.updated_at)}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end">
@@ -190,7 +146,7 @@ function UserTable({
       </TableBody>
       <TableFooter>
         <TableRow>
-          <TableCell colSpan={6}>
+          <TableCell colSpan={4}>
             <div className="flex items-center gap-3 pl-4">
               <span>Rows per page</span>
               <select
