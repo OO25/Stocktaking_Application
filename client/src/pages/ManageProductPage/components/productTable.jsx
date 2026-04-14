@@ -10,7 +10,7 @@ import {
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
-import { Pencil, Trash } from "lucide-react";
+import { Box, Pencil, Trash, UtensilsCrossed } from "lucide-react";
 
 /** Shows first outlet with a +N button to reveal the rest. */
 function OutletCell({ names }) {
@@ -67,14 +67,12 @@ function ProductTable({
     <div className="">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead className="w-48 py-4 pl-6">Name</TableHead>
-            <TableHead className="w-24 py-4">Price</TableHead>
-            <TableHead className="w-32 py-4">Category</TableHead>
-            <TableHead className="w-28 py-4">Supplier</TableHead>
-            <TableHead className="w-56 py-4">Outlets</TableHead>
-            <TableHead className="w-16 text-center py-4">PKG</TableHead>
-            <TableHead className="w-16 text-center py-4">UOM</TableHead>
+            <TableRow>
+              <TableHead className="w-48 py-4 pl-6">Name</TableHead>
+              <TableHead className="w-24 py-4">Price</TableHead>
+              <TableHead className="w-28 py-4">Supplier</TableHead>
+              <TableHead className="w-56 py-4">Outlets</TableHead>
+            <TableHead className="w-20 text-left py-4">PKG / UOM</TableHead>
             <TableHead className="w-40 py-4">
               <div className="flex justify-end">
                 <div className="w-30 text-center">Action</div>
@@ -87,7 +85,7 @@ function ProductTable({
         >
           {loading && products.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="py-12 text-center text-sm">
+              <TableCell colSpan={6} className="py-12 text-center text-sm">
                 Loading products…
               </TableCell>
             </TableRow>
@@ -95,7 +93,7 @@ function ProductTable({
 
           {!loading && error !== null && (
             <TableRow>
-              <TableCell colSpan={8} className="py-4">
+              <TableCell colSpan={6} className="py-4">
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                   <svg
                     className="w-4 h-4 shrink-0"
@@ -118,7 +116,7 @@ function ProductTable({
 
           {!loading && error === null && products.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="py-12 text-center text-sm">
+              <TableCell colSpan={6} className="py-12 text-center text-sm">
                 {search
                   ? "No products match your search."
                   : "No products found."}
@@ -132,11 +130,22 @@ function ProductTable({
               const category = product.is_packaging
                 ? product.packaging_type
                 : product.food_group;
+              const ProductIcon = product.is_packaging ? Box : UtensilsCrossed;
 
               return (
                 <TableRow key={product.id}>
                   <TableCell className="font-semibold pl-6">
-                    {product.name}
+                    <div className="flex items-center gap-2">
+                      <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+                        <ProductIcon className="size-4" />
+                      </span>
+                      <div>
+                        <div>{product.name}</div>
+                        <div className="text-sm font-light text-gray-500">
+                          {category ?? "—"}
+                        </div>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="text-left">
                     {product.price != null
@@ -144,19 +153,16 @@ function ProductTable({
                       : "—"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{category ?? "—"}</Badge>
-                  </TableCell>
-                  <TableCell>
                     <Badge variant="secondary">{product.supplier ?? "—"}</Badge>
                   </TableCell>
                   <TableCell>
                     <OutletCell names={product.outlet_names} />
                   </TableCell>
-                  <TableCell className="text-center">
-                    {product.package_size ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {product.uom ?? "—"}
+                  <TableCell className="text-left">
+                    <div>{product.package_size ?? "—"}</div>
+                    <div className="text-sm font-light text-gray-500">
+                      {product.uom ?? "—"}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end">
@@ -184,7 +190,7 @@ function ProductTable({
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell colSpan={7}>
+            <TableCell colSpan={5}>
               <div className="flex items-center gap-3 pl-4">
                 <span>Rows per page</span>
                 <select

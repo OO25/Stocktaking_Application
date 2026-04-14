@@ -9,14 +9,31 @@ import {
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
-import { Trash } from "lucide-react";
+import { GitBranchIcon, Pencil, Trash } from "lucide-react";
 
-const STATUS_VARIANT = {
-  draft: "secondary",
-  in_progress: "default",
-  submitted: "outline",
-  locked: "destructive",
-};
+function getStatusColor(status) {
+  const colors = {
+    draft: "text-gray-800",
+    in_progress: "text-blue-800",
+    submitted: "text-green-800",
+    locked: "text-red-800",
+  };
+  return colors[status] || "text-gray-800";
+}
+
+function getStatusDotColor(status) {
+  const colors = {
+    draft: "bg-gray-800",
+    in_progress: "bg-blue-800",
+    submitted: "bg-green-800",
+    locked: "bg-red-800",
+  };
+  return colors[status] || "bg-gray-800";
+}
+
+function formatStatus(status) {
+  return status?.replace(/_/g, " ") || "-";
+}
 
 function formatCurrency(value) {
   const number = Number(value);
@@ -26,6 +43,36 @@ function formatCurrency(value) {
     currency: "USD",
     minimumFractionDigits: 2,
   }).format(number);
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date =
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? new Date(`${value}T00:00:00`)
+      : new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  const formattedDate = date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const formattedTime = date.toLocaleTimeString("en-NZ", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  return `${formattedDate}, ${formattedTime}`;
+}
+
+function formatPeriod(month, year) {
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return `${date.toLocaleDateString("en-GB", {
+    month: "short",
+  })} ${year}`;
 }
 
 /** Outlet assignment table for ManageOutletAssignmentPage. */
@@ -41,20 +88,20 @@ function OutletAssignmentTable({
   onLimitChange,
   onPageChange,
   onDelete,
+  onEditStatus,
 }) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[220px] py-4 pl-6">Name</TableHead>
-          <TableHead className="w-[220px] py-4">Outlet Name</TableHead>
-          <TableHead className="w-[160px] py-4 text-right">Total Value</TableHead>
-          <TableHead className="w-[140px] py-4">Status</TableHead>
-          <TableHead className="w-[160px] py-4">Counted By</TableHead>
+          <TableHead className="w-80 py-4 pl-6">Outlet</TableHead>
+          <TableHead className="w-64 py-4">Counted By</TableHead>
+          <TableHead className="w-40 py-4">Total Value</TableHead>
+          <TableHead className="w-40 py-4">Status</TableHead>
           {isAdmin && (
-            <TableHead className="w-[100px] py-4">
+            <TableHead className="w-40 py-4">
               <div className="flex justify-end">
-                <div className="w-[60px] text-center">Action</div>
+                <div className="w-32 text-center">Actions</div>
               </div>
             </TableHead>
           )}
@@ -63,7 +110,7 @@ function OutletAssignmentTable({
       <TableBody>
         {loading && (
           <TableRow>
-            <TableCell colSpan={isAdmin ? 6 : 5} className="py-12 text-center text-sm">
+            <TableCell colSpan={isAdmin ? 5 : 4} className="py-12 text-center text-sm">
               Loading assignments…
             </TableCell>
           </TableRow>
@@ -71,7 +118,7 @@ function OutletAssignmentTable({
 
         {!loading && error !== null && (
           <TableRow>
-            <TableCell colSpan={isAdmin ? 6 : 5} className="py-4">
+            <TableCell colSpan={isAdmin ? 5 : 4} className="py-4">
               <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                 <svg
                   className="w-4 h-4 flex-shrink-0"
@@ -94,7 +141,7 @@ function OutletAssignmentTable({
 
         {!loading && error === null && sessions.length === 0 && (
           <TableRow>
-            <TableCell colSpan={isAdmin ? 6 : 5} className="py-12 text-center text-sm">
+            <TableCell colSpan={isAdmin ? 5 : 4} className="py-12 text-center text-sm">
               {search
                 ? "No assignments match your search."
                 : "No assignments found."}
@@ -107,28 +154,48 @@ function OutletAssignmentTable({
           sessions.map((session) => (
             <TableRow key={session.id}>
               <TableCell className="font-semibold pl-6">
-                {session.name || "—"}
+                <div className="flex items-center gap-2">
+                  <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+                    <GitBranchIcon className="size-4" />
+                  </span>
+                  <div>
+                    <div>{session.outlet_name || "—"}</div>
+                    <div className="text-sm font-light text-gray-500">
+                      Period {formatPeriod(session.month, session.year)}
+                    </div>
+                  </div>
+                </div>
               </TableCell>
-              <TableCell className="text-muted-foreground">
-                {session.outlet_name || "—"}
+              <TableCell>
+                <div>{session.counted_by || "-"}</div>
+                <div className="text-sm font-light text-gray-500">
+                  Updated at {formatDateTime(session.counted_date)}
+                </div>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="font-semibold">
                 {formatCurrency(session.total_value)}
               </TableCell>
               <TableCell>
-                <Badge variant={STATUS_VARIANT[session.status] || "secondary"}>
-                  {session.status}
+                <Badge
+                  className={`gap-1.5 bg-muted ${getStatusColor(session.status)}`}
+                >
+                  <span
+                    className={`size-2 rounded-full ${getStatusDotColor(session.status)}`}
+                  />
+                  {formatStatus(session.status)}
                 </Badge>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-gray-900">
-                  {session.counted_by || "—"}
-                </span>
               </TableCell>
               {isAdmin && (
                 <TableCell>
                   <div className="flex justify-end">
-                    <div className="inline-flex items-center justify-center w-[60px]">
+                    <div className="inline-flex items-center justify-center gap-2 w-32">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => onEditStatus?.(session)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="destructive"
@@ -146,7 +213,7 @@ function OutletAssignmentTable({
       </TableBody>
       <TableFooter>
         <TableRow>
-          <TableCell colSpan={isAdmin ? 5 : 4}>
+          <TableCell colSpan={isAdmin ? 4 : 3}>
             <div className="flex items-center gap-3 pl-4">
               <span>Rows per page</span>
               <select

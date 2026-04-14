@@ -613,3 +613,45 @@ export async function submitSession(req, res) {
     res.status(500).json({ message: "Failed to submit session." });
   }
 }
+
+/*
+ * Update a stocktake session status
+ * URL: PATCH /api/stocktake/sessions/:id/status
+ */
+export async function updateSessionStatus(req, res) {
+  try {
+    const sessionId = Number(req.params.id);
+    const { status } = req.body || {};
+    const allowedStatuses = ["draft", "in_progress", "submitted", "locked"];
+
+    if (!Number.isInteger(sessionId)) {
+      return res.status(400).json({ message: "Invalid session id." });
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid session status." });
+    }
+
+    const { rows: sessionRows } = await pool.query(
+      `SELECT id, status FROM stocktake_sessions WHERE id = $1`,
+      [sessionId],
+    );
+
+    if (sessionRows.length === 0) {
+      return res.status(404).json({ message: "Session not found." });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE stocktake_sessions
+       SET status = $1
+       WHERE id = $2
+       RETURNING id, status`,
+      [status, sessionId],
+    );
+
+    res.json({ success: true, session: rows[0] });
+  } catch (err) {
+    console.error("updateSessionStatus error:", err);
+    res.status(500).json({ message: "Failed to update session status." });
+  }
+}

@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
-import { Pencil, Trash } from "lucide-react";
+import { Pencil, StoreIcon, Trash } from "lucide-react";
 import { deleteOutlet } from "@/api/outlets.js";
 import {
   AlertDialog,
@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../../components/ui/alert-dialog.jsx";
+import { Badge } from "../../../components/ui/badge.jsx";
 
 function formatDateTime(value) {
   if (!value) return "â€”";
@@ -30,8 +31,6 @@ function formatDateTime(value) {
     day: "2-digit",
     month: "short",
     year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
   });
 }
 
@@ -77,10 +76,9 @@ function OutletTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[130px] py-4 pl-6 pr-20">Cost Centre</TableHead>
-            <TableHead className="min-w-[220px] py-4 pr-6">Name</TableHead>
-            <TableHead className="min-w-[190px] py-4 pr-6">Created At</TableHead>
-            <TableHead className="min-w-[190px] py-4 pr-6">Updated At</TableHead>
+            <TableHead className="min-w-[220px] py-4 pl-6 pr-6">Name</TableHead>
+            <TableHead className="w-[130px] py-4 pr-20">Cost Centre</TableHead>
+            <TableHead className="min-w-[190px] py-4 pr-6">Created & Updated Dates</TableHead>
             <TableHead className="w-[160px] py-4">
               <div className="flex justify-end">
                 <div className="w-[120px] text-center">Action</div>
@@ -91,7 +89,7 @@ function OutletTable({
         <TableBody>
           {loading && (
             <TableRow>
-              <TableCell colSpan={5} className="py-12 text-center text-sm">
+              <TableCell colSpan={4} className="py-12 text-center text-sm">
                 Loading outlets…
               </TableCell>
             </TableRow>
@@ -99,7 +97,7 @@ function OutletTable({
 
           {!loading && error !== null && (
             <TableRow>
-              <TableCell colSpan={5} className="py-4">
+              <TableCell colSpan={4} className="py-4">
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -112,7 +110,7 @@ function OutletTable({
 
           {!loading && error === null && outlets.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="py-12 text-center text-sm">
+              <TableCell colSpan={4} className="py-12 text-center text-sm">
                 {search ? "No outlets match your search." : "No outlets found."}
               </TableCell>
             </TableRow>
@@ -120,15 +118,26 @@ function OutletTable({
 
           {!loading && error === null && outlets.map((outlet) => (
             <TableRow key={outlet.id}>
-              <TableCell className="pl-6 pr-20 font-mono">
-                {String(outlet.cost_centre).padStart(3, "0")}
+              <TableCell className="pl-6 pr-6 font-semibold">
+                <div className="flex items-center gap-2">
+                  <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+                    <StoreIcon className="size-4" />
+                  </span>
+                  {outlet.name}
+                </div>
               </TableCell>
-              <TableCell className="pr-6 font-semibold">{outlet.name}</TableCell>
-              <TableCell className="pr-6 text-sm text-gray-600 whitespace-nowrap">
-                {formatDateTime(outlet.created_at)}
+              <TableCell className="pr-20">
+                <Badge variant="secondary">
+                  {String(outlet.cost_centre).padStart(3, "0")}
+                </Badge>
               </TableCell>
-              <TableCell className="pr-6 text-sm text-gray-600 whitespace-nowrap">
-                {formatDateTime(outlet.updated_at)}
+              <TableCell className="pr-6 text-sm whitespace-nowrap">
+                <div className="text-gray-700">
+                  Created: {formatDateTime(outlet.created_at)}
+                </div>
+                <div className="font-light text-gray-500">
+                  Updated: {formatDateTime(outlet.updated_at)}
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex justify-end">
@@ -172,7 +181,7 @@ function OutletTable({
                 </span>
               </div>
             </TableCell>
-            <TableCell colSpan={2} className="text-right">
+            <TableCell colSpan={1} className="text-right">
               <div className="inline-flex items-center gap-3 pr-4">
                 <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
                   ‹ Prev

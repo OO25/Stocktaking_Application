@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
-import { Globe, Mail, Pencil, Phone, Trash } from "lucide-react";
+import { Globe, Mail, Pencil, Phone, Trash, TruckIcon } from "lucide-react";
 
 /** Supplier table for ManageSupplierPage. */
 function SupplierTable({
@@ -87,7 +87,12 @@ function SupplierTable({
           suppliers.map((supplier) => (
             <TableRow key={supplier.id}>
               <TableCell className="font-semibold pl-6">
-                {supplier.name}
+                <div className="flex items-center gap-2">
+                  <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
+                    <TruckIcon className="size-4" />
+                  </span>
+                  {supplier.name}
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex flex-col gap-1">
