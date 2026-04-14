@@ -8,17 +8,16 @@ import {
   TableRow,
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
-import { Pencil, Trash } from "lucide-react";
+import { Pencil, Ruler, Trash } from "lucide-react";
 
 function formatDate(value) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-US", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  const year = date.getFullYear();
+  return `${day} ${month}, ${year}`;
 }
 
 /** UOM table for ManageUomPage. */
@@ -39,10 +38,8 @@ function UomTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-55 py-4 pl-6">Name</TableHead>
-          <TableHead className="w-65 py-4">Description</TableHead>
-          <TableHead className="w-40 py-4">Created At</TableHead>
-          <TableHead className="w-40 py-4">Updated At</TableHead>
+          <TableHead className="w-65 py-4 pl-6">Name</TableHead>
+          <TableHead className="w-55 py-4">	Created & Updated Dates</TableHead>
           <TableHead className="w-40 py-4">
             <div className="flex justify-end">
               <div className="w-30 text-center">Action</div>
@@ -53,7 +50,7 @@ function UomTable({
       <TableBody>
         {loading && (
           <TableRow>
-            <TableCell colSpan={5} className="py-12 text-center text-sm">
+            <TableCell colSpan={3} className="py-12 text-center text-sm">
               Loading units…
             </TableCell>
           </TableRow>
@@ -61,7 +58,7 @@ function UomTable({
 
         {!loading && error !== null && (
           <TableRow>
-            <TableCell colSpan={5} className="py-4">
+            <TableCell colSpan={3} className="py-4">
               <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                 <svg
                   className="w-4 h-4 shrink-0"
@@ -84,7 +81,7 @@ function UomTable({
 
         {!loading && error === null && uoms.length === 0 && (
           <TableRow>
-            <TableCell colSpan={5} className="py-12 text-center text-sm">
+            <TableCell colSpan={3} className="py-12 text-center text-sm">
               {search ? "No units match your search." : "No units found."}
             </TableCell>
           </TableRow>
@@ -94,19 +91,24 @@ function UomTable({
           error === null &&
           uoms.map((uom) => (
             <TableRow key={uom.id ?? uom.name}>
-              <TableCell className="font-semibold pl-6">{uom.name}</TableCell>
-              <TableCell className="text-gray-600">
-                {uom.description || "—"}
+              <TableCell className="pl-6">
+                <div className="flex items-start gap-2">
+                  <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary">
+                    <Ruler className="size-4" />
+                  </span>
+                  <div className="space-y-1">
+                    <div className="font-semibold">{uom.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {uom.description || "—"}
+                    </div>
+                  </div>
+                </div>
               </TableCell>
               <TableCell>
-                <span className="text-sm text-gray-900">
-                  {formatDate(uom.created_at)}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-gray-900">
-                  {formatDate(uom.updated_at)}
-                </span>
+                <div className="space-y-1 text-sm text-gray-900">
+                  <div>Created: {formatDate(uom.created_at)}</div>
+                  <div>Updated: {formatDate(uom.updated_at)}</div>
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex justify-end">
@@ -133,7 +135,7 @@ function UomTable({
       </TableBody>
       <TableFooter>
         <TableRow>
-          <TableCell colSpan={4}>
+          <TableCell colSpan={2}>
             <div className="flex items-center gap-3 pl-4">
               <span>Rows per page</span>
               <select

@@ -7,7 +7,22 @@ import { Input } from "../../components/ui/input.jsx";
 import SupplierTable from "./components/supplierTable.jsx";
 import AddSupplierModal from "./components/AddSupplierModal.jsx";
 import EditSupplierModal from "./components/EditSupplierModal.jsx";
-import { Plus, Search } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu.jsx";
+import {
+  ChevronDown,
+  FileSpreadsheet,
+  FileText,
+  Plus,
+  Search,
+  Upload,
+} from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
 function useDebounce(value, delay = 300) {
@@ -145,6 +160,30 @@ function ManageSupplierPage() {
           {/* Action */}
           <div className="action-row">
             <div className="flex gap-2 w-full sm:w-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline">
+                    Options
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem>
+                    <Upload className="h-4 w-4" />
+                    Import Suppliers
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Export</DropdownMenuLabel>
+                  <DropdownMenuItem>
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileText className="h-4 w-4" />
+                    CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button onClick={() => setShowAddModal(true)}>
                 <Plus />
                 Add New Supplier
