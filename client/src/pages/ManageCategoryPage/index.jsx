@@ -19,7 +19,6 @@ import CategoryTable from "./components/categoryTable.jsx";
 import AddCategoryModal from "./components/AddCategoryModal.jsx";
 import EditCategoryModal from "./components/EditCategoryModal.jsx";
 import { Plus, Search } from "lucide-react";
-import { Switch } from "../../components/ui/switch.jsx";
 
 /** Debounce a value by `delay` ms. */
 function useDebounce(value, delay = 300) {
@@ -37,7 +36,7 @@ function ManageCategoryPage() {
     packagingTypes: [],
   });
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("Food group");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
@@ -156,7 +155,8 @@ function ManageCategoryPage() {
   const filteredCategories = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
     return allCategories.filter((category) => {
-      if (typeFilter && category.type !== typeFilter) return false;
+      if (typeFilter === "food" && category.type !== "Food group") return false;
+      if (typeFilter === "packing" && category.type !== "Packaging type") return false;
       if (!query) return true;
       const haystack = `${category.name} ${category.type || ""}`.toLowerCase();
       return haystack.includes(query);
@@ -218,27 +218,16 @@ function ManageCategoryPage() {
               />
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <label className="text-sm font-medium text-gray-700">Type:</label>
-              <div className="flex items-center space-x-2">
-                <span
-                  className={`px-3 py-1 rounded-full font-medium ${
-                    typeFilter === "Packaging type" ? "bg-black text-white" : "bg-gray-100 text-gray-900"
-                  }`}
-                >
-                  Packaging type
-                </span>
-                <Switch
-                  checked={typeFilter === "Food group"}
-                  onCheckedChange={(checked) => setTypeFilter(checked ? "Food group" : "Packaging type")}
-                />
-                <span
-                  className={`px-3 py-1 rounded-full font-medium ${
-                    typeFilter === "Food group" ? "bg-black text-white" : "bg-gray-100 text-gray-900"
-                  }`}
-                >
-                  Food group
-                </span>
-              </div>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="food">Food</SelectItem>
+                  <SelectItem value="packing">Packing</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
