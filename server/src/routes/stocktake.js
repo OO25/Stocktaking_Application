@@ -8,6 +8,9 @@ import {
   deleteSession,
   getSessionDetail,
   saveSessionEntries,
+  createSessionTemporaryItem,
+  updateSessionTemporaryItem,
+  deleteSessionTemporaryItem,
   submitSession,
   updateSessionStatus,
 } from "../controllers/stocktakeController.js";
@@ -26,6 +29,9 @@ router.post("/sessions", requireRole("admin"), createSession);
 router.get("/sessions/:id/detail", getSessionDetail);
 router.patch("/sessions/:id/status", requireRole("admin"), updateSessionStatus);
 router.put("/sessions/:id/entries", saveSessionEntries);
+router.post("/sessions/:id/new-items", createSessionTemporaryItem);
+router.patch("/sessions/:id/new-items/:itemId", updateSessionTemporaryItem);
+router.delete("/sessions/:id/new-items/:itemId", deleteSessionTemporaryItem);
 router.post("/sessions/:id/submit", submitSession);
 router.delete("/sessions/:id", requireRole("admin"), deleteSession);
 
