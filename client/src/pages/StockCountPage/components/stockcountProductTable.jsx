@@ -150,7 +150,7 @@ function StockCountProductTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-120 py-4 pl-6">Product</TableHead>
-            <TableHead className="w-32 py-4">UOM</TableHead>
+            <TableHead className="w-40 py-4">PKG & UOM</TableHead>
             <TableHead className="w-44 py-4 text-left">
               Unit & Total Price
             </TableHead>
@@ -193,9 +193,14 @@ function StockCountProductTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge className="bg-muted text-gray-600 hover:bg-muted">
-                    {product.uom_name || "-"}
-                  </Badge>
+                  <div className="space-y-1 text-sm">
+                    <div className="font-medium text-gray-700">
+                      {product.package_size ?? "-"}
+                    </div>
+                    <div className="text-sm font-light text-gray-500">
+                      {product.uom_name || "-"}
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell className="text-left">
                   <div className="font-semibold">${lineTotal.toFixed(2)}</div>
