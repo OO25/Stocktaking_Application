@@ -8,6 +8,7 @@ import {
   SendHorizonal,
 } from "lucide-react";
 import {
+  deleteSessionTemporaryItem,
   fetchSessionDetail,
   saveSessionEntries,
   submitSession,
@@ -17,6 +18,8 @@ import { Badge } from "../../components/ui/badge.jsx";
 import { Alert, AlertDescription } from "../../components/ui/alert.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import StockCountProductTable from "./components/stockcountProductTable.jsx";
+import AddTemporaryItemModule from "./components/addTemporaryItemModule.tsx";
+import TemporaryItemsTable from "./components/temporaryItemsTable.jsx";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,22 +41,41 @@ export default function StockCountDetailPage() {
   const [session, setSession] = useState(null);
   const [entries, setEntries] = useState([]);
   const [validProducts, setValidProducts] = useState([]);
+  const [temporaryItems, setTemporaryItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [addTemporaryItemOpen, setAddTemporaryItemOpen] = useState(false);
+  const [editingTemporaryItem, setEditingTemporaryItem] = useState(null);
   const [scanProduct, setScanProduct] = useState(null);
   const [scanQuantity, setScanQuantity] = useState("");
   // Barcode scanners type very fast so capture those keystrokes in a buffer.
   const scanBufferRef = useRef("");
   // Tracks time between keys to ignore slower, human typing.
   const scanLastKeyRef = useRef(0);
+  const pendingNavigationRef = useRef(null);
   const scanInputRef = useRef(null);
-  const productsSectionRef = useRef(null);
   const isEditable =
     session?.status === "draft" || session?.status === "in_progress";
+  const [savedEntriesSnapshot, setSavedEntriesSnapshot] = useState("[]");
+
+  const normalizeEntries = (items = []) =>
+    JSON.stringify(
+      [...items]
+        .map((entry) => ({
+          product_id: Number(entry.product_id),
+          quantity: Number(entry.quantity || 0),
+          unit_price: Number(entry.unit_price || 0),
+        }))
+        .sort((a, b) => a.product_id - b.product_id),
+    );
+
+  const hasUnsavedChanges =
+    isEditable && normalizeEntries(entries) !== savedEntriesSnapshot;
 
   // Load session detail on mount
   useEffect(() => {
@@ -81,6 +103,8 @@ export default function StockCountDetailPage() {
       setSession(data);
       setValidProducts(data.valid_products || []);
       setEntries(data.current_entries || []);
+      setSavedEntriesSnapshot(normalizeEntries(data.current_entries || []));
+      setTemporaryItems(data.temporary_items || []);
     } catch (err) {
       console.error("Error loading session:", err);
       setError(err.message || "Failed to load session");
@@ -193,19 +217,86 @@ export default function StockCountDetailPage() {
       setSession((prev) => ({ ...prev, status: result.status }));
       // Reload to get updated data
       await loadSessionDetail();
+      return true;
     } catch (err) {
       setError(err.message || "Failed to save entries");
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
-  const handleAddItemClick = () => {
-    productsSectionRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+  const requestNavigation = (to) => {
+    if (!hasUnsavedChanges || saving || submitting) {
+      navigate(to);
+      return;
+    }
+    pendingNavigationRef.current = { to };
+    setLeaveDialogOpen(true);
   };
+
+  const handleConfirmLeaveWithoutSaving = () => {
+    const pending = pendingNavigationRef.current;
+    setLeaveDialogOpen(false);
+    pendingNavigationRef.current = null;
+    if (!pending?.to) return;
+    navigate(pending.to);
+  };
+
+  const handleConfirmSaveAndLeave = async () => {
+    const pending = pendingNavigationRef.current;
+    const saved = await handleSave();
+    if (!saved) return;
+    setLeaveDialogOpen(false);
+    pendingNavigationRef.current = null;
+    if (!pending?.to) return;
+    navigate(pending.to);
+  };
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return undefined;
+    const onBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return undefined;
+
+    const handleDocumentClick = (event) => {
+      if (event.defaultPrevented) return;
+      if (event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest("a[href]");
+      if (!link) return;
+      if (link.getAttribute("target") === "_blank") return;
+
+      const href = link.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+
+      const nextUrl = new URL(href, window.location.origin);
+      const currentUrl = new URL(window.location.href);
+
+      const nextPath = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+      const currentPath = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+
+      if (nextPath === currentPath) return;
+      if (nextUrl.origin !== currentUrl.origin) return;
+
+      event.preventDefault();
+      pendingNavigationRef.current = { to: nextPath };
+      setLeaveDialogOpen(true);
+    };
+
+    document.addEventListener("click", handleDocumentClick, true);
+    return () => document.removeEventListener("click", handleDocumentClick, true);
+  }, [hasUnsavedChanges]);
 
   const formatCountedDate = (value) => {
     if (!value) return "-";
@@ -276,13 +367,23 @@ export default function StockCountDetailPage() {
       
       // Show success and redirect after data is loaded
       setTimeout(() => {
-        navigate("/stock-count");
+        requestNavigation("/stock-count");
       }, 1500);
     } catch (err) {
       console.error("Submit error:", err);
       setError(err.message || "Failed to submit session");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteTemporaryItem = async (itemId) => {
+    try {
+      setError(null);
+      await deleteSessionTemporaryItem(id, itemId);
+      await loadSessionDetail();
+    } catch (err) {
+      setError(err.message || "Failed to delete temporary item");
     }
   };
 
@@ -324,6 +425,9 @@ export default function StockCountDetailPage() {
     const product = validProducts.find((p) => p.product_id === e.product_id);
     const unitPrice = product?.unit_price || 0;
     return sum + (e.quantity * unitPrice || 0);
+  }, 0) + temporaryItems.reduce((sum, item) => {
+    const lineTotal = Number(item.total ?? (item.quantity * item.price) ?? 0);
+    return sum + (Number.isFinite(lineTotal) ? lineTotal : 0);
   }, 0);
 
   const scanUnitPrice = scanProduct ? Number(scanProduct.unit_price || 0) : 0;
@@ -395,8 +499,11 @@ export default function StockCountDetailPage() {
             <Button
               type="button"
               className="xl:ml-auto"
-              onClick={handleAddItemClick}
-              disabled={session.status === "submitted"}
+              onClick={() => {
+                setEditingTemporaryItem(null);
+                setAddTemporaryItemOpen(true);
+              }}
+              disabled={!isEditable}
             >
               Add Product +
             </Button>
@@ -461,7 +568,7 @@ export default function StockCountDetailPage() {
               <Button
                 variant="outline"
                 className="xl:ml-auto"
-                onClick={() => navigate("/stock-count")}
+                onClick={() => requestNavigation("/stock-count")}
               >
                 Back to List
                 <ArrowLeft />
@@ -471,8 +578,18 @@ export default function StockCountDetailPage() {
         </div>
       </div>
 
+      <TemporaryItemsTable
+        temporaryItems={temporaryItems}
+        isEditable={isEditable}
+        onEdit={(item) => {
+          setEditingTemporaryItem(item);
+          setAddTemporaryItemOpen(true);
+        }}
+        onDelete={handleDeleteTemporaryItem}
+      />
+
       {/* Products Table */}
-      <div ref={productsSectionRef}>
+      <div>
         <StockCountProductTable
           validProducts={validProducts}
           entries={entries}
@@ -485,6 +602,20 @@ export default function StockCountDetailPage() {
           }}
         />
       </div>
+
+      <AddTemporaryItemModule
+        open={addTemporaryItemOpen}
+        onClose={() => {
+          setAddTemporaryItemOpen(false);
+          setEditingTemporaryItem(null);
+        }}
+        sessionId={id}
+        temporaryItem={editingTemporaryItem}
+        onCreated={() => {
+          loadSessionDetail();
+          setError(null);
+        }}
+      />
 
       <AlertDialog
         open={scanDialogOpen}
@@ -555,6 +686,35 @@ export default function StockCountDetailPage() {
                 Save
               </Button>
             ) : null}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save changes before leaving?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved quantity changes in this stock count.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleConfirmLeaveWithoutSaving}
+              disabled={saving || submitting}
+            >
+              Leave Without Saving
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmSaveAndLeave}
+              disabled={saving || submitting}
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

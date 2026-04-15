@@ -94,6 +94,35 @@ export async function saveSessionEntries(id, entries, finalize = false) {
 }
 
 /**
+ * Creates a temporary ad-hoc item for a stocktake session
+ */
+export async function createSessionTemporaryItem(id, data) {
+  return request(`${API_BASE}/stocktake/sessions/${id}/new-items`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Updates a temporary ad-hoc item for a stocktake session
+ */
+export async function updateSessionTemporaryItem(id, itemId, data) {
+  return request(`${API_BASE}/stocktake/sessions/${id}/new-items/${itemId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Deletes a temporary ad-hoc item for a stocktake session
+ */
+export async function deleteSessionTemporaryItem(id, itemId) {
+  return request(`${API_BASE}/stocktake/sessions/${id}/new-items/${itemId}`, {
+    method: "DELETE",
+  });
+}
+
+/**
  * Submits a stocktake session for final approval
  */
 export async function submitSession(id) {

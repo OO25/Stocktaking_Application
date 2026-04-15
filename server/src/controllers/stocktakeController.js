@@ -26,7 +26,12 @@ async function checkSessionAccess(req, sessionOutletId) {
  * Builds a data transfer object, which combines all info for the frontend into a box,
  * instead of it having to get all the data
  */
-function buildSessionDetailDTO(session, validProducts, currentEntries) {
+function buildSessionDetailDTO(
+  session,
+  validProducts,
+  currentEntries,
+  temporaryItems = [],
+) {
   return {
     session_id: session.id,
     assignment_name: session.name,
@@ -38,6 +43,7 @@ function buildSessionDetailDTO(session, validProducts, currentEntries) {
     counted_date: session.counted_date,
     valid_products: validProducts,
     current_entries: currentEntries,
+    temporary_items: temporaryItems,
   };
 }
 
@@ -380,6 +386,7 @@ export async function getSessionDetail(req, res) {
          p.id AS product_id,
          p.name AS product_name,
          p.is_packaging,
+         p.package_size,
          p.product_code AS barcode,
          COALESCE(fg.name, pt.name) AS category_name,
          u.name AS uom_name,
@@ -410,8 +417,31 @@ export async function getSessionDetail(req, res) {
       [sessionId],
     );
 
+    const { rows: temporaryItems } = await pool.query(
+      `SELECT
+         sni.id,
+         sni.session_id,
+         sni.food_group_id,
+         sni.description,
+         sni.price,
+         sni.quantity,
+         sni.total,
+         sni.is_one_off,
+         fg.name AS food_group_name
+       FROM stocktake_new_items sni
+       LEFT JOIN food_groups fg ON fg.id = sni.food_group_id
+       WHERE sni.session_id = $1
+       ORDER BY sni.id DESC`,
+      [sessionId],
+    );
+
     // Build and return DTO
-    const dto = buildSessionDetailDTO(session, validProducts, currentEntries);
+    const dto = buildSessionDetailDTO(
+      session,
+      validProducts,
+      currentEntries,
+      temporaryItems,
+    );
 
     console.log("Returning DTO:", JSON.stringify(dto, null, 2));
     res.json(dto);
@@ -424,6 +454,282 @@ export async function getSessionDetail(req, res) {
 // ============================================
 // SESSION ENTRIES >^.^<
 // ============================================
+
+/*
+ * Creates a temporary stocktake item for a session.
+ * URL: POST /api/stocktake/sessions/:id/new-items
+ */
+export async function createSessionTemporaryItem(req, res) {
+  try {
+    const sessionId = Number(req.params.id);
+    if (!Number.isInteger(sessionId)) {
+      return res.status(400).json({ message: "Invalid session id." });
+    }
+
+    const {
+      product_name,
+      barcode,
+      description,
+      package_size,
+      unit_size,
+      price,
+      quantity = 0,
+      food_group_id = null,
+      is_one_off = false,
+    } = req.body ?? {};
+
+    const trimmedName = String(product_name || "").trim();
+    const trimmedBarcode = String(barcode || "").trim();
+    const trimmedDescription = String(description || "").trim();
+    const trimmedPackageSize = String(package_size || "").trim();
+    const trimmedUnitSize = String(unit_size || "").trim();
+    const numericPrice = Number(price);
+    const numericQuantity = Number(quantity);
+    const numericFoodGroupId =
+      food_group_id === null || food_group_id === ""
+        ? null
+        : Number(food_group_id);
+
+    if (!trimmedName || !trimmedPackageSize || !trimmedUnitSize || Number.isNaN(numericPrice)) {
+      return res.status(400).json({
+        message:
+          "Product Name, Price, Package Size, and Unit Size are required.",
+      });
+    }
+
+    if (numericPrice < 0 || Number.isNaN(numericQuantity) || numericQuantity < 0) {
+      return res.status(400).json({
+        message: "Price and Quantity must be valid non-negative numbers.",
+      });
+    }
+
+    if (numericFoodGroupId !== null && !Number.isInteger(numericFoodGroupId)) {
+      return res.status(400).json({ message: "Invalid food_group_id." });
+    }
+
+    const { rows: sessionRows } = await pool.query(
+      `SELECT ss.id, ss.outlet_id, ss.status
+       FROM stocktake_sessions ss
+       WHERE ss.id = $1`,
+      [sessionId],
+    );
+
+    if (sessionRows.length === 0) {
+      return res.status(404).json({ message: "Session not found." });
+    }
+
+    const session = sessionRows[0];
+
+    try {
+      await checkSessionAccess(req, session.outlet_id);
+    } catch (_err) {
+      return res.status(403).json({ message: "Access denied to this session." });
+    }
+
+    if (session.status === "submitted" || session.status === "locked") {
+      return res.status(400).json({ message: "Cannot edit a submitted or locked session." });
+    }
+
+    const coreDescription = `${trimmedName} | ${trimmedPackageSize} | ${trimmedUnitSize}`;
+    const barcodeSegment = trimmedBarcode
+      ? `Barcode: ${trimmedBarcode}`
+      : "";
+    const fullDescription = trimmedDescription
+      ? `${coreDescription} | ${barcodeSegment ? `${barcodeSegment} | ` : ""}${trimmedDescription}`
+      : `${coreDescription}${barcodeSegment ? ` | ${barcodeSegment}` : ""}`;
+
+    const { rows } = await pool.query(
+      `INSERT INTO stocktake_new_items
+         (session_id, food_group_id, description, price, quantity, is_one_off)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, session_id, food_group_id, description, price, quantity, total, is_one_off`,
+      [
+        sessionId,
+        numericFoodGroupId,
+        fullDescription,
+        numericPrice,
+        numericQuantity,
+        Boolean(is_one_off),
+      ],
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error("createSessionTemporaryItem error:", err);
+    res.status(500).json({ message: "Failed to create temporary item." });
+  }
+}
+
+/*
+ * Updates a temporary stocktake item for a session.
+ * URL: PATCH /api/stocktake/sessions/:id/new-items/:itemId
+ */
+export async function updateSessionTemporaryItem(req, res) {
+  try {
+    const sessionId = Number(req.params.id);
+    const itemId = Number(req.params.itemId);
+    if (!Number.isInteger(sessionId) || !Number.isInteger(itemId)) {
+      return res.status(400).json({ message: "Invalid session id or item id." });
+    }
+
+    const {
+      product_name,
+      barcode,
+      description,
+      package_size,
+      unit_size,
+      price,
+      quantity = 0,
+      food_group_id = null,
+      is_one_off = true,
+    } = req.body ?? {};
+
+    const trimmedName = String(product_name || "").trim();
+    const trimmedBarcode = String(barcode || "").trim();
+    const trimmedDescription = String(description || "").trim();
+    const trimmedPackageSize = String(package_size || "").trim();
+    const trimmedUnitSize = String(unit_size || "").trim();
+    const numericPrice = Number(price);
+    const numericQuantity = Number(quantity);
+    const numericFoodGroupId =
+      food_group_id === null || food_group_id === ""
+        ? null
+        : Number(food_group_id);
+
+    if (!trimmedName || !trimmedPackageSize || !trimmedUnitSize || Number.isNaN(numericPrice)) {
+      return res.status(400).json({
+        message:
+          "Product Name, Price, Package Size, and Unit Size are required.",
+      });
+    }
+
+    if (numericPrice < 0 || Number.isNaN(numericQuantity) || numericQuantity < 0) {
+      return res.status(400).json({
+        message: "Price and Quantity must be valid non-negative numbers.",
+      });
+    }
+
+    if (numericFoodGroupId !== null && !Number.isInteger(numericFoodGroupId)) {
+      return res.status(400).json({ message: "Invalid food_group_id." });
+    }
+
+    const { rows: sessionRows } = await pool.query(
+      `SELECT ss.id, ss.outlet_id, ss.status
+       FROM stocktake_sessions ss
+       WHERE ss.id = $1`,
+      [sessionId],
+    );
+
+    if (sessionRows.length === 0) {
+      return res.status(404).json({ message: "Session not found." });
+    }
+
+    const session = sessionRows[0];
+    try {
+      await checkSessionAccess(req, session.outlet_id);
+    } catch (_err) {
+      return res.status(403).json({ message: "Access denied to this session." });
+    }
+
+    if (session.status === "submitted" || session.status === "locked") {
+      return res.status(400).json({ message: "Cannot edit a submitted or locked session." });
+    }
+
+    const { rows: itemRows } = await pool.query(
+      `SELECT id
+       FROM stocktake_new_items
+       WHERE id = $1 AND session_id = $2`,
+      [itemId, sessionId],
+    );
+
+    if (itemRows.length === 0) {
+      return res.status(404).json({ message: "Temporary item not found." });
+    }
+
+    const coreDescription = `${trimmedName} | ${trimmedPackageSize} | ${trimmedUnitSize}`;
+    const barcodeSegment = trimmedBarcode ? `Barcode: ${trimmedBarcode}` : "";
+    const fullDescription = trimmedDescription
+      ? `${coreDescription} | ${barcodeSegment ? `${barcodeSegment} | ` : ""}${trimmedDescription}`
+      : `${coreDescription}${barcodeSegment ? ` | ${barcodeSegment}` : ""}`;
+
+    const { rows } = await pool.query(
+      `UPDATE stocktake_new_items
+       SET
+         food_group_id = $1,
+         description = $2,
+         price = $3,
+         quantity = $4,
+         is_one_off = $5
+       WHERE id = $6 AND session_id = $7
+       RETURNING id, session_id, food_group_id, description, price, quantity, total, is_one_off`,
+      [
+        numericFoodGroupId,
+        fullDescription,
+        numericPrice,
+        numericQuantity,
+        Boolean(is_one_off),
+        itemId,
+        sessionId,
+      ],
+    );
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("updateSessionTemporaryItem error:", err);
+    res.status(500).json({ message: "Failed to update temporary item." });
+  }
+}
+
+/*
+ * Deletes a temporary stocktake item for a session.
+ * URL: DELETE /api/stocktake/sessions/:id/new-items/:itemId
+ */
+export async function deleteSessionTemporaryItem(req, res) {
+  try {
+    const sessionId = Number(req.params.id);
+    const itemId = Number(req.params.itemId);
+    if (!Number.isInteger(sessionId) || !Number.isInteger(itemId)) {
+      return res.status(400).json({ message: "Invalid session id or item id." });
+    }
+
+    const { rows: sessionRows } = await pool.query(
+      `SELECT ss.id, ss.outlet_id, ss.status
+       FROM stocktake_sessions ss
+       WHERE ss.id = $1`,
+      [sessionId],
+    );
+
+    if (sessionRows.length === 0) {
+      return res.status(404).json({ message: "Session not found." });
+    }
+
+    const session = sessionRows[0];
+    try {
+      await checkSessionAccess(req, session.outlet_id);
+    } catch (_err) {
+      return res.status(403).json({ message: "Access denied to this session." });
+    }
+
+    if (session.status === "submitted" || session.status === "locked") {
+      return res.status(400).json({ message: "Cannot edit a submitted or locked session." });
+    }
+
+    const { rowCount } = await pool.query(
+      `DELETE FROM stocktake_new_items
+       WHERE id = $1 AND session_id = $2`,
+      [itemId, sessionId],
+    );
+
+    if (rowCount === 0) {
+      return res.status(404).json({ message: "Temporary item not found." });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("deleteSessionTemporaryItem error:", err);
+    res.status(500).json({ message: "Failed to delete temporary item." });
+  }
+}
 
 /*
  * Save product count entries for a session
