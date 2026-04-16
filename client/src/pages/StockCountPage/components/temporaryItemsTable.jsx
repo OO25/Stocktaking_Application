@@ -16,18 +16,16 @@ function parseTemporaryDescription(value) {
       productName: "-",
       packageSize: "-",
       unitSize: "-",
-      extraDescription: "",
     };
   }
 
-  const [productName = "-", packageSize = "-", unitSize = "-", ...rest] =
+  const [productName = "-", packageSize = "-", unitSize = "-"] =
     String(value).split(" | ");
 
   return {
     productName,
     packageSize,
     unitSize,
-    extraDescription: rest.join(" | "),
   };
 }
 
@@ -62,6 +60,12 @@ function TemporaryItemsTable({
         <TableBody>
           {temporaryItems.map((item) => {
             const parsed = parseTemporaryDescription(item.description);
+            const productName = item.name || parsed.productName;
+            const packageSize =
+              item.package_size == null
+                ? parsed.packageSize
+                : Number(item.package_size).toFixed(2);
+            const unitSize = item.uom_name || parsed.unitSize;
             return (
               <TableRow key={item.id}>
                 <TableCell className="font-semibold pl-6">
@@ -70,22 +74,20 @@ function TemporaryItemsTable({
                       <Clock3 className="size-4" />
                     </span>
                     <div>
-                      <div>{parsed.productName}</div>
-                      {parsed.extraDescription ? (
-                        <div className="text-sm font-light text-gray-500">
-                          {parsed.extraDescription}
-                        </div>
-                      ) : null}
+                      <div>{productName}</div>
+                      <div className="text-sm font-light text-gray-500">
+                        {item.food_group_name || "-"}
+                      </div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="space-y-1 text-sm">
                     <div className="font-medium text-gray-700">
-                      {parsed.packageSize || "-"}
+                      {packageSize || "-"}
                     </div>
                     <div className="text-sm font-light text-gray-500">
-                      {parsed.unitSize || "-"}
+                      {unitSize || "-"}
                     </div>
                   </div>
                 </TableCell>

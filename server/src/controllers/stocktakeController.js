@@ -418,27 +418,52 @@ export async function getSessionDetail(req, res) {
     }
 
     // Fetch valid products for this outlet (joined with UOM and price)
-    // Includes barcode for search functionality
-    const { rows: validProducts } = await pool.query(
-      `SELECT
-         p.id AS product_id,
-         p.name AS product_name,
-         p.is_packaging,
-         p.package_size,
-         p.barcode AS barcode,
-         COALESCE(fg.name, pt.name) AS category_name,
-         u.name AS uom_name,
-         p.price AS unit_price,
-         p.barcode AS barcode
-       FROM outlet_products op
-       JOIN products p ON p.id = op.product_id
-       LEFT JOIN food_groups fg ON fg.id = p.food_group_id
-       LEFT JOIN packaging_types pt ON pt.id = p.packaging_type_id
-       LEFT JOIN units_of_measure u ON u.id = p.uom_id
-       WHERE op.outlet_id = $1
-       ORDER BY p.name`,
-      [session.outlet_id],
-    );
+    // Includes barcode for search functionality when available.
+    let validProducts = [];
+    try {
+      const { rows } = await pool.query(
+        `SELECT
+           p.id AS product_id,
+           p.name AS product_name,
+           p.is_packaging,
+           p.package_size,
+           p.product_code AS barcode,
+           COALESCE(fg.name, pt.name) AS category_name,
+           u.name AS uom_name,
+           p.price AS unit_price
+         FROM outlet_products op
+         JOIN products p ON p.id = op.product_id
+         LEFT JOIN food_groups fg ON fg.id = p.food_group_id
+         LEFT JOIN packaging_types pt ON pt.id = p.packaging_type_id
+         LEFT JOIN units_of_measure u ON u.id = p.uom_id
+         WHERE op.outlet_id = $1
+         ORDER BY p.name`,
+        [session.outlet_id],
+      );
+      validProducts = rows;
+    } catch (queryErr) {
+      // Backward-compatible fallback for DBs without product_code/uom linkage yet.
+      if (!["42703", "42P01"].includes(queryErr?.code)) throw queryErr;
+      const { rows } = await pool.query(
+        `SELECT
+           p.id AS product_id,
+           p.name AS product_name,
+           p.is_packaging,
+           p.package_size,
+           NULL::varchar AS barcode,
+           COALESCE(fg.name, pt.name) AS category_name,
+           NULL::varchar AS uom_name,
+           p.price AS unit_price
+         FROM outlet_products op
+         JOIN products p ON p.id = op.product_id
+         LEFT JOIN food_groups fg ON fg.id = p.food_group_id
+         LEFT JOIN packaging_types pt ON pt.id = p.packaging_type_id
+         WHERE op.outlet_id = $1
+         ORDER BY p.name`,
+        [session.outlet_id],
+      );
+      validProducts = rows;
+    }
 
     console.log("Valid products found:", validProducts.length);
 
@@ -455,23 +480,59 @@ export async function getSessionDetail(req, res) {
       [sessionId],
     );
 
-    const { rows: temporaryItems } = await pool.query(
-      `SELECT
-         sni.id,
-         sni.session_id,
-         sni.food_group_id,
-         sni.description,
-         sni.price,
-         sni.quantity,
-         sni.total,
-         sni.is_one_off,
-         fg.name AS food_group_name
-       FROM stocktake_new_items sni
-       LEFT JOIN food_groups fg ON fg.id = sni.food_group_id
-       WHERE sni.session_id = $1
-       ORDER BY sni.id DESC`,
-      [sessionId],
-    );
+    let temporaryItems = [];
+    try {
+      const { rows } = await pool.query(
+        `SELECT
+           sni.id,
+           sni.session_id,
+           sni.food_group_id,
+           sni.name,
+           sni.barcode,
+           sni.package_size,
+           sni.uom_id,
+           u.name AS uom_name,
+           sni.description,
+           sni.price,
+           sni.quantity,
+           sni.total,
+           sni.is_one_off,
+           fg.name AS food_group_name
+         FROM stocktake_new_items sni
+         LEFT JOIN food_groups fg ON fg.id = sni.food_group_id
+         LEFT JOIN units_of_measure u ON u.id = sni.uom_id
+         WHERE sni.session_id = $1
+         ORDER BY sni.id DESC`,
+        [sessionId],
+      );
+      temporaryItems = rows;
+    } catch (queryErr) {
+      // Backward-compatible fallback for DBs that haven't applied the latest migration yet.
+      if (!["42703", "42P01"].includes(queryErr?.code)) throw queryErr;
+      const { rows } = await pool.query(
+        `SELECT
+           sni.id,
+           sni.session_id,
+           sni.food_group_id,
+           NULL::varchar AS name,
+           NULL::varchar AS barcode,
+           NULL::numeric AS package_size,
+           NULL::int AS uom_id,
+           NULL::varchar AS uom_name,
+           sni.description,
+           sni.price,
+           sni.quantity,
+           sni.total,
+           sni.is_one_off,
+           fg.name AS food_group_name
+         FROM stocktake_new_items sni
+         LEFT JOIN food_groups fg ON fg.id = sni.food_group_id
+         WHERE sni.session_id = $1
+         ORDER BY sni.id DESC`,
+        [sessionId],
+      );
+      temporaryItems = rows;
+    }
 
     // Build and return DTO
     const dto = buildSessionDetailDTO(
@@ -505,22 +566,23 @@ export async function createSessionTemporaryItem(req, res) {
     }
 
     const {
+      name,
       product_name,
       barcode,
       description,
       package_size,
-      unit_size,
+      uom_id,
       price,
       quantity = 0,
       food_group_id = null,
       is_one_off = false,
     } = req.body ?? {};
 
-    const trimmedName = String(product_name || "").trim();
+    const trimmedName = String(name || product_name || "").trim();
     const trimmedBarcode = String(barcode || "").trim();
     const trimmedDescription = String(description || "").trim();
-    const trimmedPackageSize = String(package_size || "").trim();
-    const trimmedUnitSize = String(unit_size || "").trim();
+    const numericPackageSize = Number(package_size);
+    const numericUomId = Number(uom_id);
     const numericPrice = Number(price);
     const numericQuantity = Number(quantity);
     const numericFoodGroupId =
@@ -530,28 +592,33 @@ export async function createSessionTemporaryItem(req, res) {
 
     if (
       !trimmedName ||
-      !trimmedPackageSize ||
-      !trimmedUnitSize ||
+      Number.isNaN(numericPackageSize) ||
+      !Number.isInteger(numericUomId) ||
       Number.isNaN(numericPrice)
     ) {
       return res.status(400).json({
         message:
-          "Product Name, Price, Package Size, and Unit Size are required.",
+          "Name, Price, Package Size, and UOM are required.",
       });
     }
 
     if (
+      numericPackageSize < 0 ||
       numericPrice < 0 ||
       Number.isNaN(numericQuantity) ||
       numericQuantity < 0
     ) {
       return res.status(400).json({
-        message: "Price and Quantity must be valid non-negative numbers.",
+        message:
+          "Package Size, Price, and Quantity must be valid non-negative numbers.",
       });
     }
 
     if (numericFoodGroupId !== null && !Number.isInteger(numericFoodGroupId)) {
       return res.status(400).json({ message: "Invalid food_group_id." });
+    }
+    if (numericUomId < 1) {
+      return res.status(400).json({ message: "Invalid uom_id." });
     }
 
     const { rows: sessionRows } = await pool.query(
@@ -581,21 +648,19 @@ export async function createSessionTemporaryItem(req, res) {
         .json({ message: "Cannot edit a submitted or locked session." });
     }
 
-    const coreDescription = `${trimmedName} | ${trimmedPackageSize} | ${trimmedUnitSize}`;
-    const barcodeSegment = trimmedBarcode ? `Barcode: ${trimmedBarcode}` : "";
-    const fullDescription = trimmedDescription
-      ? `${coreDescription} | ${barcodeSegment ? `${barcodeSegment} | ` : ""}${trimmedDescription}`
-      : `${coreDescription}${barcodeSegment ? ` | ${barcodeSegment}` : ""}`;
-
     const { rows } = await pool.query(
       `INSERT INTO stocktake_new_items
-         (session_id, food_group_id, description, price, quantity, is_one_off)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, session_id, food_group_id, description, price, quantity, total, is_one_off`,
+         (session_id, food_group_id, name, barcode, package_size, uom_id, description, price, quantity, is_one_off)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, session_id, food_group_id, name, barcode, package_size, uom_id, description, price, quantity, total, is_one_off`,
       [
         sessionId,
         numericFoodGroupId,
-        fullDescription,
+        trimmedName,
+        trimmedBarcode || null,
+        numericPackageSize.toFixed(2),
+        numericUomId,
+        trimmedDescription,
         numericPrice,
         numericQuantity,
         Boolean(is_one_off),
@@ -624,22 +689,23 @@ export async function updateSessionTemporaryItem(req, res) {
     }
 
     const {
+      name,
       product_name,
       barcode,
       description,
       package_size,
-      unit_size,
+      uom_id,
       price,
       quantity = 0,
       food_group_id = null,
       is_one_off = true,
     } = req.body ?? {};
 
-    const trimmedName = String(product_name || "").trim();
+    const trimmedName = String(name || product_name || "").trim();
     const trimmedBarcode = String(barcode || "").trim();
     const trimmedDescription = String(description || "").trim();
-    const trimmedPackageSize = String(package_size || "").trim();
-    const trimmedUnitSize = String(unit_size || "").trim();
+    const numericPackageSize = Number(package_size);
+    const numericUomId = Number(uom_id);
     const numericPrice = Number(price);
     const numericQuantity = Number(quantity);
     const numericFoodGroupId =
@@ -649,28 +715,33 @@ export async function updateSessionTemporaryItem(req, res) {
 
     if (
       !trimmedName ||
-      !trimmedPackageSize ||
-      !trimmedUnitSize ||
+      Number.isNaN(numericPackageSize) ||
+      !Number.isInteger(numericUomId) ||
       Number.isNaN(numericPrice)
     ) {
       return res.status(400).json({
         message:
-          "Product Name, Price, Package Size, and Unit Size are required.",
+          "Name, Price, Package Size, and UOM are required.",
       });
     }
 
     if (
+      numericPackageSize < 0 ||
       numericPrice < 0 ||
       Number.isNaN(numericQuantity) ||
       numericQuantity < 0
     ) {
       return res.status(400).json({
-        message: "Price and Quantity must be valid non-negative numbers.",
+        message:
+          "Package Size, Price, and Quantity must be valid non-negative numbers.",
       });
     }
 
     if (numericFoodGroupId !== null && !Number.isInteger(numericFoodGroupId)) {
       return res.status(400).json({ message: "Invalid food_group_id." });
+    }
+    if (numericUomId < 1) {
+      return res.status(400).json({ message: "Invalid uom_id." });
     }
 
     const { rows: sessionRows } = await pool.query(
@@ -710,25 +781,27 @@ export async function updateSessionTemporaryItem(req, res) {
       return res.status(404).json({ message: "Temporary item not found." });
     }
 
-    const coreDescription = `${trimmedName} | ${trimmedPackageSize} | ${trimmedUnitSize}`;
-    const barcodeSegment = trimmedBarcode ? `Barcode: ${trimmedBarcode}` : "";
-    const fullDescription = trimmedDescription
-      ? `${coreDescription} | ${barcodeSegment ? `${barcodeSegment} | ` : ""}${trimmedDescription}`
-      : `${coreDescription}${barcodeSegment ? ` | ${barcodeSegment}` : ""}`;
-
     const { rows } = await pool.query(
       `UPDATE stocktake_new_items
        SET
          food_group_id = $1,
-         description = $2,
-         price = $3,
-         quantity = $4,
-         is_one_off = $5
-       WHERE id = $6 AND session_id = $7
-       RETURNING id, session_id, food_group_id, description, price, quantity, total, is_one_off`,
+         name = $2,
+         barcode = $3,
+         package_size = $4,
+         uom_id = $5,
+         description = $6,
+         price = $7,
+         quantity = $8,
+         is_one_off = $9
+       WHERE id = $10 AND session_id = $11
+       RETURNING id, session_id, food_group_id, name, barcode, package_size, uom_id, description, price, quantity, total, is_one_off`,
       [
         numericFoodGroupId,
-        fullDescription,
+        trimmedName,
+        trimmedBarcode || null,
+        numericPackageSize.toFixed(2),
+        numericUomId,
+        trimmedDescription,
         numericPrice,
         numericQuantity,
         Boolean(is_one_off),

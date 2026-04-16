@@ -18,7 +18,7 @@ import { Badge } from "../../components/ui/badge.jsx";
 import { Alert, AlertDescription } from "../../components/ui/alert.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import StockCountProductTable from "./components/stockcountProductTable.jsx";
-import AddTemporaryItemModule from "./components/addTemporaryItemModule.tsx";
+import AddTemporaryItemModule from "./components/addTemporaryItemModule.jsx";
 import TemporaryItemsTable from "./components/temporaryItemsTable.jsx";
 import {
   AlertDialog,
