@@ -53,13 +53,13 @@ function buildSessionDetailDTO(
 
 /*
  * Returns all stocktake periods, newest first
-  * URL: GET /api/stocktake/periods
-  * Selects id - etc from periods table, ordered by year
+ * URL: GET /api/stocktake/periods
+ * Selects id - etc from periods table, ordered by year
  */
 export async function getPeriods(_req, res) {
   try {
     const { rows } = await pool.query(
-      "SELECT id, month, year, status FROM stocktake_periods ORDER BY year DESC, month DESC"
+      "SELECT id, month, year, status FROM stocktake_periods ORDER BY year DESC, month DESC",
     );
     res.json(rows);
   } catch (err) {
@@ -70,17 +70,19 @@ export async function getPeriods(_req, res) {
 
 /*
  * Creates a stocktake period for a given month/year, or returns it if one already exists
-  * URL: POST /api/stocktake/periods
-  * Uses INSERT INTO... ON CONFLICT...DO UPDATE that:
-  * Tries to insert a new peiod, if that period exists (conflict), updates it setting month to itself
-  * Ensures theres no duplicates
+ * URL: POST /api/stocktake/periods
+ * Uses INSERT INTO... ON CONFLICT...DO UPDATE that:
+ * Tries to insert a new peiod, if that period exists (conflict), updates it setting month to itself
+ * Ensures theres no duplicates
  */
 export async function createPeriod(req, res) {
   try {
     const { month, year } = req.body;
 
     if (!month || !year || month < 1 || month > 12 || year < 2020) {
-      return res.status(400).json({ message: "Valid month (1-12) and year (≥2020) are required." });
+      return res
+        .status(400)
+        .json({ message: "Valid month (1-12) and year (≥2020) are required." });
     }
 
     const { rows } = await pool.query(
@@ -107,7 +109,7 @@ export async function createPeriod(req, res) {
  * Non-admin users only see sessions for outlets they're assigned to
  * Managers (non-admin users) see only stocktakes for their assigned outlets.
  * URL: GET /api/stocktake/sessions
- * 
+ *
  */
 export async function getSessions(req, res) {
   try {
@@ -132,17 +134,22 @@ export async function getSessions(req, res) {
 
       // If user has no assigned outlets, return empty list
       if (outletIds.length === 0) {
-        console.log(`User ${req.user.id} (${req.user.role}) has no assigned outlets`);
+        console.log(
+          `User ${req.user.id} (${req.user.role}) has no assigned outlets`,
+        );
         return res.json([]);
       }
 
       // Add user's outlet restriction to conditions
       params.push(outletIds);
       conditions.push(`ss.outlet_id = ANY($${params.length}::integer[])`);
-      console.log(`User ${req.user.id} (${req.user.role}) can access ${outletIds.length} outlets`);
+      console.log(
+        `User ${req.user.id} (${req.user.role}) can access ${outletIds.length} outlets`,
+      );
     }
 
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const where =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     // Main query with ${where} for filter
     const { rows } = await pool.query(
       `SELECT
@@ -190,14 +197,16 @@ export async function getSessions(req, res) {
  * Creates a new stocktake session for an outlet. If you pass month/year
  * instead of period_id, the period gets auto-created.
  * URL: POST /api/stocktake/sessions
- * 
+ *
  */
 export async function createSession(req, res) {
   try {
     let { period_id, outlet_id, month, year } = req.body;
 
     if (!outlet_id) {
-      return res.status(400).json({ message: "Outlet (outlet_id) is required." });
+      return res
+        .status(400)
+        .json({ message: "Outlet (outlet_id) is required." });
     }
 
     const client = await pool.connect();
@@ -219,7 +228,9 @@ export async function createSession(req, res) {
       // Final validation
       if (!period_id) {
         await client.query("ROLLBACK");
-        return res.status(400).json({ message: "Period (period_id or month+year) is required." });
+        return res
+          .status(400)
+          .json({ message: "Period (period_id or month+year) is required." });
       }
 
       // Ensures no duplicates
@@ -229,7 +240,12 @@ export async function createSession(req, res) {
       );
       if (existing.rows.length > 0) {
         await client.query("ROLLBACK");
-        return res.status(409).json({ message: "A stocktake session already exists for this outlet and period." });
+        return res
+          .status(409)
+          .json({
+            message:
+              "A stocktake session already exists for this outlet and period.",
+          });
       }
 
       const { rows: namingRows } = await client.query(
@@ -245,14 +261,30 @@ export async function createSession(req, res) {
 
       if (namingRows.length === 0) {
         await client.query("ROLLBACK");
-        return res.status(400).json({ message: "Invalid outlet_id or period_id." });
+        return res
+          .status(400)
+          .json({ message: "Invalid outlet_id or period_id." });
       }
 
-      const { outlet_name, month: periodMonth, year: periodYear } = namingRows[0];
+      const {
+        outlet_name,
+        month: periodMonth,
+        year: periodYear,
+      } = namingRows[0];
 
       const monthNames = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
       ];
 
       const assignmentName = `${outlet_name} - ${monthNames[periodMonth - 1]} ${periodYear}`;
@@ -320,10 +352,14 @@ export async function deleteSession(req, res) {
     }
 
     if (check[0].status !== "draft") {
-      return res.status(400).json({ message: "Only draft sessions can be deleted." });
+      return res
+        .status(400)
+        .json({ message: "Only draft sessions can be deleted." });
     }
 
-    await pool.query("DELETE FROM stocktake_sessions WHERE id = $1", [sessionId]);
+    await pool.query("DELETE FROM stocktake_sessions WHERE id = $1", [
+      sessionId,
+    ]);
 
     res.json({ success: true });
   } catch (err) {
@@ -334,7 +370,7 @@ export async function deleteSession(req, res) {
 
 /*
  * Retrieve a session with its full DTO for editing or viewing
-  * URL: GET /api/stocktake/sessions/:id/detail
+ * URL: GET /api/stocktake/sessions/:id/detail
  */
 export async function getSessionDetail(req, res) {
   try {
@@ -376,22 +412,24 @@ export async function getSessionDetail(req, res) {
     try {
       await checkSessionAccess(req, session.outlet_id);
     } catch (err) {
-      return res.status(403).json({ message: "Access denied to this session." });
+      return res
+        .status(403)
+        .json({ message: "Access denied to this session." });
     }
 
     // Fetch valid products for this outlet (joined with UOM and price)
-    // Includes product_code (barcode) for search functionality
+    // Includes barcode for search functionality
     const { rows: validProducts } = await pool.query(
       `SELECT
          p.id AS product_id,
          p.name AS product_name,
          p.is_packaging,
          p.package_size,
-         p.product_code AS barcode,
+         p.barcode AS barcode,
          COALESCE(fg.name, pt.name) AS category_name,
          u.name AS uom_name,
          p.price AS unit_price,
-         p.product_code AS barcode
+         p.barcode AS barcode
        FROM outlet_products op
        JOIN products p ON p.id = op.product_id
        LEFT JOIN food_groups fg ON fg.id = p.food_group_id
@@ -401,7 +439,7 @@ export async function getSessionDetail(req, res) {
        ORDER BY p.name`,
       [session.outlet_id],
     );
-    
+
     console.log("Valid products found:", validProducts.length);
 
     // Fetch current entries for this session
@@ -490,14 +528,23 @@ export async function createSessionTemporaryItem(req, res) {
         ? null
         : Number(food_group_id);
 
-    if (!trimmedName || !trimmedPackageSize || !trimmedUnitSize || Number.isNaN(numericPrice)) {
+    if (
+      !trimmedName ||
+      !trimmedPackageSize ||
+      !trimmedUnitSize ||
+      Number.isNaN(numericPrice)
+    ) {
       return res.status(400).json({
         message:
           "Product Name, Price, Package Size, and Unit Size are required.",
       });
     }
 
-    if (numericPrice < 0 || Number.isNaN(numericQuantity) || numericQuantity < 0) {
+    if (
+      numericPrice < 0 ||
+      Number.isNaN(numericQuantity) ||
+      numericQuantity < 0
+    ) {
       return res.status(400).json({
         message: "Price and Quantity must be valid non-negative numbers.",
       });
@@ -523,17 +570,19 @@ export async function createSessionTemporaryItem(req, res) {
     try {
       await checkSessionAccess(req, session.outlet_id);
     } catch (_err) {
-      return res.status(403).json({ message: "Access denied to this session." });
+      return res
+        .status(403)
+        .json({ message: "Access denied to this session." });
     }
 
     if (session.status === "submitted" || session.status === "locked") {
-      return res.status(400).json({ message: "Cannot edit a submitted or locked session." });
+      return res
+        .status(400)
+        .json({ message: "Cannot edit a submitted or locked session." });
     }
 
     const coreDescription = `${trimmedName} | ${trimmedPackageSize} | ${trimmedUnitSize}`;
-    const barcodeSegment = trimmedBarcode
-      ? `Barcode: ${trimmedBarcode}`
-      : "";
+    const barcodeSegment = trimmedBarcode ? `Barcode: ${trimmedBarcode}` : "";
     const fullDescription = trimmedDescription
       ? `${coreDescription} | ${barcodeSegment ? `${barcodeSegment} | ` : ""}${trimmedDescription}`
       : `${coreDescription}${barcodeSegment ? ` | ${barcodeSegment}` : ""}`;
@@ -569,7 +618,9 @@ export async function updateSessionTemporaryItem(req, res) {
     const sessionId = Number(req.params.id);
     const itemId = Number(req.params.itemId);
     if (!Number.isInteger(sessionId) || !Number.isInteger(itemId)) {
-      return res.status(400).json({ message: "Invalid session id or item id." });
+      return res
+        .status(400)
+        .json({ message: "Invalid session id or item id." });
     }
 
     const {
@@ -596,14 +647,23 @@ export async function updateSessionTemporaryItem(req, res) {
         ? null
         : Number(food_group_id);
 
-    if (!trimmedName || !trimmedPackageSize || !trimmedUnitSize || Number.isNaN(numericPrice)) {
+    if (
+      !trimmedName ||
+      !trimmedPackageSize ||
+      !trimmedUnitSize ||
+      Number.isNaN(numericPrice)
+    ) {
       return res.status(400).json({
         message:
           "Product Name, Price, Package Size, and Unit Size are required.",
       });
     }
 
-    if (numericPrice < 0 || Number.isNaN(numericQuantity) || numericQuantity < 0) {
+    if (
+      numericPrice < 0 ||
+      Number.isNaN(numericQuantity) ||
+      numericQuantity < 0
+    ) {
       return res.status(400).json({
         message: "Price and Quantity must be valid non-negative numbers.",
       });
@@ -628,11 +688,15 @@ export async function updateSessionTemporaryItem(req, res) {
     try {
       await checkSessionAccess(req, session.outlet_id);
     } catch (_err) {
-      return res.status(403).json({ message: "Access denied to this session." });
+      return res
+        .status(403)
+        .json({ message: "Access denied to this session." });
     }
 
     if (session.status === "submitted" || session.status === "locked") {
-      return res.status(400).json({ message: "Cannot edit a submitted or locked session." });
+      return res
+        .status(400)
+        .json({ message: "Cannot edit a submitted or locked session." });
     }
 
     const { rows: itemRows } = await pool.query(
@@ -689,7 +753,9 @@ export async function deleteSessionTemporaryItem(req, res) {
     const sessionId = Number(req.params.id);
     const itemId = Number(req.params.itemId);
     if (!Number.isInteger(sessionId) || !Number.isInteger(itemId)) {
-      return res.status(400).json({ message: "Invalid session id or item id." });
+      return res
+        .status(400)
+        .json({ message: "Invalid session id or item id." });
     }
 
     const { rows: sessionRows } = await pool.query(
@@ -707,11 +773,15 @@ export async function deleteSessionTemporaryItem(req, res) {
     try {
       await checkSessionAccess(req, session.outlet_id);
     } catch (_err) {
-      return res.status(403).json({ message: "Access denied to this session." });
+      return res
+        .status(403)
+        .json({ message: "Access denied to this session." });
     }
 
     if (session.status === "submitted" || session.status === "locked") {
-      return res.status(400).json({ message: "Cannot edit a submitted or locked session." });
+      return res
+        .status(400)
+        .json({ message: "Cannot edit a submitted or locked session." });
     }
 
     const { rowCount } = await pool.query(
@@ -734,7 +804,7 @@ export async function deleteSessionTemporaryItem(req, res) {
 /*
  * Save product count entries for a session
  * URL: POST /api/stocktake/sessions/:id/entries
- * 
+ *
  */
 export async function saveSessionEntries(req, res) {
   try {
@@ -767,26 +837,38 @@ export async function saveSessionEntries(req, res) {
     try {
       await checkSessionAccess(req, session.outlet_id);
     } catch (err) {
-      return res.status(403).json({ message: "Access denied to this session." });
+      return res
+        .status(403)
+        .json({ message: "Access denied to this session." });
     }
 
     // Check if session is still editable
     if (session.status === "submitted" || session.status === "locked") {
-      return res.status(400).json({ message: "Cannot edit a submitted or locked session." });
+      return res
+        .status(400)
+        .json({ message: "Cannot edit a submitted or locked session." });
     }
 
     // Validate entries: must have product_id, quantity, unit_price
     for (const entry of entries) {
-      if (!entry.product_id || entry.quantity === undefined || entry.unit_price === undefined) {
+      if (
+        !entry.product_id ||
+        entry.quantity === undefined ||
+        entry.unit_price === undefined
+      ) {
         return res.status(400).json({
           message: "Each entry must have product_id, quantity, and unit_price.",
         });
       }
       if (isNaN(entry.quantity) || isNaN(entry.unit_price)) {
-        return res.status(400).json({ message: "Quantity and unit_price must be numeric." });
+        return res
+          .status(400)
+          .json({ message: "Quantity and unit_price must be numeric." });
       }
       if (entry.quantity < 0 || entry.unit_price < 0) {
-        return res.status(400).json({ message: "Quantity and unit_price must not be negative." });
+        return res
+          .status(400)
+          .json({ message: "Quantity and unit_price must not be negative." });
       }
     }
 
@@ -800,7 +882,9 @@ export async function saveSessionEntries(req, res) {
         "SELECT product_id FROM stocktake_entries WHERE session_id = $1",
         [sessionId],
       );
-      const existingProductIds = new Set(existingEntries.map((e) => e.product_id));
+      const existingProductIds = new Set(
+        existingEntries.map((e) => e.product_id),
+      );
       const newProductIds = new Set(entries.map((e) => e.product_id));
 
       // Delete entries that are no longer in the new list
@@ -893,17 +977,22 @@ export async function submitSession(req, res) {
     try {
       await checkSessionAccess(req, session.outlet_id);
     } catch (err) {
-      return res.status(403).json({ message: "Access denied to this session." });
+      return res
+        .status(403)
+        .json({ message: "Access denied to this session." });
     }
 
     // Check if already submitted
     if (session.status === "submitted" || session.status === "locked") {
-      return res.status(400).json({ message: "Session is already submitted or locked." });
+      return res
+        .status(400)
+        .json({ message: "Session is already submitted or locked." });
     }
 
     // Prepare update data
     const countedBy = session.counted_by || req.user?.username || "unknown";
-    const countedDate = session.counted_date || new Date().toISOString().split("T")[0];
+    const countedDate =
+      session.counted_date || new Date().toISOString().split("T")[0];
 
     // Update session to submitted
     await pool.query(
