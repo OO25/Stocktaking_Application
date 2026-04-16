@@ -5,7 +5,7 @@ import pool from "../config/db.js";
  * Returns a paginated list of products with their outlet IDs and names.
  */
 export async function getProducts(req, res) {
- try {
+  try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(
       100,
@@ -29,36 +29,20 @@ export async function getProducts(req, res) {
     }
 
     if (search) {
-      // Determine if search term looks like a barcode (all digits) for exact matching
-      // Otherwise use fuzzy matching for product names and suppliers
-      const isLikelyBarcode = /^\d+$/.test(search);
       const idxWildcard = params.length + 1;
       const idxPlain = params.length + 2;
       params.push(`%${search}%`, search);
-      
-      if (isLikelyBarcode) {
-        // For barcode searches (numeric only), use exact match on product_code
-        const idxExact = params.length + 1;
-        params.push(search);
-        conditions.push(`(
-          p.product_code = $${idxExact} OR
-          p.name         ILIKE $${idxWildcard} OR
-          s.name         ILIKE $${idxWildcard} OR
-          similarity(p.name, $${idxPlain}) > 0.2 OR
-          similarity(s.name, $${idxPlain}) > 0.2 OR
-          similarity(p.product_code, $${idxPlain}) > 0.2
-        )`);
-      } else {
-        // For non-barcode searches, use fuzzy matching on name/supplier/product_code
-        conditions.push(`(
-          p.name         ILIKE $${idxWildcard} OR
-          s.name         ILIKE $${idxWildcard} OR
-          p.product_code ILIKE $${idxWildcard} OR
-          similarity(p.name, $${idxPlain}) > 0.2 OR
-          similarity(s.name, $${idxPlain}) > 0.2 OR
-          similarity(p.product_code, $${idxPlain}) > 0.2
-        )`);
-      }
+
+      // Treat barcodes as text so alphanumeric values are supported.
+      conditions.push(`(
+        p.barcode       = $${idxPlain} OR
+        p.name          ILIKE $${idxWildcard} OR
+        s.name          ILIKE $${idxWildcard} OR
+        p.barcode       ILIKE $${idxWildcard} OR
+        similarity(p.name, $${idxPlain}) > 0.2 OR
+        similarity(s.name, $${idxPlain}) > 0.2 OR
+        similarity(p.barcode, $${idxPlain}) > 0.2
+      )`);
     }
 
     if (category) {
@@ -123,7 +107,7 @@ export async function getProducts(req, res) {
         p.is_packaging,
         p.uom_id,
         u.name   AS uom,
-        p.product_code,
+        p.barcode AS product_code,
         p.unit_size,
         p.package_size,
         p.price,
@@ -144,7 +128,7 @@ export async function getProducts(req, res) {
           '{}'::text[]
         ) AS outlet_names
       ${baseFrom}
-      GROUP BY p.id, p.name, p.is_packaging, p.uom_id, p.product_code, p.unit_size, p.package_size, p.price, p.food_group_id, p.packaging_type_id, p.supplier_id, p.last_price_check, p.created_at, u.name, fg.name, pt.name, s.name
+      GROUP BY p.id, p.name, p.is_packaging, p.uom_id, p.barcode, p.unit_size, p.package_size, p.price, p.food_group_id, p.packaging_type_id, p.supplier_id, p.last_price_check, p.created_at, u.name, fg.name, pt.name, s.name
       ORDER BY ${orderBy}
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limit, offset],
@@ -182,6 +166,7 @@ export async function createProduct(req, res) {
       supplier_id,
       price = 0,
       uom_id,
+      barcode,
       product_code,
       unit_size,
       package_size,
@@ -196,9 +181,9 @@ export async function createProduct(req, res) {
 
     const { rows } = await client.query(
       `INSERT INTO products
-        (name, is_packaging, food_group_id, packaging_type_id, supplier_id, price, uom_id, product_code, unit_size, package_size)
+        (name, is_packaging, food_group_id, packaging_type_id, supplier_id, price, uom_id, barcode, unit_size, package_size)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
+       RETURNING id, name, is_packaging, food_group_id, packaging_type_id, supplier_id, price, uom_id, barcode AS product_code, unit_size, package_size, last_price_check, created_at`,
       [
         name.trim(),
         is_packaging,
@@ -207,7 +192,7 @@ export async function createProduct(req, res) {
         supplier_id || null,
         price,
         uom_id || null,
-        product_code || null,
+        barcode ?? product_code ?? null,
         unit_size || null,
         package_size || null,
       ],
@@ -260,6 +245,7 @@ export async function updateProduct(req, res) {
       supplier_id,
       price = 0,
       uom_id,
+      barcode,
       product_code,
       unit_size,
       package_size,
@@ -281,11 +267,11 @@ export async function updateProduct(req, res) {
            supplier_id        = $5,
            price              = $6,
            uom_id             = $7,
-           product_code       = $8,
+           barcode            = $8,
            unit_size          = $9,
            package_size       = $10
        WHERE id = $11
-       RETURNING *`,
+       RETURNING id, name, is_packaging, food_group_id, packaging_type_id, supplier_id, price, uom_id, barcode AS product_code, unit_size, package_size, last_price_check, created_at`,
       [
         name.trim(),
         is_packaging,
@@ -294,7 +280,7 @@ export async function updateProduct(req, res) {
         supplier_id || null,
         price,
         uom_id || null,
-        product_code || null,
+        barcode ?? product_code ?? null,
         unit_size || null,
         package_size || null,
         id,
