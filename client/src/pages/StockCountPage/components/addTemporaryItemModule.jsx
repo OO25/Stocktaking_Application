@@ -30,27 +30,14 @@ const INITIAL_FORM = {
   is_one_off: true,
 };
 
-function parseDescription(value) {
-  const [productName = "", packageSize = "", unitSize = "", ...rest] = String(
+function parseLegacyDescription(value) {
+  const [productName = "", packageSize = "", unitSize = ""] = String(
     value || "",
   ).split(" | ");
-
-  let barcode = "";
-  const remaining = [];
-  rest.forEach((part) => {
-    if (part.startsWith("Barcode: ")) {
-      barcode = part.replace("Barcode: ", "").trim();
-    } else {
-      remaining.push(part);
-    }
-  });
-
   return {
     product_name: productName,
     package_size: packageSize,
     unit_size_name: unitSize,
-    barcode,
-    description: remaining.join(" | "),
   };
 }
 
@@ -85,24 +72,32 @@ function AddTemporaryItemModule({
 
   useEffect(() => {
     if (!open) return;
+
     if (temporaryItem) {
-      const parsed = parseDescription(temporaryItem.description);
+      const legacy = parseLegacyDescription(temporaryItem.description);
       setForm({
-        product_name: parsed.product_name || "",
-        barcode: parsed.barcode || "",
-        food_group_id: temporaryItem.food_group_id
-          ? String(temporaryItem.food_group_id)
-          : "",
-        description: parsed.description || "",
+        product_name:
+          temporaryItem.name || temporaryItem.product_name || legacy.product_name || "",
+        barcode: temporaryItem.barcode || "",
+        food_group_id:
+          temporaryItem.food_group_id == null
+            ? ""
+            : String(temporaryItem.food_group_id),
+        description: temporaryItem.description || "",
         price: String(temporaryItem.price ?? ""),
         quantity: String(temporaryItem.quantity ?? 0),
-        package_size: parsed.package_size || "",
-        unit_size: "",
+        package_size:
+          temporaryItem.package_size == null
+            ? legacy.package_size || ""
+            : Number(temporaryItem.package_size).toFixed(2),
+        unit_size:
+          temporaryItem.uom_id == null ? "" : String(temporaryItem.uom_id),
         is_one_off: Boolean(temporaryItem.is_one_off),
       });
     } else {
       setForm(INITIAL_FORM);
     }
+
     setError(null);
     setFieldErrors({});
     setDiscardOpen(false);
@@ -116,17 +111,28 @@ function AddTemporaryItemModule({
   }, [open, temporaryItem]);
 
   useEffect(() => {
-    if (!open || !temporaryItem || uoms.length === 0) return;
-    const parsed = parseDescription(temporaryItem.description);
+    if (!open || !temporaryItem || form.unit_size || uoms.length === 0) return;
+    const legacy = parseLegacyDescription(temporaryItem.description);
+    const sourceName = temporaryItem.uom_name || legacy.unit_size_name || "";
+    if (!sourceName) return;
     const matched = uoms.find(
-      (uom) => String(uom.name).toLowerCase() === String(parsed.unit_size_name).toLowerCase(),
+      (uom) => String(uom.name).toLowerCase() === String(sourceName).toLowerCase(),
     );
     if (matched) {
       setForm((prev) => ({ ...prev, unit_size: String(matched.id) }));
     }
-  }, [open, temporaryItem, uoms]);
+  }, [open, temporaryItem, uoms, form.unit_size]);
 
   if (!open) return null;
+
+  const resolvedFoodGroupId =
+    form.food_group_id ||
+    (temporaryItem?.food_group_id == null
+      ? ""
+      : String(temporaryItem.food_group_id));
+  const selectedFoodGroupMissing =
+    resolvedFoodGroupId &&
+    !foodGroups.some((group) => String(group.id) === String(resolvedFoodGroupId));
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -139,7 +145,9 @@ function AddTemporaryItemModule({
     const errors = {};
     if (!form.product_name.trim()) errors.product_name = true;
     if (form.price === "" || Number.isNaN(Number(form.price))) errors.price = true;
-    if (!form.package_size.trim()) errors.package_size = true;
+    if (!form.package_size.trim() || Number.isNaN(Number(form.package_size))) {
+      errors.package_size = true;
+    }
     if (!form.unit_size.trim()) errors.unit_size = true;
 
     setFieldErrors(errors);
@@ -155,8 +163,12 @@ function AddTemporaryItemModule({
       return false;
     }
 
-    if (Number(form.price) < 0 || Number(form.quantity || 0) < 0) {
-      setError("Price and Quantity must be non-negative.");
+    if (
+      Number(form.price) < 0 ||
+      Number(form.quantity || 0) < 0 ||
+      Number(form.package_size) < 0
+    ) {
+      setError("Package Size, Price, and Quantity must be non-negative.");
       return false;
     }
 
@@ -170,18 +182,15 @@ function AddTemporaryItemModule({
 
     setSubmitting(true);
     try {
-      const selectedUom = uoms.find(
-        (uom) => String(uom.id) === String(form.unit_size),
-      );
       const payload = {
-        product_name: form.product_name.trim(),
+        name: form.product_name.trim(),
         barcode: form.barcode.trim(),
         food_group_id: form.food_group_id ? Number(form.food_group_id) : null,
         description: form.description.trim(),
         price: Number(form.price),
         quantity: Number(form.quantity || 0),
-        package_size: form.package_size.trim(),
-        unit_size: selectedUom?.name || "",
+        package_size: Number(form.package_size).toFixed(2),
+        uom_id: Number(form.unit_size),
         is_one_off: form.is_one_off,
       };
 
@@ -193,7 +202,7 @@ function AddTemporaryItemModule({
       onCreated?.();
       onClose();
     } catch (err) {
-      setError(err.message || "Failed to add temporary item.");
+      setError(err.message || "Failed to save temporary item.");
     } finally {
       setSubmitting(false);
     }
@@ -260,7 +269,10 @@ function AddTemporaryItemModule({
                 type="text"
                 value={form.product_name}
                 onChange={(event) => set("product_name", event.target.value)}
-                className={cn(inputClass, fieldErrors.product_name && "border-red-500 focus-visible:ring-red-500")}
+                className={cn(
+                  inputClass,
+                  fieldErrors.product_name && "border-red-500 focus-visible:ring-red-500",
+                )}
                 placeholder="e.g. Seasonal Special"
               />
             </div>
@@ -300,7 +312,7 @@ function AddTemporaryItemModule({
                 Food Group
               </label>
               <Select
-                value={form.food_group_id || "__none__"}
+                value={resolvedFoodGroupId || "__none__"}
                 onValueChange={(value) =>
                   set("food_group_id", value === "__none__" ? "" : value)
                 }
@@ -310,6 +322,12 @@ function AddTemporaryItemModule({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
+                  {selectedFoodGroupMissing ? (
+                    <SelectItem value={String(resolvedFoodGroupId)}>
+                      {temporaryItem?.food_group_name ||
+                        `Food Group #${resolvedFoodGroupId}`}
+                    </SelectItem>
+                  ) : null}
                   {foodGroups.map((group) => (
                     <SelectItem key={group.id} value={String(group.id)}>
                       {group.name}
@@ -332,7 +350,10 @@ function AddTemporaryItemModule({
                   step="0.01"
                   value={form.price}
                   onChange={(event) => set("price", event.target.value)}
-                  className={cn(inputClass, fieldErrors.price && "border-red-500 focus-visible:ring-red-500")}
+                  className={cn(
+                    inputClass,
+                    fieldErrors.price && "border-red-500 focus-visible:ring-red-500",
+                  )}
                   placeholder="0.00"
                 />
               </div>
@@ -349,7 +370,7 @@ function AddTemporaryItemModule({
                   value={form.quantity}
                   onChange={(event) => set("quantity", event.target.value)}
                   className={inputClass}
-                  placeholder="0"
+                  placeholder="0.00"
                 />
               </div>
             </div>
@@ -362,11 +383,17 @@ function AddTemporaryItemModule({
                 <Input
                   id="temp-item-package-size"
                   name="package_size"
-                  type="text"
+                  type="number"
+                  min="0"
+                  step="0.01"
                   value={form.package_size}
                   onChange={(event) => set("package_size", event.target.value)}
-                  className={cn(inputClass, fieldErrors.package_size && "border-red-500 focus-visible:ring-red-500")}
-                  placeholder="e.g. 12"
+                  className={cn(
+                    inputClass,
+                    fieldErrors.package_size &&
+                      "border-red-500 focus-visible:ring-red-500",
+                  )}
+                  placeholder="0.00"
                 />
               </div>
               <div>
@@ -421,8 +448,8 @@ function AddTemporaryItemModule({
               <Button type="submit" disabled={submitting}>
                 {submitting
                   ? temporaryItem?.id
-                    ? "Saving…"
-                    : "Adding…"
+                    ? "Saving..."
+                    : "Adding..."
                   : temporaryItem?.id
                     ? "Save Changes"
                     : "Add Item"}
