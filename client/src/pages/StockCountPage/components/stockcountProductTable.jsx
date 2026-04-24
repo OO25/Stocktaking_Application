@@ -59,7 +59,8 @@ function StockCountProductTable({
       if (query) {
         // Search across both product name and product_code (barcode)
         // Using includes() for fuzzy matching on product name and barcode
-        const haystack = `${product.product_name} ${product.barcode || ""}`
+        const barcode = product.barcode ?? product.product_code ?? "";
+        const haystack = `${product.product_name} ${barcode}`
           .toLowerCase();
         if (!haystack.includes(query)) return false;
       }
