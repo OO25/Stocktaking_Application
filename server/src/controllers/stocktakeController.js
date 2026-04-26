@@ -417,53 +417,76 @@ export async function getSessionDetail(req, res) {
         .json({ message: "Access denied to this session." });
     }
 
-    // Fetch valid products for this outlet (joined with UOM and price)
-    // Includes barcode for search functionality when available.
-    let validProducts = [];
-    try {
-      const { rows } = await pool.query(
-        `SELECT
-           p.id AS product_id,
-           p.name AS product_name,
-           p.is_packaging,
-           p.package_size,
-           p.product_code AS barcode,
-           COALESCE(fg.name, pt.name) AS category_name,
-           u.name AS uom_name,
-           p.price AS unit_price
-         FROM outlet_products op
-         JOIN products p ON p.id = op.product_id
-         LEFT JOIN food_groups fg ON fg.id = p.food_group_id
-         LEFT JOIN packaging_types pt ON pt.id = p.packaging_type_id
-         LEFT JOIN units_of_measure u ON u.id = p.uom_id
-         WHERE op.outlet_id = $1
-         ORDER BY p.name`,
-        [session.outlet_id],
-      );
-      validProducts = rows;
-    } catch (queryErr) {
-      // Backward-compatible fallback for DBs without product_code/uom linkage yet.
-      if (!["42703", "42P01"].includes(queryErr?.code)) throw queryErr;
-      const { rows } = await pool.query(
-        `SELECT
-           p.id AS product_id,
-           p.name AS product_name,
-           p.is_packaging,
-           p.package_size,
-           NULL::varchar AS barcode,
-           COALESCE(fg.name, pt.name) AS category_name,
-           NULL::varchar AS uom_name,
-           p.price AS unit_price
-         FROM outlet_products op
-         JOIN products p ON p.id = op.product_id
-         LEFT JOIN food_groups fg ON fg.id = p.food_group_id
-         LEFT JOIN packaging_types pt ON pt.id = p.packaging_type_id
-         WHERE op.outlet_id = $1
-         ORDER BY p.name`,
-        [session.outlet_id],
-      );
-      validProducts = rows;
-    }
+    // Fetch valid products for this outlet. Build a schema-aware query so
+    // barcode/UOM still load correctly across legacy and newer DB schemas.
+    const { rows: productColsRows } = await pool.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'products'`,
+    );
+    const productCols = new Set(productColsRows.map((r) => r.column_name));
+
+    const hasUomTable = Boolean(
+      (
+        await pool.query(
+          `SELECT to_regclass('public.units_of_measure') AS name`,
+        )
+      ).rows[0]?.name,
+    );
+
+    const barcodeSelect = productCols.has("product_code")
+      ? "p.product_code AS barcode"
+      : productCols.has("barcode")
+        ? "p.barcode AS barcode"
+        : "NULL::varchar AS barcode";
+
+    const uomSelect =
+      productCols.has("uom_id") && hasUomTable
+        ? "u.name AS uom_name"
+        : productCols.has("uom")
+          ? "p.uom AS uom_name"
+          : "NULL::varchar AS uom_name";
+
+    const packageSizeSelect = productCols.has("package_size")
+      ? "p.package_size"
+      : "NULL::numeric AS package_size";
+
+    const isPackagingSelect = productCols.has("is_packaging")
+      ? "p.is_packaging"
+      : "false AS is_packaging";
+
+    const categorySelect =
+      productCols.has("food_group_id") || productCols.has("packaging_type_id")
+        ? "COALESCE(fg.name, pt.name) AS category_name"
+        : "NULL::varchar AS category_name";
+
+    const joins = [
+      "LEFT JOIN food_groups fg ON fg.id = p.food_group_id",
+      "LEFT JOIN packaging_types pt ON pt.id = p.packaging_type_id",
+      productCols.has("uom_id") && hasUomTable
+        ? "LEFT JOIN units_of_measure u ON u.id = p.uom_id"
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n         ");
+
+    const { rows: validProducts } = await pool.query(
+      `SELECT
+         p.id AS product_id,
+         p.name AS product_name,
+         ${isPackagingSelect},
+         ${packageSizeSelect},
+         ${barcodeSelect},
+         ${categorySelect},
+         ${uomSelect},
+         p.price AS unit_price
+       FROM outlet_products op
+       JOIN products p ON p.id = op.product_id
+       ${joins}
+       WHERE op.outlet_id = $1
+       ORDER BY p.name`,
+      [session.outlet_id],
+    );
 
     console.log("Valid products found:", validProducts.length);
 

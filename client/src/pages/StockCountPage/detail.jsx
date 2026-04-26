@@ -11,7 +11,6 @@ import {
   deleteSessionTemporaryItem,
   fetchSessionDetail,
   saveSessionEntries,
-  submitSession,
 } from "../../api/stocktake.js";
 import { Button } from "../../components/ui/button.jsx";
 import { Badge } from "../../components/ui/badge.jsx";
@@ -74,6 +73,23 @@ export default function StockCountDetailPage() {
         .sort((a, b) => a.product_id - b.product_id),
     );
 
+  const normalizeValidProduct = (product) => ({
+    ...product,
+    barcode:
+      product?.barcode ??
+      product?.product_code ??
+      product?.productCode ??
+      product?.code ??
+      "",
+    uom_name:
+      product?.uom_name ??
+      product?.uom ??
+      product?.uomName ??
+      product?.unit_of_measure ??
+      product?.unit ??
+      "",
+  });
+
   const hasUnsavedChanges =
     isEditable && normalizeEntries(entries) !== savedEntriesSnapshot;
 
@@ -101,7 +117,7 @@ export default function StockCountDetailPage() {
       const data = await fetchSessionDetail(id);
       console.log("Session data received:", data);
       setSession(data);
-      setValidProducts(data.valid_products || []);
+      setValidProducts((data.valid_products || []).map(normalizeValidProduct));
       setEntries(data.current_entries || []);
       setSavedEntriesSnapshot(normalizeEntries(data.current_entries || []));
       setTemporaryItems(data.temporary_items || []);
@@ -173,7 +189,7 @@ export default function StockCountDetailPage() {
       if (!raw) return;
       // Match exact barcode from the scanned buffer.
       const match = validProducts.find((product) =>
-        String(product.barcode || "").trim() === raw
+        String(product.barcode ?? product.product_code ?? "").trim() === raw
       );
       if (!match) return;
       setScanProduct(match);
@@ -597,7 +613,10 @@ export default function StockCountDetailPage() {
           onUpdate={updateEntryQuantity}
           onOpenCount={(product) => {
             if (!isEditable) return;
-            setScanProduct(product);
+            const normalized =
+              validProducts.find((p) => p.product_id === product.product_id) ||
+              normalizeValidProduct(product);
+            setScanProduct(normalized);
             setScanDialogOpen(true);
           }}
         />
@@ -643,10 +662,10 @@ export default function StockCountDetailPage() {
                     {scanProduct.product_name}
                   </div>
                   <div className="text-gray-500">
-                    Barcode: {scanProduct.barcode || "-"}
+                    Barcode: {scanProduct.barcode || scanProduct.product_code || "-"}
                   </div>
                   <div className="text-gray-600">
-                    UOM: {scanProduct.uom_name || "-"}
+                    UOM: {scanProduct.uom_name || scanProduct.uom || "-"}
                   </div>
                   <div className="text-gray-600">
                     Unit price: ${scanUnitPrice.toFixed(2)}
