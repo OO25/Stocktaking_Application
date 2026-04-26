@@ -61,6 +61,7 @@ function AddTemporaryItemModule({
   sessionId,
   onCreated,
   temporaryItem = null,
+  initialValues = null,
 }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [foodGroups, setFoodGroups] = useState([]);
@@ -95,7 +96,10 @@ function AddTemporaryItemModule({
         is_one_off: Boolean(temporaryItem.is_one_off),
       });
     } else {
-      setForm(INITIAL_FORM);
+      setForm({
+        ...INITIAL_FORM,
+        barcode: String(initialValues?.barcode || ""),
+      });
     }
 
     setError(null);
@@ -108,7 +112,7 @@ function AddTemporaryItemModule({
     fetchUoms()
       .then((data) => setUoms(data || []))
       .catch(() => setUoms([]));
-  }, [open, temporaryItem]);
+  }, [open, temporaryItem, initialValues]);
 
   useEffect(() => {
     if (!open || !temporaryItem || form.unit_size || uoms.length === 0) return;
