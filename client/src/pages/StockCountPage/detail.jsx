@@ -49,7 +49,9 @@ export default function StockCountDetailPage() {
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [addTemporaryItemOpen, setAddTemporaryItemOpen] = useState(false);
+  const [unrecognizedDialogOpen, setUnrecognizedDialogOpen] = useState(false);
   const [editingTemporaryItem, setEditingTemporaryItem] = useState(null);
+  const [temporaryItemDefaults, setTemporaryItemDefaults] = useState(null);
   const [scanProduct, setScanProduct] = useState(null);
   const [scanQuantity, setScanQuantity] = useState("");
   // Barcode scanners type very fast so capture those keystrokes in a buffer.
@@ -191,13 +193,17 @@ export default function StockCountDetailPage() {
       const match = validProducts.find((product) =>
         String(product.barcode ?? product.product_code ?? "").trim() === raw
       );
-      if (!match) return;
+      if (!match) {
+        setTemporaryItemDefaults({ barcode: raw });
+        setUnrecognizedDialogOpen(true);
+        return;
+      }
       setScanProduct(match);
       setScanDialogOpen(true);
     }
 
     function handleKeyDown(event) {
-      if (scanDialogOpen) return;
+      if (scanDialogOpen || unrecognizedDialogOpen || addTemporaryItemOpen) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
 
       if (event.key === "Enter") {
@@ -222,7 +228,7 @@ export default function StockCountDetailPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isEditable, scanDialogOpen, validProducts]);
+  }, [isEditable, scanDialogOpen, validProducts, unrecognizedDialogOpen, addTemporaryItemOpen]);
 
   // Save entries without finalizing
   const handleSave = async () => {
@@ -517,6 +523,7 @@ export default function StockCountDetailPage() {
               className="xl:ml-auto"
               onClick={() => {
                 setEditingTemporaryItem(null);
+                setTemporaryItemDefaults(null);
                 setAddTemporaryItemOpen(true);
               }}
               disabled={!isEditable}
@@ -599,6 +606,7 @@ export default function StockCountDetailPage() {
         isEditable={isEditable}
         onEdit={(item) => {
           setEditingTemporaryItem(item);
+          setTemporaryItemDefaults(null);
           setAddTemporaryItemOpen(true);
         }}
         onDelete={handleDeleteTemporaryItem}
@@ -627,14 +635,43 @@ export default function StockCountDetailPage() {
         onClose={() => {
           setAddTemporaryItemOpen(false);
           setEditingTemporaryItem(null);
+          setTemporaryItemDefaults(null);
         }}
         sessionId={id}
         temporaryItem={editingTemporaryItem}
+        initialValues={temporaryItemDefaults}
         onCreated={() => {
           loadSessionDetail();
           setError(null);
         }}
       />
+
+      <AlertDialog
+        open={unrecognizedDialogOpen}
+        onOpenChange={setUnrecognizedDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Product Not Recognised</AlertDialogTitle>
+            <AlertDialogDescription>
+              This barcode is not in the current product list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              onClick={() => {
+                setUnrecognizedDialogOpen(false);
+                setEditingTemporaryItem(null);
+                setAddTemporaryItemOpen(true);
+              }}
+            >
+              Add Product
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={scanDialogOpen}
