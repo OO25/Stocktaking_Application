@@ -7,8 +7,16 @@ import pool from "../config/db.js";
 export async function getUoms(_req, res) {
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, description, created_at, updated_at
-       FROM units_of_measure
+      `SELECT
+         u.id,
+         u.name,
+         u.description,
+         u.created_at,
+         u.updated_at,
+         COUNT(p.id)::int AS allocated_product_count
+       FROM units_of_measure u
+       LEFT JOIN products p ON p.uom_id = u.id
+       GROUP BY u.id, u.name, u.description, u.created_at, u.updated_at
        ORDER BY name`
     );
     res.json(rows);

@@ -116,7 +116,10 @@ function OutletTable({
             </TableRow>
           )}
 
-          {!loading && error === null && outlets.map((outlet) => (
+          {!loading && error === null && outlets.map((outlet) => {
+            const allocatedProductCount = Number(outlet.allocated_product_count || 0);
+            const canDelete = allocatedProductCount === 0;
+            return (
             <TableRow key={outlet.id}>
               <TableCell className="pl-6 pr-6 font-semibold">
                 <div className="flex items-center gap-2">
@@ -145,22 +148,25 @@ function OutletTable({
                     <Button size="sm" variant="secondary" onClick={() => onEdit(outlet)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => {
-                        setDeleteTarget(outlet);
-                        setDeleteError("");
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                    {canDelete && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          setDeleteTarget(outlet);
+                          setDeleteError("");
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+          );
+          })}
         </TableBody>
         <TableFooter>
           <TableRow>

@@ -89,49 +89,55 @@ function UomTable({
 
         {!loading &&
           error === null &&
-          uoms.map((uom) => (
-            <TableRow key={uom.id ?? uom.name}>
-              <TableCell className="pl-6">
-                <div className="flex items-start gap-2">
-                  <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary">
-                    <Ruler className="size-4" />
-                  </span>
-                  <div className="space-y-1">
-                    <div className="font-semibold">{uom.name}</div>
-                    <div className="text-sm text-gray-500">
-                      {uom.description || "—"}
+          uoms.map((uom) => {
+            const allocatedProductCount = Number(uom.allocated_product_count || 0);
+            const canDelete = allocatedProductCount === 0;
+            return (
+              <TableRow key={uom.id ?? uom.name}>
+                <TableCell className="pl-6">
+                  <div className="flex items-start gap-2">
+                    <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary">
+                      <Ruler className="size-4" />
+                    </span>
+                    <div className="space-y-1">
+                      <div className="font-semibold">{uom.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {uom.description || "—"}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="space-y-1 text-sm text-gray-900">
-                  <div>Created: {formatDate(uom.created_at)}</div>
-                  <div>Updated: {formatDate(uom.updated_at)}</div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex justify-end">
-                  <div className="inline-flex items-center justify-center gap-2 w-30">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => onEdit?.(uom)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onDelete?.(uom)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-1 text-sm text-gray-900">
+                    <div>Created: {formatDate(uom.created_at)}</div>
+                    <div>Updated: {formatDate(uom.updated_at)}</div>
                   </div>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end">
+                    <div className="inline-flex items-center justify-center gap-2 w-30">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => onEdit?.(uom)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      {canDelete && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => onDelete?.(uom)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
       </TableBody>
       <TableFooter>
         <TableRow>

@@ -151,6 +151,7 @@ function ManageCategoryPage() {
       name: item.name,
       code: item.code,
       type: "Food group",
+      allocated_product_count: item.allocated_product_count ?? 0,
       created_at: item.created_at ?? null,
       updated_at: item.updated_at ?? null,
     }));
@@ -160,6 +161,7 @@ function ManageCategoryPage() {
       key: `packaging-${item.id}`,
       name: item.name,
       type: "Packaging type",
+      allocated_product_count: item.allocated_product_count ?? 0,
       created_at: item.created_at ?? null,
       updated_at: item.updated_at ?? null,
     }));
