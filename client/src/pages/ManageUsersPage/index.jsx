@@ -12,7 +12,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu.jsx";
 import {
@@ -21,7 +20,6 @@ import {
   FileText,
   Plus,
   Search,
-  Upload,
 } from "lucide-react";
 
 /** Debounce a value by `delay` ms. */
@@ -170,11 +168,6 @@ function ManageUsersPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem>
-                    <Upload className="h-4 w-4" />
-                    Import Users
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuLabel>Export</DropdownMenuLabel>
                   <DropdownMenuItem>
                     <FileSpreadsheet className="h-4 w-4" />

@@ -84,7 +84,10 @@ function SupplierTable({
 
         {!loading &&
           error === null &&
-          suppliers.map((supplier) => (
+          suppliers.map((supplier) => {
+            const allocatedProductCount = Number(supplier.allocated_product_count || 0);
+            const canDelete = allocatedProductCount === 0;
+            return (
             <TableRow key={supplier.id}>
               <TableCell className="font-semibold pl-6">
                 <div className="flex items-center gap-2">
@@ -138,18 +141,21 @@ function SupplierTable({
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onDelete?.(supplier)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                    {canDelete && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => onDelete?.(supplier)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+          );
+          })}
       </TableBody>
       <TableFooter>
         <TableRow>

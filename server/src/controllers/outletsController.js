@@ -18,20 +18,31 @@ export async function getOutlets(req, res) {
     if (search) {
       values.push(search);
       const idx = values.length;
-      conditions.push(`(name ILIKE $${idx} OR cost_centre ILIKE $${idx} OR similarity(name, $${idx}) > 0.2 OR similarity(cost_centre, $${idx}) > 0.2)`);
+      conditions.push(`(o.name ILIKE $${idx} OR o.cost_centre ILIKE $${idx} OR similarity(o.name, $${idx}) > 0.2 OR similarity(o.cost_centre, $${idx}) > 0.2)`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
     // Get total count
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM outlets ${where}`,
+      `SELECT COUNT(*) FROM outlets o ${where}`,
       values
     );
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
     // Get data
-    let query = `SELECT id, name, cost_centre, created_at, updated_at FROM outlets ${where} ORDER BY name`;
+    let query = `SELECT
+      o.id,
+      o.name,
+      o.cost_centre,
+      o.created_at,
+      o.updated_at,
+      COUNT(op.product_id)::int AS allocated_product_count
+      FROM outlets o
+      LEFT JOIN outlet_products op ON op.outlet_id = o.id
+      ${where}
+      GROUP BY o.id, o.name, o.cost_centre, o.created_at, o.updated_at
+      ORDER BY o.name`;
     const queryValues = [...values];
 
     if (page && limit) {

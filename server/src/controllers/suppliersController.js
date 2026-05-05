@@ -13,16 +13,27 @@ export async function getSuppliers(req, res) {
 
     if (search) {
       params.push(search);
-      conditions.push(`name % $${params.length}`);
+      conditions.push(`s.name % $${params.length}`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const { rows } = await pool.query(
-      `SELECT id, name, contact_name, email, phone, website_url AS website, created_at, updated_at 
-       FROM suppliers 
+      `SELECT
+         s.id,
+         s.name,
+         s.contact_name,
+         s.email,
+         s.phone,
+         s.website_url AS website,
+         s.created_at,
+         s.updated_at,
+         COUNT(p.id)::int AS allocated_product_count
+       FROM suppliers s
+       LEFT JOIN products p ON p.supplier_id = s.id
        ${where}
-       ORDER BY name`,
+       GROUP BY s.id, s.name, s.contact_name, s.email, s.phone, s.website_url, s.created_at, s.updated_at
+       ORDER BY s.name`,
       params
     );
     res.json(rows);

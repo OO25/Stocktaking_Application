@@ -9,30 +9,59 @@ export async function getCategories(req, res) {
   try {
     const search = (req.query.search ?? "").trim();
 
-    const conditions = [];
+    const foodConditions = [];
+    const packagingConditions = [];
     const params = [];
 
     if (search) {
       params.push(search);
       const idx = params.length;
-      conditions.push(`name ILIKE $${idx} OR similarity(name, $${idx}) > 0.2`);
+      foodConditions.push(
+        `(fg.name ILIKE $${idx} OR similarity(fg.name, $${idx}) > 0.2)`
+      );
+      packagingConditions.push(
+        `(pt.name ILIKE $${idx} OR similarity(pt.name, $${idx}) > 0.2)`
+      );
     }
 
-    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const foodWhere = foodConditions.length
+      ? `WHERE ${foodConditions.join(" AND ")}`
+      : "";
+    const packagingWhere = packagingConditions.length
+      ? `WHERE ${packagingConditions.join(" AND ")}`
+      : "";
 
     const [foodGroups, packagingTypes] = await Promise.all([
       pool.query(
-        `SELECT id, code, name, parent_id, sort_order, created_at, updated_at
-         FROM food_groups
-         ${where}
-         ORDER BY sort_order`,
+        `SELECT
+           fg.id,
+           fg.code,
+           fg.name,
+           fg.parent_id,
+           fg.sort_order,
+           fg.created_at,
+           fg.updated_at,
+           COUNT(p.id)::int AS allocated_product_count
+         FROM food_groups fg
+         LEFT JOIN products p ON p.food_group_id = fg.id
+         ${foodWhere}
+         GROUP BY fg.id, fg.code, fg.name, fg.parent_id, fg.sort_order, fg.created_at, fg.updated_at
+         ORDER BY fg.sort_order`,
         params
       ),
       pool.query(
-        `SELECT id, name, sort_order, created_at, updated_at
-         FROM packaging_types
-         ${where}
-         ORDER BY sort_order`,
+        `SELECT
+           pt.id,
+           pt.name,
+           pt.sort_order,
+           pt.created_at,
+           pt.updated_at,
+           COUNT(p.id)::int AS allocated_product_count
+         FROM packaging_types pt
+         LEFT JOIN products p ON p.packaging_type_id = pt.id
+         ${packagingWhere}
+         GROUP BY pt.id, pt.name, pt.sort_order, pt.created_at, pt.updated_at
+         ORDER BY pt.sort_order`,
         params
       ),
     ]);
