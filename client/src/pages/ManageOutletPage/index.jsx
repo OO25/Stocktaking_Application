@@ -11,7 +11,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu.jsx";
 import {
@@ -20,7 +19,6 @@ import {
   FileText,
   Plus,
   Search,
-  Upload,
 } from "lucide-react";
 
 function useDebounce(value, delay = 300) {
@@ -113,18 +111,13 @@ function ManageOutletPage() {
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline">
-                  Options
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem>
-                  <Upload className="h-4 w-4" />
-                  Import Outlets
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline">
+                    Options
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>Export</DropdownMenuLabel>
                 <DropdownMenuItem>
                   <FileSpreadsheet className="h-4 w-4" />
