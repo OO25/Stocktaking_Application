@@ -99,6 +99,10 @@ function CategoryTable({
           categories.map((category) => {
             const CategoryIcon =
               category.type === "Packaging type" ? Box : UtensilsCrossed;
+            const allocatedProductCount = Number(
+              category.allocated_product_count || 0
+            );
+            const canDelete = allocatedProductCount === 0;
 
             return (
               <TableRow key={category.key}>
@@ -135,13 +139,15 @@ function CategoryTable({
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onDelete?.(category)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                    {canDelete && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => onDelete?.(category)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </TableCell>
