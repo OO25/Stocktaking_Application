@@ -721,7 +721,7 @@ export default function StockCountDetailPage() {
                   step="0.01"
                   value={scanQuantity}
                   onChange={(event) => setScanQuantity(event.target.value)}
-                  onFocus={() => setScanQuantity("")}
+                  onFocus={(event) => event.target.select()}
                   onKeyDownCapture={(event) => {
                     if (event.key === "Enter") {
                       event.preventDefault();
