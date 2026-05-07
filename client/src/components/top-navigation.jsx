@@ -17,8 +17,10 @@ import { Badge } from "./ui/badge.jsx";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export function TopNavigation() {
+  const { user } = useAuth();
   const location = useLocation();
   const { pathname } = location;
   const stockCountMatch = pathname.match(/^\/stock-count\/(.+)$/);
@@ -26,6 +28,7 @@ export function TopNavigation() {
   const [stockCountDetailName, setStockCountDetailName] = useState("");
   const pageTitles = {
     "/dashboard": "Dashboard",
+    "/branch-dashboard": "Dashboard",
     "/stock-count": "Stock Count",
     "/products": "Products",
     "/branches": "Branches",
@@ -36,6 +39,7 @@ export function TopNavigation() {
     "/users": "Users",
   };
   const pageTitle = pageTitles[pathname] ?? "Dashboard";
+  const dashboardPath = user?.role === "admin" ? "/dashboard" : "/branch-dashboard";
   const managePages = [
     { label: "Products", to: "/products" },
     { label: "Branches", to: "/branches" },
@@ -86,7 +90,7 @@ export function TopNavigation() {
             <>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/dashboard">
+                  <Link to={dashboardPath}>
                     <Badge
                       variant="outline"
                       className="text-muted-foreground hover:text-foreground"
@@ -130,7 +134,7 @@ export function TopNavigation() {
             <>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/dashboard">
+                  <Link to={dashboardPath}>
                     <Badge
                       variant="outline"
                       className="text-muted-foreground hover:text-foreground"
