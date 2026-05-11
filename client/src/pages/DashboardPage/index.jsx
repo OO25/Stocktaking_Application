@@ -495,18 +495,114 @@ export default function DashboardPage() {
     setExporting(true);
 
     try {
+      const previousMonth = startOfMonth(
+        new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1)
+      );
+      const previousMonthKey = getMonthKey(previousMonth);
+      const generatedDate = new Date().toISOString().slice(0, 10);
+
+      const getSessionValue = (session, categoryFilter = ALL_CATEGORIES) => {
+        const detail = sessionDetails[session.id];
+
+        if (detail?.current_entries?.length) {
+          return detail.current_entries.reduce((total, entry) => {
+            const product = productMap[entry.product_id];
+            if (!matchesCategory(product, categoryFilter)) return total;
+            return (
+              total + Number(entry.quantity || 0) * Number(entry.unit_price || 0)
+            );
+          }, 0);
+        }
+
+        if (categoryFilter === ALL_CATEGORIES) {
+          return Number(session.total_value || 0);
+        }
+
+        return 0;
+      };
+
+      const currentSessions = sessions.filter(
+        (session) => getSessionMonthKey(session) === selectedMonthKey
+      );
+      const previousSessions = sessions.filter(
+        (session) => getSessionMonthKey(session) === previousMonthKey
+      );
+
+      const currentValueByOutlet = {};
+      const previousValueByOutlet = {};
+
+      for (const session of currentSessions) {
+        const outletName = session.outlet_name || "Unknown outlet";
+        currentValueByOutlet[outletName] =
+          (currentValueByOutlet[outletName] || 0) + getSessionValue(session);
+      }
+
+      for (const session of previousSessions) {
+        const outletName = session.outlet_name || "Unknown outlet";
+        previousValueByOutlet[outletName] =
+          (previousValueByOutlet[outletName] || 0) + getSessionValue(session);
+      }
+
+      const allOutletNames = Array.from(
+        new Set([
+          ...Object.keys(currentValueByOutlet),
+          ...Object.keys(previousValueByOutlet),
+        ])
+      ).sort((first, second) => first.localeCompare(second));
+
+      const outletSummaryRows = allOutletNames.map((name) => {
+        const currentValue = Number(currentValueByOutlet[name] || 0);
+        const previousValue = Number(previousValueByOutlet[name] || 0);
+        const difference = currentValue - previousValue;
+        const percentChange = previousValue !== 0 ? difference / previousValue : 0;
+
+        return [name, currentValue, previousValue, difference, percentChange, ""];
+      });
+
+      const grandTotalCurrent = outletSummaryRows.reduce(
+        (total, row) => total + Number(row[1] || 0),
+        0
+      );
+      const grandTotalPrevious = outletSummaryRows.reduce(
+        (total, row) => total + Number(row[2] || 0),
+        0
+      );
+      const overallDifference = grandTotalCurrent - grandTotalPrevious;
+      const overallPercentChange =
+        grandTotalPrevious !== 0 ? overallDifference / grandTotalPrevious : 0;
+
+      const categoryNames = categoryOptions.length
+        ? categoryOptions
+        : Array.from(
+            new Set(
+              products.flatMap((product) =>
+                [product.food_group, product.packaging_type].filter(Boolean)
+              )
+            )
+          ).sort((first, second) => first.localeCompare(second));
+
+      const categoryRows = categoryNames.map((categoryName) => {
+        const currentTotal = currentSessions.reduce(
+          (total, session) => total + getSessionValue(session, categoryName),
+          0
+        );
+        const previousTotal = previousSessions.reduce(
+          (total, session) => total + getSessionValue(session, categoryName),
+          0
+        );
+        const difference = currentTotal - previousTotal;
+        const percentChange = previousTotal !== 0 ? difference / previousTotal : 0;
+
+        return [categoryName, currentTotal, previousTotal, difference, percentChange];
+      });
+
       const rows = [
-        ["AUT Stocktake Dashboard"],
-        ["Month", formatMonthLabel(selectedMonth)],
+        ["Monthly Stocktake Summary - All Outlets"],
+        [],
+        ["Reporting Month", formatMonthLabel(selectedMonth), "", "", "Generated Date", generatedDate],
+        ["Report Type", "All Outlets Monthly Report", "", "", "Outlet", "All Outlets"],
         [
-          "Outlet",
-          selectedOutlet === ALL_OUTLETS
-            ? "All outlets"
-            : outlets.find((outlet) => String(outlet.id) === selectedOutlet)?.name ||
-              "Selected outlet",
-        ],
-        [
-          "Category",
+          "Selected Category Filter",
           selectedCategory === ALL_CATEGORIES
             ? "All categories"
             : selectedCategory === PACKAGING_CATEGORY
@@ -514,43 +610,19 @@ export default function DashboardPage() {
               : selectedCategory,
         ],
         [],
-        ["Metric", "Value"],
-        ["Total Stock Value", formatCurrency(selectedMonthValue)],
-        ["Open Work", String(openWorkCount)],
-        ["Submitted", String(submittedCount)],
-        ["Number of Products", String(filteredProducts.length)],
+        ["Outlet Summary Table"],
+        ["Outlet", "Current Month Value", "Previous Month Value", "Difference", "% Change", "Notes"],
+        ...outletSummaryRows,
         [],
-        ["Outlet Ranking", "Stock Value"],
-        ...outletRankingData.map((item) => [
-          `${item.rank}. ${item.name}`,
-          formatCurrency(item.value),
-        ]),
+        ["Final Summary"],
+        ["Grand Total Current Month", grandTotalCurrent],
+        ["Grand Total Previous Month", grandTotalPrevious],
+        ["Overall Difference", overallDifference],
+        ["Overall % Change", overallPercentChange],
         [],
-        ["Recent Stocktakes"],
-        ["Session", "Outlet", "Status", "Counted Date", "Counted By", "Value"],
-        ...recentSessions.map((session) => {
-          const detail = sessionDetails[session.id];
-          let value = Number(session.total_value || 0);
-
-          if (detail?.current_entries?.length && selectedCategory !== ALL_CATEGORIES) {
-            value = detail.current_entries.reduce((total, entry) => {
-              const product = productMap[entry.product_id];
-              if (!matchesCategory(product, selectedCategory)) return total;
-              return (
-                total + Number(entry.quantity || 0) * Number(entry.unit_price || 0)
-              );
-            }, 0);
-          }
-
-          return [
-            session.name || session.outlet_name || "Stocktake session",
-            session.outlet_name || "Unknown outlet",
-            session.status,
-            session.counted_date || "",
-            session.counted_by || "",
-            formatCurrency(value),
-          ];
-        }),
+        ["Category Breakdown (All Outlets)"],
+        ["Category", "Current Month Total", "Previous Month Total", "Difference", "% Change"],
+        ...categoryRows,
       ];
 
       const csv = rows
@@ -565,7 +637,7 @@ export default function DashboardPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `aut-stocktake-summary-${selectedMonthKey}.csv`;
+      link.download = `Outlets-monthly-report-${selectedMonthKey}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -642,14 +714,16 @@ export default function DashboardPage() {
                   </SelectContent>
                 </Select>
 
-                <Button
-                  onClick={exportMonthlySummary}
-                  disabled={loading || exporting}
-                  className="w-full bg-white text-slate-950 hover:bg-white/90"
-                >
-                  <DownloadIcon className="size-4" />
-                  {exporting ? "Exporting..." : "Export Monthly Summary"}
-                </Button>
+                {selectedOutlet === ALL_OUTLETS ? (
+                  <Button
+                    onClick={exportMonthlySummary}
+                    disabled={loading || exporting}
+                    className="w-full bg-white text-slate-950 hover:bg-white/90"
+                  >
+                    <DownloadIcon className="size-4" />
+                    {exporting ? "Exporting..." : "Export Monthly Summary"}
+                  </Button>
+                ) : null}
               </div>
 
               <div className="flex gap-2">
