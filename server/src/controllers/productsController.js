@@ -29,20 +29,31 @@ export async function getProducts(req, res) {
     }
 
     if (search) {
-      const idxWildcard = params.length + 1;
-      const idxPlain = params.length + 2;
-      params.push(`%${search}%`, search);
+      // Detect barcode vs manual text entry.
+      // Barcode pattern: purely numeric, 8-14 chars (covers common UPC/EAN lengths).
+      const barcodeRegex = /^\d{8,14}$/;
+      const isBarcode = barcodeRegex.test(search);
 
-      // Treat barcodes as text so alphanumeric values are supported.
-      conditions.push(`(
-        p.barcode       = $${idxPlain} OR
-        p.name          ILIKE $${idxWildcard} OR
-        s.name          ILIKE $${idxWildcard} OR
-        p.barcode       ILIKE $${idxWildcard} OR
-        similarity(p.name, $${idxPlain}) > 0.2 OR
-        similarity(s.name, $${idxPlain}) > 0.2 OR
-        similarity(p.barcode, $${idxPlain}) > 0.2
-      )`);
+      if (isBarcode) {
+        // Exact match against the barcode column (preserve leading zeros by treating as text)
+        const idx = params.length + 1;
+        params.push(search);
+        conditions.push(`(p.barcode = $${idx})`);
+      } else {
+        // Fuzzy text search for manual typing. Use trigram operator (%) and similarity()
+        // to provide helpful results for misspellings / partial names.
+        const idxWildcard = params.length + 1;
+        const idxPlain = params.length + 2;
+        params.push(`%${search}%`, search);
+
+        conditions.push(`(
+          p.name          ILIKE $${idxWildcard} OR
+          s.name          ILIKE $${idxWildcard} OR
+          p.name          % $${idxPlain} OR
+          similarity(p.name, $${idxPlain}) > 0.2 OR
+          similarity(s.name, $${idxPlain}) > 0.2
+        )`);
+      }
     }
 
     if (category) {
