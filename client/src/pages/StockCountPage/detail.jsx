@@ -133,9 +133,8 @@ export default function StockCountDetailPage() {
 
   /**
    * Updates the quantity for a product in the current session.
-   * When updating an existing entry, preserves the unit_price to ensure
-   * correct total calculations. When creating a new entry, fetches unit_price
-   * from the valid products list.
+   * Preserves any existing unit_price, falling back to the current catalogue
+   * price when creating a new entry.
    */
   const updateEntryQuantity = (productId, quantity) => {
     setEntries((prev) => {
@@ -143,7 +142,13 @@ export default function StockCountDetailPage() {
       const existing = prev.find((e) => e.product_id === productId);
       // Get the product details including its unit price
       const product = validProducts.find((p) => p.product_id === productId);
-      const unitPrice = product?.unit_price || 0;
+      const existingUnitPrice = Number(existing?.unit_price);
+      const productUnitPrice = Number(product?.unit_price);
+      const resolvedUnitPrice = Number.isFinite(existingUnitPrice)
+        ? existingUnitPrice
+        : Number.isFinite(productUnitPrice)
+          ? productUnitPrice
+          : 0;
       // Coerce quantity to number and validate it's not NaN
       const numericQuantity = parseFloat(quantity) || 0;
       
@@ -151,14 +156,18 @@ export default function StockCountDetailPage() {
         // Update existing entry, PRESERVING unit_price to prevent total calc errors
         return prev.map((e) =>
           e.product_id === productId
-            ? { ...e, quantity: numericQuantity, unit_price: unitPrice }
+            ? { ...e, quantity: numericQuantity, unit_price: resolvedUnitPrice }
             : e
         );
       }
       // Create new entry with product_id, quantity, and unit_price
       return [
         ...prev,
-        { product_id: productId, quantity: numericQuantity, unit_price: unitPrice },
+        {
+          product_id: productId,
+          quantity: numericQuantity,
+          unit_price: resolvedUnitPrice,
+        },
       ];
     });
   };
@@ -443,16 +452,25 @@ export default function StockCountDetailPage() {
     );
   }
 
-  const total = entries.reduce((sum, e) => {
-    const product = validProducts.find((p) => p.product_id === e.product_id);
-    const unitPrice = product?.unit_price || 0;
-    return sum + (e.quantity * unitPrice || 0);
+  const total = entries.reduce((sum, entry) => {
+    const product = validProducts.find(
+      (p) => p.product_id === entry.product_id,
+    );
+    const unitPrice = Number(
+      entry.unit_price ?? product?.unit_price ?? 0,
+    );
+    return sum + (entry.quantity * unitPrice || 0);
   }, 0) + temporaryItems.reduce((sum, item) => {
     const lineTotal = Number(item.total ?? (item.quantity * item.price) ?? 0);
     return sum + (Number.isFinite(lineTotal) ? lineTotal : 0);
   }, 0);
 
-  const scanUnitPrice = scanProduct ? Number(scanProduct.unit_price || 0) : 0;
+  const scanEntry = scanProduct
+    ? entries.find((e) => e.product_id === scanProduct.product_id)
+    : null;
+  const scanUnitPrice = scanEntry
+    ? Number(scanEntry.unit_price || 0)
+    : Number(scanProduct?.unit_price || 0);
   const scanTotal =
     scanProduct && scanQuantity !== ""
       ? Number(scanQuantity || 0) * scanUnitPrice

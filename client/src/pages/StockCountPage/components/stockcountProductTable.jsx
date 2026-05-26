@@ -172,7 +172,9 @@ function StockCountProductTable({
               (e) => e.product_id === product.product_id
             );
             const quantity = entry?.quantity || 0;
-            const unitPrice = parseFloat(product.unit_price) || 0;
+            const unitPrice = Number(
+              entry?.unit_price ?? product.unit_price ?? 0,
+            );
             const lineTotal = quantity * unitPrice;
             const ProductIcon = product.is_packaging ? Box : UtensilsCrossed;
 
