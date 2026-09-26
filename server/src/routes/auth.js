@@ -6,13 +6,13 @@ import { createRateLimiter } from "../middleware/rateLimit.js";
 
 const router = Router();
 const ALLOW_PUBLIC_REGISTER = process.env.ALLOW_PUBLIC_REGISTER === "true";
-const authRateLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
-});
-
 const authRateLimiter = process.env.VERCEL
   ? (_req, _res, next) => next()
   : createRateLimiter({ windowMs: 15 * 60 * 1000, max: 30 });
+
+router.post("/login", authRateLimiter, login);
+if (ALLOW_PUBLIC_REGISTER) {
+  router.post("/register", authRateLimiter, register);
+}
 
 export default router;
