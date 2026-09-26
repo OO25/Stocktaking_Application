@@ -9,6 +9,7 @@
     "migrate": "node --env-file=../.env src/db/migrate.js"
   },
   "dependencies": {
+    "@vercel/functions": "^3.9.9",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

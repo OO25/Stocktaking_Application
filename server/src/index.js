@@ -26,7 +26,7 @@ app.use(
       }
       return callback(new Error("CORS origin not allowed"));
     },
-  })
+  }),
 );
 app.use(express.json({ limit: "1mb" }));
 
@@ -37,12 +37,18 @@ app.get("/api/health", (_req, res) => {
 });
 
 // Serve built React client in production
-const clientDist = path.join(__dirname, "../../client/dist");
-app.use(express.static(clientDist));
-app.get("*", (_req, res) => {
-  res.sendFile(path.join(clientDist, "index.html"));
-});
+if (!process.env.VERCEL) {
+  const clientDist = path.join(__dirname, "../../client/dist");
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+  app.use(express.static(clientDist));
+
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
