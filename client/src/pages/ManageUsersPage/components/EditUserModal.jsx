@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { updateUser } from "../../../api/users.js";
 import { fetchOutlets } from "../../../api/products.js";
@@ -187,7 +188,7 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
 
   return (
     <>
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => { if (isFormDirty(form, selectedOutlets, user)) { setDiscardOpen(true); } else { onClose(); } }}
       >
@@ -340,7 +341,7 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
                           {outlets.map((outlet) => (
                             <CommandItem
                               key={outlet.id}
-                              value={outlet.name}
+                              value={String(outlet.id)} keywords={[outlet.name]}
                               onSelect={() => toggleOutlet(String(outlet.id))}
                               className="flex w-full items-center justify-between"
                             >
@@ -364,7 +365,7 @@ function EditUserModal({ open, user, onClose, onUpdated }) {
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       <ConfirmDialog
         open={discardOpen}

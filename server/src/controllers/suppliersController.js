@@ -33,7 +33,7 @@ export async function getSuppliers(req, res) {
        LEFT JOIN products p ON p.supplier_id = s.id
        ${where}
        GROUP BY s.id, s.name, s.contact_name, s.email, s.phone, s.website_url, s.created_at, s.updated_at
-       ORDER BY s.name`,
+       ORDER BY LOWER(s.name), s.id`,
       params
     );
     res.json(rows);

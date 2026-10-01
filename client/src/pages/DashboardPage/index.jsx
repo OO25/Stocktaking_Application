@@ -210,52 +210,6 @@ function SummaryCard({ title, value, description, icon: Icon }) {
   );
 }
 
-const INVENTORY_ALERTS = [
-  {
-    id: 1,
-    product: "12oz Coffee Cups",
-    outlet: "Refuel",
-    stockLeft: 8,
-    reorderLevel: 24,
-    urgency: "High",
-  },
-  {
-    id: 2,
-    product: "Takeaway Lids",
-    outlet: "Groove",
-    stockLeft: 3,
-    reorderLevel: 10,
-    urgency: "Critical",
-  },
-  {
-    id: 3,
-    product: "Paper Food Containers",
-    outlet: "AUT Shop",
-    stockLeft: 12,
-    reorderLevel: 30,
-    urgency: "Medium",
-  },
-  {
-    id: 4,
-    product: "Carry Bags",
-    outlet: "Refuel",
-    stockLeft: 6,
-    reorderLevel: 20,
-    urgency: "High",
-  },
-];
-
-function getAlertTone(urgency) {
-  switch (urgency) {
-    case "Critical":
-      return "bg-rose-100 text-rose-700";
-    case "High":
-      return "bg-amber-100 text-amber-700";
-    default:
-      return "bg-sky-100 text-sky-700";
-  }
-}
-
 export default function DashboardPage() {
   const { user } = useAuth();
   const [outlets, setOutlets] = useState([]);
@@ -1001,45 +955,12 @@ export default function DashboardPage() {
           <Card className="border-slate-200/70 bg-white/90 shadow-sm">
             <CardHeader>
               <CardTitle>Inventory Alerts</CardTitle>
-              <CardDescription>
-                Products running low and likely needing reordering soon.
-              </CardDescription>
+              <CardDescription>Reorder information</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
-                {INVENTORY_ALERTS.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {alert.product}
-                        </p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {alert.outlet}
-                        </p>
-                      </div>
-                      <Badge className={getAlertTone(alert.urgency)}>
-                        {alert.urgency}
-                      </Badge>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between text-sm">
-                      <span className="text-slate-500">Stock left</span>
-                      <span className="font-medium text-slate-900">
-                        {alert.stockLeft}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-sm">
-                      <span className="text-slate-500">Reorder level</span>
-                      <span className="font-medium text-slate-900">
-                        {alert.reorderLevel}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <CardContent>
+              <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+                Inventory alerts are unavailable because reorder levels have not been configured.
+              </p>
             </CardContent>
           </Card>
 

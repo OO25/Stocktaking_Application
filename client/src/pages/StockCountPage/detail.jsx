@@ -1,8 +1,9 @@
+import { useAuth } from "../../context/AuthContext.jsx";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  ArrowUpRight,
   PackageIcon,
   Save,
   SendHorizonal,
@@ -11,6 +12,7 @@ import {
   deleteSessionTemporaryItem,
   fetchSessionDetail,
   saveSessionEntries,
+  updateSessionStatus,
 } from "../../api/stocktake.js";
 import { Button } from "../../components/ui/button.jsx";
 import { Badge } from "../../components/ui/badge.jsx";
@@ -36,6 +38,8 @@ import {
  */
 export default function StockCountDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
   const navigate = useNavigate();
   const [session, setSession] = useState(null);
   const [entries, setEntries] = useState([]);
@@ -61,7 +65,8 @@ export default function StockCountDetailPage() {
   const pendingNavigationRef = useRef(null);
   const scanInputRef = useRef(null);
   const isEditable =
-    session?.status === "draft" || session?.status === "in_progress";
+    ["admin", "manager"].includes(user?.role) &&
+    (session?.status === "draft" || session?.status === "in_progress");
   const [savedEntriesSnapshot, setSavedEntriesSnapshot] = useState("[]");
 
   const normalizeEntries = (items = []) =>
@@ -390,16 +395,9 @@ export default function StockCountDetailPage() {
         throw new Error("Failed to finalize session");
       }
       
-      // Wait a small delay to ensure database transaction is committed
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      // Reload session detail to fetch updated counted_date and status from server
-      await loadSessionDetail();
-      
-      // Show success and redirect after data is loaded
-      setTimeout(() => {
-        requestNavigation("/stock-count");
-      }, 1500);
+      setSavedEntriesSnapshot(normalizeEntries(entries));
+      setSession((previous) => ({ ...previous, status: saveResult.status }));
+      navigate("/stock-count");
     } catch (err) {
       console.error("Submit error:", err);
       setError(err.message || "Failed to submit session");
@@ -407,6 +405,20 @@ export default function StockCountDetailPage() {
       setSubmitting(false);
     }
   };
+
+  async function handleReopen() {
+    try {
+      setSaving(true);
+      setError(null);
+      await updateSessionStatus(id, "in_progress");
+      setReopenDialogOpen(false);
+      await loadSessionDetail();
+    } catch (err) {
+      setError(err.message || "Failed to reopen stocktake.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const handleDeleteTemporaryItem = async (itemId) => {
     try {
@@ -530,7 +542,7 @@ export default function StockCountDetailPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:col-span-2 md:grid-cols-2 xl:col-span-1 xl:grid-cols-1">
+        <div className="grid gap-4 md:col-span-2 xl:col-span-1">
           <div className="rounded-lg border border-gray-200 bg-white p-4 flex gap-2 items-center">
             <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
               <PackageIcon className="size-4" />
@@ -548,73 +560,6 @@ export default function StockCountDetailPage() {
             >
               Add Product +
             </Button>
-          </div>
-
-          <div className="rounded-lg border border-gray-200 bg-white p-4 flex gap-2 items-center">
-            <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-primary-primary">
-              <ArrowUpRight className="size-4" />
-            </span>
-            <p className="text-sm font-medium text-gray-600">Action</p>
-            {isEditable ? (
-              <>
-                <div className="flex gap-2 xl:ml-auto">
-                  <Button
-                    variant="outline"
-                    onClick={handleSave}
-                    disabled={saving || submitting}
-                  >
-                    
-                    {saving ? "Saving..." : "Save"}
-                    <Save />
-                  </Button>
-                  <Button
-                    type="button"
-                    className='bg-green-600/10 text-green-600 hover:bg-green-600/20 focus-visible:ring-green-600/20 dark:bg-green-400/10 dark:text-green-400 dark:hover:bg-green-400/20 dark:focus-visible:ring-green-400/40'
-                    onClick={() => setSubmitDialogOpen(true)}
-                    disabled={saving || submitting}
-                  >
-                    
-                    {submitting ? "Finalizing..." : "Submit"}
-                    <SendHorizonal />
-                  </Button>
-                </div>
-
-                <AlertDialog
-                  open={submitDialogOpen}
-                  onOpenChange={setSubmitDialogOpen}
-                >
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Submit Stocktake?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to submit this stocktake? Once
-                        submitted, it cannot be edited.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogAction
-                      onClick={() => {
-                        setSubmitDialogOpen(false);
-                        handleSubmit();
-                      }}
-                      disabled={submitting}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {submitting ? "Submitting..." : "Yes, Submit"}
-                    </AlertDialogAction>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            ) : (
-              <Button
-                variant="outline"
-                className="xl:ml-auto"
-                onClick={() => requestNavigation("/stock-count")}
-              >
-                Back to List
-                <ArrowLeft />
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -647,6 +592,86 @@ export default function StockCountDetailPage() {
           }}
         />
       </div>
+
+      <div className="sticky bottom-0 z-10 rounded-lg border border-gray-200 bg-white p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
+        <p className="text-sm font-medium text-gray-600">
+          {isEditable ? "Save or submit stocktake" : "Stocktake actions"}
+        </p>
+        {isEditable ? (
+          <>
+            <div className="flex gap-2 ml-auto">
+              <Button
+                variant="outline"
+                onClick={handleSave}
+                disabled={saving || submitting}
+              >
+                {saving ? "Saving..." : "Save"}
+                <Save />
+              </Button>
+              <Button
+                type="button"
+                className='bg-green-600/10 text-green-600 hover:bg-green-600/20 focus-visible:ring-green-600/20 dark:bg-green-400/10 dark:text-green-400 dark:hover:bg-green-400/20 dark:focus-visible:ring-green-400/40'
+                onClick={() => setSubmitDialogOpen(true)}
+                disabled={saving || submitting}
+              >
+                {submitting ? "Finalizing..." : "Submit"}
+                <SendHorizonal />
+              </Button>
+            </div>
+
+            <AlertDialog
+              open={submitDialogOpen}
+              onOpenChange={setSubmitDialogOpen}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Submit Stocktake?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to submit this stocktake? Once
+                    submitted, an administrator must reopen it before it can be edited.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogAction
+                  onClick={() => {
+                    setSubmitDialogOpen(false);
+                    handleSubmit();
+                  }}
+                  disabled={submitting}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {submitting ? "Submitting..." : "Yes, Submit"}
+                </AlertDialogAction>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        ) : (
+          <div className="ml-auto flex gap-2">
+            {user?.role === "admin" && (
+              <Button variant="outline" onClick={() => setReopenDialogOpen(true)} disabled={saving}>
+                {saving ? "Reopening..." : "Reopen stocktake"}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => requestNavigation("/stock-count")}
+            >
+              Back to List
+              <ArrowLeft />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={reopenDialogOpen}
+        onOpenChange={setReopenDialogOpen}
+        title="Reopen stocktake?"
+        description="Reopening allows the assigned outlet to correct and resubmit this stocktake. Existing counts will be retained."
+        confirmLabel="Reopen"
+        confirmVariant="default"
+        onConfirm={handleReopen}
+      />
 
       <AddTemporaryItemModule
         open={addTemporaryItemOpen}

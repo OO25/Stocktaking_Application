@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { createSupplier } from "../../../api/suppliers.js";
 import { Button } from "../../../components/ui/button.jsx";
@@ -76,7 +77,7 @@ function AddSupplierModal({ open, onClose, onCreated }) {
 
   return (
     <>
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => { if (isAddSupplierDirty(form)) { setDiscardOpen(true); } else { onClose(); } }}
       >
@@ -165,7 +166,7 @@ function AddSupplierModal({ open, onClose, onCreated }) {
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       <ConfirmDialog
         open={discardOpen}

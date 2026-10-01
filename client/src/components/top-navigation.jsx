@@ -49,21 +49,20 @@ export function TopNavigation() {
     { label: "Branch Assignment", to: "/branch-assignment" },
     { label: "Users", to: "/users" },
   ];
-  const isManagePage = managePages.some((page) => page.to === pathname);
+  const isManagePage = user?.role === "admin" && managePages.some((page) => page.to === pathname);
   const isStockCountDetail = Boolean(stockCountId);
+
+  useEffect(() => {
+    const title = isStockCountDetail ? stockCountDetailName || "Stock Count" : pageTitle;
+    document.title = `${title} | Stocktaking Application`;
+  }, [pageTitle, isStockCountDetail, stockCountDetailName]);
 
   useEffect(() => {
     if (!stockCountId) return;
     const stateName = location.state?.assignmentName || location.state?.name;
     const stored = sessionStorage.getItem(`stockcount-name:${stockCountId}`);
-    if (stateName) {
-      setStockCountDetailName(stateName);
-      sessionStorage.setItem(`stockcount-name:${stockCountId}`, stateName);
-      return;
-    }
-    if (stored) {
-      setStockCountDetailName(stored);
-    }
+    setStockCountDetailName(stateName || stored || "");
+    if (stateName) sessionStorage.setItem(`stockcount-name:${stockCountId}`, stateName);
   }, [location.state, stockCountId]);
 
   useEffect(() => {

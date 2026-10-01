@@ -24,7 +24,7 @@ export async function getUsers(_req, res) {
        FROM users u
        LEFT JOIN user_outlets uo ON uo.user_id = u.id
        GROUP BY u.id
-       ORDER BY u.name`
+       ORDER BY LOWER(COALESCE(u.name, u.username)), u.id`
     );
     res.json(rows);
   } catch (err) {

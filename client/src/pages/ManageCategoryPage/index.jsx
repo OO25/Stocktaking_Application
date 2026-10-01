@@ -1,3 +1,6 @@
+import { sortByName } from "../../lib/sortByName.js";
+import NameSortSelect from "../../components/NameSortSelect.jsx";
+import { downloadCategories } from "../../lib/exportCategories.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchCategories,
@@ -48,6 +51,8 @@ function ManageCategoryPage() {
     foodGroups: [],
     packagingTypes: [],
   });
+  const [exporting, setExporting] = useState(false);
+  const [sort, setSort] = useState("az");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -164,7 +169,9 @@ function ManageCategoryPage() {
       updated_at: item.updated_at ?? null,
     }));
 
-    return [...foodGroups, ...packagingTypes];
+    return [...foodGroups, ...packagingTypes].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) || a.key.localeCompare(b.key)
+    );
   }, [categoryGroups]);
 
   const filteredCategories = useMemo(() => {
@@ -178,10 +185,21 @@ function ManageCategoryPage() {
     });
   }, [allCategories, debouncedSearch, typeFilter]);
 
+  async function handleExport(format) {
+    setExporting(true);
+    try {
+      await downloadCategories(sortByName(filteredCategories, sort), format);
+    } catch (err) {
+      setError(err.message || "Failed to export categories.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const totalCount = filteredCategories.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
   const startIndex = (page - 1) * limit;
-  const pageCategories = filteredCategories.slice(
+  const pageCategories = sortByName(filteredCategories, sort).slice(
     startIndex,
     startIndex + limit
   );
@@ -214,11 +232,11 @@ function ManageCategoryPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuLabel>Export</DropdownMenuLabel>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem disabled={loading || exporting} onSelect={() => handleExport("xlsx")}>
                     <FileSpreadsheet className="h-4 w-4" />
                     Excel
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem disabled={loading || exporting} onSelect={() => handleExport("csv")}>
                     <FileText className="h-4 w-4" />
                     CSV
                   </DropdownMenuItem>
@@ -238,7 +256,7 @@ function ManageCategoryPage() {
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
           {/* Card header: search + filter */}
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-4">
+          <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-4">
             <div className="search-field flex-1">
               <Search className="search-icon" />
               <Input
@@ -263,6 +281,13 @@ function ManageCategoryPage() {
                 </SelectContent>
               </Select>
             </div>
+            <NameSortSelect
+              value={sort}
+              onValueChange={(value) => {
+                setSort(value);
+                setPage(1);
+              }}
+            />
           </div>
 
           <CategoryTable
@@ -291,12 +316,14 @@ function ManageCategoryPage() {
 
       {/* Modals */}
       <AddCategoryModal
+        existingCategories={allCategories}
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
         onCreated={handleCategoryCreated}
       />
 
       <EditCategoryModal
+        existingCategories={allCategories}
         open={editingCategory !== null}
         category={editingCategory}
         onClose={() => setEditingCategory(null)}

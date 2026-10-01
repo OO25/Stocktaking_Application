@@ -101,13 +101,15 @@ function App() {
         />
         <Route path="stock-count" element={<StockCountPage />} />
         <Route path="stock-count/:id" element={<StockCountDetailPage />} />
-        <Route path="products" element={<ManageProductPage />} />
-        <Route path="branches" element={<ManageOutletPage />} />
-        <Route path="categories" element={<ManageCategoryPage />} />
-        <Route path="suppliers" element={<ManageSupplierPage />} />
-        <Route path="uom" element={<ManageUomPage />} />
-        <Route path="branch-assignment" element={<ManageOutletAssignmentPage />} />
-        <Route path="users" element={<ManageUsersPage />} />
+        <Route element={<AdminOnlyRoute><Outlet /></AdminOnlyRoute>}>
+          <Route path="products" element={<ManageProductPage />} />
+          <Route path="branches" element={<ManageOutletPage />} />
+          <Route path="categories" element={<ManageCategoryPage />} />
+          <Route path="suppliers" element={<ManageSupplierPage />} />
+          <Route path="uom" element={<ManageUomPage />} />
+          <Route path="branch-assignment" element={<ManageOutletAssignmentPage />} />
+          <Route path="users" element={<ManageUsersPage />} />
+        </Route>
       </Route>
       <Route path="*" element={<DashboardRedirect />} />
     </Routes>

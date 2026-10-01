@@ -31,6 +31,8 @@ pool.on("error", (err) => {
 });
 
 // Pre-warm one connection so the first request isn't slow
-pool.connect().then((c) => c.release()).catch(console.error);
+if (process.env.NODE_ENV !== "test") {
+  pool.connect().then((c) => c.release()).catch(console.error);
+}
 
 export default pool;

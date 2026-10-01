@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { updateFoodGroup, updatePackagingType } from "../../../api/categories.js";
 import { Button } from "../../../components/ui/button.jsx";
@@ -23,7 +24,7 @@ function isFormDirty(form, original) {
  * Modal overlay for editing an existing category.
  * @param {{ open: boolean, category: any, onClose: () => void, onUpdated: () => void }} props
  */
-function EditCategoryModal({ open, category, onClose, onUpdated }) {
+function EditCategoryModal({ open, category, onClose, onUpdated, existingCategories = [] }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -56,6 +57,15 @@ function EditCategoryModal({ open, category, onClose, onUpdated }) {
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
       setError("Please fill in the following required fields: Name.");
+      return false;
+    }
+    const duplicateName = existingCategories.some((item) =>
+      item.type === category.type && item.key !== category.key &&
+      item.name.trim().toLowerCase() === form.name.trim().toLowerCase()
+    );
+    if (duplicateName) {
+      setFieldErrors({ name: true });
+      setError("A category with this name already exists.");
       return false;
     }
     setError(null);
@@ -95,7 +105,7 @@ function EditCategoryModal({ open, category, onClose, onUpdated }) {
 
   return (
     <>
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => {
           if (isFormDirty(form, category)) {
@@ -185,7 +195,7 @@ function EditCategoryModal({ open, category, onClose, onUpdated }) {
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       <ConfirmDialog
         open={discardOpen}

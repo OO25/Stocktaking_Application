@@ -1,3 +1,4 @@
+import DeleteButton from "../../../components/DeleteButton.jsx";
 import {
   Table,
   TableBody,
@@ -8,7 +9,7 @@ import {
   TableRow,
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
-import { Pencil, Ruler, Trash } from "lucide-react";
+import { Pencil, Ruler } from "lucide-react";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -123,15 +124,7 @@ function UomTable({
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      {canDelete && (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => onDelete?.(uom)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <DeleteButton inUse={!canDelete} onClick={() => onDelete?.(uom)} />
                     </div>
                   </div>
                 </TableCell>

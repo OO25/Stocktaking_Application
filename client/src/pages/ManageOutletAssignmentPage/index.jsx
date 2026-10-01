@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../components/ModalBackdrop.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { fetchOutlets } from "../../api/products.js";
@@ -134,9 +135,9 @@ function ManageOutletAssignmentPage() {
 
     setStatusTarget(session);
     setNextStatus(
-      ["in_progress", "submitted", "locked"].includes(session.status)
+      ["draft", "in_progress", "submitted", "locked"].includes(session.status)
         ? session.status
-        : "in_progress"
+        : "draft"
     );
     setStatusDialogOpen(true);
   }
@@ -329,7 +330,7 @@ function ManageOutletAssignmentPage() {
         />
 
         {statusDialogOpen && statusTarget ? (
-          <div
+          <ModalBackdrop
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
             onClick={closeStatusDialog}
           >
@@ -381,6 +382,7 @@ function ManageOutletAssignmentPage() {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="in_progress">In Progress</SelectItem>
                       <SelectItem value="submitted">Completed</SelectItem>
                       <SelectItem value="locked">Locked</SelectItem>
@@ -403,7 +405,7 @@ function ManageOutletAssignmentPage() {
                 </div>
               </form>
             </div>
-          </div>
+          </ModalBackdrop>
         ) : null}
       </div>
     </div>

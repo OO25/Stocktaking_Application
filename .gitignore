@@ -25,3 +25,7 @@ Thumbs.db
 *.swp
 *.swo
 commit_msg.txt
+
+# Browser test artifacts
+playwright-report/
+test-results/

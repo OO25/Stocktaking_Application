@@ -1,3 +1,5 @@
+import { sortByName } from "../../lib/sortByName.js";
+import NameSortSelect from "../../components/NameSortSelect.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { deleteUser, fetchUsers } from "../../api/users.js";
 import { Button } from "../../components/ui/button.jsx";
@@ -34,6 +36,7 @@ function useDebounce(value, delay = 300) {
 
 function ManageUsersPage() {
   const [users, setUsers] = useState([]);
+  const [sort, setSort] = useState("az");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -139,7 +142,7 @@ function ManageUsersPage() {
   const totalCount = filteredUsers.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
   const startIndex = (page - 1) * limit;
-  const pageUsers = filteredUsers.slice(startIndex, startIndex + limit);
+  const pageUsers = sortByName(filteredUsers, sort).slice(startIndex, startIndex + limit);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -195,7 +198,7 @@ function ManageUsersPage() {
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
           {/* Card header: search */}
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
+          <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-1 flex-col-reverse items-start gap-y-2 sm:flex-row sm:items-center sm:space-x-2">
               <div className="search-field">
                 <Search className="search-icon" />
@@ -210,6 +213,13 @@ function ManageUsersPage() {
                 />
               </div>
             </div>
+            <NameSortSelect
+              value={sort}
+              onValueChange={(value) => {
+                setSort(value);
+                setPage(1);
+              }}
+            />
           </div>
 
           <UserTable

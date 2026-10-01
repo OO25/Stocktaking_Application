@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { updateSupplier } from "../../../api/suppliers.js";
 import { Button } from "../../../components/ui/button.jsx";
@@ -87,7 +88,7 @@ function EditSupplierModal({ open, supplier, onClose, onUpdated }) {
 
   return (
     <>
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => { if (isFormDirty(form, supplier)) { setDiscardOpen(true); } else { onClose(); } }}
       >
@@ -176,7 +177,7 @@ function EditSupplierModal({ open, supplier, onClose, onUpdated }) {
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       <ConfirmDialog
         open={discardOpen}

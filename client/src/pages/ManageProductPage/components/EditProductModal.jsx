@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useState, useEffect } from "react";
 import { fetchCategories, fetchSuppliers, fetchOutlets, updateProduct } from "../../../api/products.js";
 import { fetchUoms } from "../../../api/uom.js";
@@ -209,7 +210,7 @@ function EditProductModal({ open, product, onClose, onUpdated }) {
   return (
     <>
       {/* Backdrop and modal */}
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => {
           if (isFormDirty(form, selectedOutlets, product)) {
@@ -314,7 +315,7 @@ function EditProductModal({ open, product, onClose, onUpdated }) {
                         {categoryOptions.map((cat) => (
                           <CommandItem
                             key={cat.id}
-                            value={cat.name}
+                            value={String(cat.id)} keywords={[cat.name]}
                             onSelect={() => { set(categoryField, String(cat.id)); setCategoryOpen(false); }}
                             className="flex w-full items-center justify-between"
                           >
@@ -356,7 +357,7 @@ function EditProductModal({ open, product, onClose, onUpdated }) {
                         {suppliers.map((s) => (
                           <CommandItem
                             key={s.id}
-                            value={s.name}
+                            value={String(s.id)} keywords={[s.name]}
                             onSelect={() => { set("supplier_id", String(s.id)); setSupplierOpen(false); }}
                             className="flex w-full items-center justify-between"
                           >
@@ -414,7 +415,7 @@ function EditProductModal({ open, product, onClose, onUpdated }) {
                         {outlets.map((outlet) => (
                           <CommandItem
                             key={outlet.id}
-                            value={outlet.name}
+                            value={String(outlet.id)} keywords={[outlet.name]}
                             onSelect={() => toggleOutlet(String(outlet.id))}
                             className="flex w-full items-center justify-between"
                           >
@@ -473,7 +474,7 @@ function EditProductModal({ open, product, onClose, onUpdated }) {
                           {uoms.map((u) => (
                             <CommandItem
                               key={u.id}
-                              value={u.name}
+                              value={String(u.id)} keywords={[u.name]}
                               onSelect={() => { set("uom_id", String(u.id)); setUomOpen(false); }}
                               className="flex w-full items-center justify-between"
                             >
@@ -546,7 +547,7 @@ function EditProductModal({ open, product, onClose, onUpdated }) {
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       {/* Discard confirmation — outside backdrop so Keep Editing works correctly */}
       <ConfirmDialog

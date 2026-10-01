@@ -120,7 +120,7 @@ export default function StockCountPage() {
 
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Previous Stocktakes
+            Other Months’ Stocktakes
           </h2>
           <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
             <StockCountTable

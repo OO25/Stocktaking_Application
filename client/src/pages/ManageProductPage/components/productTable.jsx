@@ -1,3 +1,4 @@
+import DeleteButton from "../../../components/DeleteButton.jsx";
 import { useState } from "react";
 import {
   Table,
@@ -10,7 +11,7 @@ import {
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
-import { Box, Pencil, Trash, UtensilsCrossed } from "lucide-react";
+import { Box, Pencil, UtensilsCrossed } from "lucide-react";
 
 /** Shows first outlet with a +N button to reveal the rest. */
 function OutletCell({ names }) {
@@ -174,13 +175,7 @@ function ProductTable({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => onDelete?.(product)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
+                        <DeleteButton inUse={product.in_use} onClick={() => onDelete?.(product)} />
                       </div>
                     </div>
                   </TableCell>

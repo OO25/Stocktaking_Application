@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/authMiddleware.js";
+import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 import {
   getCategories,
   createCategory,
@@ -12,8 +12,8 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/", getCategories);
-router.post("/", createCategory);
-router.put("/:type/:id", updateCategory);
-router.delete("/:type/:id", deleteCategory);
+router.post("/", requireRole("admin"), createCategory);
+router.put("/:type/:id", requireRole("admin"), updateCategory);
+router.delete("/:type/:id", requireRole("admin"), deleteCategory);
 
 export default router;

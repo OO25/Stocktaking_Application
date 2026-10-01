@@ -12,6 +12,8 @@ export function NavMain({
   activeKey,
   label = "Menu",
 }) {
+  if (!items.length) return null;
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>

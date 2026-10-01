@@ -1,5 +1,10 @@
 import pool from "../config/db.js";
 
+const CATEGORY_TABLES = new Map([
+  ["food_group", "food_groups"],
+  ["packaging_type", "packaging_types"],
+]);
+
 /**
  * GET /api/categories?search=
  * Returns all food groups and packaging types as two separate arrays.
@@ -41,12 +46,15 @@ export async function getCategories(req, res) {
            fg.sort_order,
            fg.created_at,
            fg.updated_at,
-           COUNT(p.id)::int AS allocated_product_count
+           (COUNT(p.id) +
+             (SELECT COUNT(*) FROM stocktake_new_items ni WHERE ni.food_group_id = fg.id) +
+             (SELECT COUNT(*) FROM food_groups child WHERE child.parent_id = fg.id) +
+             (SELECT COUNT(*) FROM products sub WHERE sub.food_subcategory_id = fg.id))::int AS allocated_product_count
          FROM food_groups fg
          LEFT JOIN products p ON p.food_group_id = fg.id
          ${foodWhere}
          GROUP BY fg.id, fg.code, fg.name, fg.parent_id, fg.sort_order, fg.created_at, fg.updated_at
-         ORDER BY fg.sort_order`,
+         ORDER BY LOWER(fg.name), fg.id`,
         params
       ),
       pool.query(
@@ -61,7 +69,7 @@ export async function getCategories(req, res) {
          LEFT JOIN products p ON p.packaging_type_id = pt.id
          ${packagingWhere}
          GROUP BY pt.id, pt.name, pt.sort_order, pt.created_at, pt.updated_at
-         ORDER BY pt.sort_order`,
+         ORDER BY LOWER(pt.name), pt.id`,
         params
       ),
     ]);
@@ -84,8 +92,18 @@ export async function createCategory(req, res) {
   try {
     const { type, code, name, parent_id, sort_order = 0 } = req.body;
 
-    if (!type || !name || !name.trim()) {
+    if (!type || typeof name !== "string" || !name.trim()) {
       return res.status(400).json({ error: "type and name are required." });
+    }
+
+    const table = CATEGORY_TABLES.get(type);
+    if (!table) return res.status(400).json({ error: "Invalid category type." });
+    const { rows: duplicates } = await pool.query(
+      `SELECT id FROM ${table} WHERE LOWER(BTRIM(name)) = LOWER(BTRIM($1)) AND ($2::int IS NULL OR id <> $2)`,
+      [name, null]
+    );
+    if (duplicates.length) {
+      return res.status(409).json({ error: "A category with this name already exists." });
     }
 
     if (type === "food_group") {
@@ -112,6 +130,9 @@ export async function createCategory(req, res) {
 
     return res.status(400).json({ error: "Invalid type. Use food_group or packaging_type." });
   } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "A category with this name already exists." });
+    }
     console.error("createCategory error:", err);
     res.status(500).json({ error: err.message || "Failed to create category." });
   }
@@ -131,8 +152,18 @@ export async function updateCategory(req, res) {
       return res.status(400).json({ error: "Invalid category id." });
     }
 
-    if (!name || !name.trim()) {
+    if (typeof name !== "string" || !name.trim()) {
       return res.status(400).json({ error: "Name is required." });
+    }
+
+    const table = CATEGORY_TABLES.get(type);
+    if (!table) return res.status(400).json({ error: "Invalid category type." });
+    const { rows: duplicates } = await pool.query(
+      `SELECT id FROM ${table} WHERE LOWER(BTRIM(name)) = LOWER(BTRIM($1)) AND ($2::int IS NULL OR id <> $2)`,
+      [name, id]
+    );
+    if (duplicates.length) {
+      return res.status(409).json({ error: "A category with this name already exists." });
     }
 
     if (type === "food_group") {
@@ -175,6 +206,9 @@ export async function updateCategory(req, res) {
 
     return res.status(400).json({ error: "Invalid type. Use food_group or packaging_type." });
   } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "A category with this name already exists." });
+    }
     console.error("updateCategory error:", err);
     res.status(500).json({ error: err.message || "Failed to update category." });
   }

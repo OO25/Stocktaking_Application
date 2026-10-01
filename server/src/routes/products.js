@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/authMiddleware.js";
+import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 import {
   getProducts,
   createProduct,
@@ -12,8 +12,8 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/", getProducts);
-router.post("/", createProduct);
-router.put("/:id", updateProduct);
-router.delete("/:id", deleteProduct);
+router.post("/", requireRole("admin"), createProduct);
+router.put("/:id", requireRole("admin"), updateProduct);
+router.delete("/:id", requireRole("admin"), deleteProduct);
 
 export default router;

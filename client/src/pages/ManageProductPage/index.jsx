@@ -55,7 +55,6 @@ import {
 } from "lucide-react";
 
 const SORT_OPTIONS = [
-  { value: "newest", label: "Recently Created" },
   { value: "az", label: "Alphabetical A–Z" },
   { value: "price_asc", label: "Price: Low to High" },
   { value: "price_desc", label: "Price: High to Low" },
@@ -79,7 +78,7 @@ function ManageProductPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("newest");
+  const [sort, setSort] = useState("az");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
