@@ -1,3 +1,4 @@
+import { useAuth } from "../../../context/AuthContext.jsx";
 import { Link } from "react-router-dom";
 import {
   Table,
@@ -78,6 +79,7 @@ function StockCountTable({
   onDelete,
   emptyMessage = "No stocktake sessions found.",
 }) {
+  const { user } = useAuth();
   return (
     <Table>
       <TableHeader>
@@ -136,7 +138,8 @@ function StockCountTable({
           error === null &&
           sessions.map((session) => {
             const isEditable =
-              session.status === "draft" || session.status === "in_progress";
+              ["admin", "manager"].includes(user?.role) &&
+              (session.status === "draft" || session.status === "in_progress");
 
             return (
               <TableRow key={session.id}>

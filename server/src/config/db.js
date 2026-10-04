@@ -1,5 +1,4 @@
 import pg from "pg";
-import { attachDatabasePool } from "@vercel/functions";
 
 const { Pool } = pg;
 
@@ -21,20 +20,19 @@ function sanitizeConnectionString(url) {
 const pool = new Pool({
   connectionString: sanitizeConnectionString(process.env.DATABASE_URL),
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-  min: 0,
-  max: 5,
-  idleTimeoutMillis: 5_000,
-  connectionTimeoutMillis: 10_000,
+  min: 2,
+  idleTimeoutMillis: 30_000,
 });
 
-if (process.env.VERCEL) {
-  attachDatabasePool(pool);
-}
+// Catch background disconnects, like when neon closes itself
+// so the process doesn't crash. The pool will reconnect automatically.
+pool.on("error", (err) => {
+  console.error("Unexpected pool error:", err.message);
+});
 
 // Pre-warm one connection so the first request isn't slow
-pool
-  .connect()
-  .then((c) => c.release())
-  .catch(console.error);
+if (process.env.NODE_ENV !== "test") {
+  pool.connect().then((c) => c.release()).catch(console.error);
+}
 
 export default pool;

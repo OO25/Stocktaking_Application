@@ -2,8 +2,8 @@ import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
-export async function fetchOutlets({ page = 1, limit = 10, search = "" } = {}) {
-  const params = new URLSearchParams({ page, limit, search });
+export async function fetchOutlets({ page = 1, limit = 10, search = "", sort = "az" } = {}) {
+  const params = new URLSearchParams({ page, limit, search, sort });
   const res = await fetchWithAuth(`${API_BASE}/outlets?${params}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

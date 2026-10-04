@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { createSession } from "../../../api/stocktake.js";
 import { fetchOutlets } from "../../../api/products.js";
@@ -90,7 +91,7 @@ function CreateAssignmentModal({ open, onClose, onCreated }) {
 
   return (
     <>
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => { if (isDirty()) { setDiscardOpen(true); } else { onClose(); } }}
       >
@@ -184,7 +185,7 @@ function CreateAssignmentModal({ open, onClose, onCreated }) {
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       <ConfirmDialog
         open={discardOpen}

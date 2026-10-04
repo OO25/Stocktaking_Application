@@ -1,3 +1,4 @@
+import NameSortSelect from "../../components/NameSortSelect.jsx";
 import { useState, useEffect, useRef } from "react";
 import { fetchOutlets } from "../../api/outlets.js";
 import AddOutletModal from "./components/AddOutletModal.jsx";
@@ -35,6 +36,7 @@ function ManageOutletPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [sort, setSort] = useState("az");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,7 +61,7 @@ function ManageOutletPage() {
     setLoading(true);
     setError(null);
 
-    fetchOutlets({ page, limit, search: debouncedSearch })
+    fetchOutlets({ page, limit, search: debouncedSearch, sort })
       .then((data) => {
         if (!cancelled) {
           setOutlets(data.rows);
@@ -74,7 +76,7 @@ function ManageOutletPage() {
       });
 
     return () => { cancelled = true; };
-  }, [page, limit, debouncedSearch, reloadKey]);
+  }, [page, limit, debouncedSearch, sort, reloadKey]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
@@ -141,7 +143,7 @@ function ManageOutletPage() {
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
           {/* Search bar */}
-          <div className="px-5 py-4 border-b border-gray-100">
+          <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -152,6 +154,13 @@ function ManageOutletPage() {
                 className="pl-10 w-full"
               />
             </div>
+            <NameSortSelect
+              value={sort}
+              onValueChange={(value) => {
+                setSort(value);
+                setPage(1);
+              }}
+            />
           </div>
 
           <OutletTable

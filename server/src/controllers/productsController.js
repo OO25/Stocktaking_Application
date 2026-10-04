@@ -21,6 +21,10 @@ export async function getProducts(req, res) {
 
     const conditions = [];
     const params = [];
+    if (req.user.role !== "admin") {
+      params.push(req.user.id);
+      conditions.push(`EXISTS (SELECT 1 FROM user_outlets uo WHERE uo.outlet_id = o.id AND uo.user_id = $${params.length})`);
+    }
 
     if (type === "food") {
       conditions.push("p.is_packaging = false");
@@ -29,20 +33,31 @@ export async function getProducts(req, res) {
     }
 
     if (search) {
-      const idxWildcard = params.length + 1;
-      const idxPlain = params.length + 2;
-      params.push(`%${search}%`, search);
+      // Detect barcode vs manual text entry.
+      // Barcode pattern: purely numeric, 8-14 chars (covers common UPC/EAN lengths).
+      const barcodeRegex = /^\d{8,14}$/;
+      const isBarcode = barcodeRegex.test(search);
 
-      // Treat barcodes as text so alphanumeric values are supported.
-      conditions.push(`(
-        p.barcode       = $${idxPlain} OR
-        p.name          ILIKE $${idxWildcard} OR
-        s.name          ILIKE $${idxWildcard} OR
-        p.barcode       ILIKE $${idxWildcard} OR
-        similarity(p.name, $${idxPlain}) > 0.2 OR
-        similarity(s.name, $${idxPlain}) > 0.2 OR
-        similarity(p.barcode, $${idxPlain}) > 0.2
-      )`);
+      if (isBarcode) {
+        // Exact match against the barcode column (preserve leading zeros by treating as text)
+        const idx = params.length + 1;
+        params.push(search);
+        conditions.push(`(p.barcode = $${idx})`);
+      } else {
+        // Fuzzy text search for manual typing. Use trigram operator (%) and similarity()
+        // to provide helpful results for misspellings / partial names.
+        const idxWildcard = params.length + 1;
+        const idxPlain = params.length + 2;
+        params.push(`%${search}%`, search);
+
+        conditions.push(`(
+          p.name          ILIKE $${idxWildcard} OR
+          s.name          ILIKE $${idxWildcard} OR
+          p.name          % $${idxPlain} OR
+          similarity(p.name, $${idxPlain}) > 0.2 OR
+          similarity(s.name, $${idxPlain}) > 0.2
+        )`);
+      }
     }
 
     if (category) {
@@ -63,7 +78,11 @@ export async function getProducts(req, res) {
     if (outlet) {
       const idx = params.length + 1;
       params.push(outlet);
-      conditions.push(`o.name = $${idx}`);
+      conditions.push(`EXISTS (
+        SELECT 1 FROM outlet_products filter_op
+        JOIN outlets filter_o ON filter_o.id = filter_op.outlet_id
+        WHERE filter_op.product_id = p.id AND filter_o.name = $${idx}
+      )`);
     }
 
     const whereClause =
@@ -103,6 +122,7 @@ export async function getProducts(req, res) {
     const rowsQuery = pool.query(
       `SELECT
         p.id,
+        EXISTS (SELECT 1 FROM stocktake_entries se WHERE se.product_id = p.id) AS in_use,
         p.name,
         p.is_packaging,
         p.uom_id,
@@ -327,6 +347,7 @@ export async function updateProduct(req, res) {
  * Deletes a product and its outlet links.
  */
 export async function deleteProduct(req, res) {
+  const client = await pool.connect();
   try {
     const id = Number(req.params.id);
 
@@ -334,20 +355,22 @@ export async function deleteProduct(req, res) {
       return res.status(400).json({ error: "Invalid product id." });
     }
 
-    // Delete outlet links first in case there is no cascade on the foreign key
-    await pool.query("DELETE FROM outlet_products WHERE product_id = $1", [id]);
-
-    const { rows } = await pool.query(
+    await client.query("BEGIN");
+    await client.query("DELETE FROM outlet_products WHERE product_id = $1", [id]);
+    const { rows } = await client.query(
       "DELETE FROM products WHERE id = $1 RETURNING id",
       [id],
     );
 
     if (!rows.length) {
+      await client.query("ROLLBACK");
       return res.status(404).json({ error: "Product not found." });
     }
 
+    await client.query("COMMIT");
     res.json({ success: true });
   } catch (err) {
+    await client.query("ROLLBACK");
     if (err?.code === "23503") {
       return res.status(400).json({
         error:
@@ -356,5 +379,7 @@ export async function deleteProduct(req, res) {
     }
     console.error("deleteProduct error:", err);
     res.status(500).json({ error: err.message || "Failed to delete product." });
+  } finally {
+    client.release();
   }
 }

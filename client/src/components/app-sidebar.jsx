@@ -27,7 +27,8 @@ import {
 } from "lucide-react"
 
 const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", roles: ["admin", "manager"]  },
+  { key: "dashboard", label: "Dashboard", roles: ["admin"] },
+  { key: "branch-dashboard", label: "Dashboard", nonAdmin: true },
   { key: "stock-count", label: "Stock Count", roles: ["admin", "manager"]  },
   { key: "products", label: "Product", roles: ["admin"] },
   { key: "branches", label: "Outlet", roles: ["admin"] },
@@ -49,13 +50,15 @@ export function AppSidebar(props) {
   const activePage = location.pathname.replace(/^\//, "") || "dashboard"
 
   const visibleItems = NAV_ITEMS.filter(
-    (item) => !item.roles || item.roles.includes(user?.role)
+    (item) =>
+      (item.nonAdmin && user?.role !== "admin") ||
+      (!item.nonAdmin && (!item.roles || item.roles.includes(user?.role)))
   )
   const generalItems = visibleItems.filter((item) =>
-    ["dashboard", "stock-count"].includes(item.key)
+    ["dashboard", "branch-dashboard", "stock-count"].includes(item.key)
   )
   const manageItems = visibleItems.filter(
-    (item) => !["dashboard", "stock-count"].includes(item.key)
+    (item) => !["dashboard", "branch-dashboard", "stock-count"].includes(item.key)
   )
 
   return (
@@ -110,6 +113,7 @@ function NavIcon({ itemKey }) {
 
   switch (itemKey) {
     case "dashboard":
+    case "branch-dashboard":
       return <LayoutDashboardIcon className={cls} />
     case "stock-count":
       return <ClipboardListIcon className={cls} />

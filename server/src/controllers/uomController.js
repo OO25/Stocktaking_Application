@@ -13,11 +13,11 @@ export async function getUoms(_req, res) {
          u.description,
          u.created_at,
          u.updated_at,
-         COUNT(p.id)::int AS allocated_product_count
+         (COUNT(p.id) + (SELECT COUNT(*) FROM stocktake_new_items ni WHERE ni.uom_id = u.id))::int AS allocated_product_count
        FROM units_of_measure u
        LEFT JOIN products p ON p.uom_id = u.id
        GROUP BY u.id, u.name, u.description, u.created_at, u.updated_at
-       ORDER BY name`
+       ORDER BY LOWER(u.name), u.id`
     );
     res.json(rows);
   } catch (err) {
@@ -34,8 +34,16 @@ export async function createUom(req, res) {
   try {
     const { name, description } = req.body;
 
-    if (!name) {
+    if (typeof name !== "string" || !name.trim()) {
       return res.status(400).json({ error: "Name is required." });
+    }
+
+    const { rows: duplicates } = await pool.query(
+      "SELECT id FROM units_of_measure WHERE LOWER(BTRIM(name)) = LOWER(BTRIM($1)) AND ($2::int IS NULL OR id <> $2)",
+      [name, null]
+    );
+    if (duplicates.length) {
+      return res.status(409).json({ error: "A unit with this name already exists." });
     }
 
     const { rows } = await pool.query(
@@ -47,6 +55,9 @@ export async function createUom(req, res) {
 
     res.status(201).json(rows[0]);
   } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "A unit with this name already exists." });
+    }
     console.error("createUom error:", err);
     res.status(500).json({ error: err.message || "Failed to create unit." });
   }
@@ -65,8 +76,16 @@ export async function updateUom(req, res) {
       return res.status(400).json({ error: "Invalid UOM id." });
     }
 
-    if (!name) {
+    if (typeof name !== "string" || !name.trim()) {
       return res.status(400).json({ error: "Name is required." });
+    }
+
+    const { rows: duplicates } = await pool.query(
+      "SELECT id FROM units_of_measure WHERE LOWER(BTRIM(name)) = LOWER(BTRIM($1)) AND ($2::int IS NULL OR id <> $2)",
+      [name, id]
+    );
+    if (duplicates.length) {
+      return res.status(409).json({ error: "A unit with this name already exists." });
     }
 
     const { rows } = await pool.query(
@@ -85,6 +104,9 @@ export async function updateUom(req, res) {
 
     res.json(rows[0]);
   } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "A unit with this name already exists." });
+    }
     console.error("updateUom error:", err);
     res.status(500).json({ error: err.message || "Failed to update unit." });
   }

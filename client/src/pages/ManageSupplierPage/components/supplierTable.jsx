@@ -1,3 +1,4 @@
+import DeleteButton from "../../../components/DeleteButton.jsx";
 import {
   Table,
   TableBody,
@@ -8,7 +9,7 @@ import {
   TableRow,
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
-import { Globe, Mail, Pencil, Phone, Trash, TruckIcon } from "lucide-react";
+import { Globe, Mail, Pencil, Phone, TruckIcon } from "lucide-react";
 
 /** Supplier table for ManageSupplierPage. */
 function SupplierTable({
@@ -141,15 +142,7 @@ function SupplierTable({
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    {canDelete && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => onDelete?.(supplier)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <DeleteButton inUse={!canDelete} onClick={() => onDelete?.(supplier)} />
                   </div>
                 </div>
               </TableCell>

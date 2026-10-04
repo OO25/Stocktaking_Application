@@ -1,3 +1,4 @@
+import DeleteButton from "../../../components/DeleteButton.jsx";
 import {
   Table,
   TableBody,
@@ -9,7 +10,7 @@ import {
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
-import { Box, Pencil, Trash, UtensilsCrossed } from "lucide-react";
+import { Box, Pencil, UtensilsCrossed } from "lucide-react";
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -139,15 +140,7 @@ function CategoryTable({
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    {canDelete && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => onDelete?.(category)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <DeleteButton inUse={!canDelete} onClick={() => onDelete?.(category)} />
                   </div>
                 </div>
               </TableCell>

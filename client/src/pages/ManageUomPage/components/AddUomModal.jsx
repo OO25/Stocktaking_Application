@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { createUom } from "../../../api/uom.js";
 import { Button } from "../../../components/ui/button.jsx";
@@ -20,7 +21,7 @@ function isAddUomDirty(form) {
  * Modal overlay for creating a new unit of measure.
  * @param {{ open: boolean, onClose: () => void, onCreated: () => void }} props
  */
-function AddUomModal({ open, onClose, onCreated }) {
+function AddUomModal({ open, onClose, onCreated, existingUnits = [] }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -54,6 +55,14 @@ function AddUomModal({ open, onClose, onCreated }) {
       setError(`Please fill in the following required fields: ${missing}.`);
       return false;
     }
+    const duplicateName = existingUnits.some((unit) =>
+      unit.name.trim().toLowerCase() === form.name.trim().toLowerCase()
+    );
+    if (duplicateName) {
+      setFieldErrors({ name: true });
+      setError("A unit with this name already exists.");
+      return false;
+    }
     setError(null);
     return true;
   }
@@ -78,7 +87,7 @@ function AddUomModal({ open, onClose, onCreated }) {
 
   return (
     <>
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => { if (isAddUomDirty(form)) { setDiscardOpen(true); } else { onClose(); } }}
       >
@@ -145,7 +154,7 @@ function AddUomModal({ open, onClose, onCreated }) {
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       <ConfirmDialog
         open={discardOpen}

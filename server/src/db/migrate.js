@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
+import { getPendingMigrations } from "./migrationHistory.js";
 
 const { Pool } = pg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -35,7 +36,6 @@ async function migrate() {
     const { rows: applied } = await pool.query(
       "SELECT filename FROM _migrations ORDER BY filename"
     );
-    const appliedSet = new Set(applied.map((r) => r.filename));
 
     // Read migration files and filter out already-applied ones
     const files = fs
@@ -43,7 +43,7 @@ async function migrate() {
       .filter((f) => f.endsWith(".sql"))
       .sort();
 
-    const pending = files.filter((f) => !appliedSet.has(f));
+    const pending = getPendingMigrations(files, applied.map((row) => row.filename));
 
     if (pending.length === 0) {
       console.log("No pending migrations.");

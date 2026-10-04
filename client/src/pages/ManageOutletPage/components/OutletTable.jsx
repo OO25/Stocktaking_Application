@@ -1,3 +1,4 @@
+import DeleteButton from "../../../components/DeleteButton.jsx";
 import { useState } from "react";
 import {
   Table,
@@ -9,7 +10,7 @@ import {
   TableRow,
 } from "../../../components/ui/table.jsx";
 import { Button } from "../../../components/ui/button.jsx";
-import { Pencil, StoreIcon, Trash } from "lucide-react";
+import { Pencil, StoreIcon } from "lucide-react";
 import { deleteOutlet } from "@/api/outlets.js";
 import {
   AlertDialog,
@@ -148,19 +149,14 @@ function OutletTable({
                     <Button size="sm" variant="secondary" onClick={() => onEdit(outlet)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    {canDelete && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          setDeleteTarget(outlet);
-                          setDeleteError("");
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <DeleteButton
+                      inUse={!canDelete}
+                      onClick={() => {
+                        setDeleteTarget(outlet);
+                        setDeleteError("");
+                        setDeleteDialogOpen(true);
+                      }}
+                    />
                   </div>
                 </div>
               </TableCell>

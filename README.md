@@ -55,7 +55,12 @@ A multi-outlet stocktake and financial tracking system for food service operatio
    npm install
    ```
 
-4. Start the development servers:
+4. Run database migrations:
+   ```bash
+   npm run migrate --workspace=server
+   ```
+
+5. Start the development servers:
    ```bash
    npm run dev
    ```

@@ -25,5 +25,7 @@ Thumbs.db
 *.swp
 *.swo
 commit_msg.txt
-.vercel/
-.env*.local
+
+# Browser test artifacts
+playwright-report/
+test-results/

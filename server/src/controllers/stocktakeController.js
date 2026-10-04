@@ -975,11 +975,14 @@ export async function saveSessionEntries(req, res) {
 
       // Get existing entry IDs to determine which to delete
       const { rows: existingEntries } = await client.query(
-        "SELECT product_id FROM stocktake_entries WHERE session_id = $1",
+        "SELECT product_id, unit_price FROM stocktake_entries WHERE session_id = $1",
         [sessionId],
       );
       const existingProductIds = new Set(
         existingEntries.map((e) => e.product_id),
+      );
+      const existingUnitPrices = new Map(
+        existingEntries.map((entry) => [entry.product_id, entry.unit_price]),
       );
       const newProductIds = new Set(entries.map((e) => e.product_id));
 
@@ -995,6 +998,10 @@ export async function saveSessionEntries(req, res) {
 
       // Upsert entries
       for (const entry of entries) {
+        const existingUnitPrice = existingUnitPrices.get(entry.product_id);
+        const unitPriceToSave =
+          existingUnitPrice !== undefined ? existingUnitPrice : entry.unit_price;
+
         await client.query(
           `INSERT INTO stocktake_entries (session_id, product_id, quantity, unit_price)
            VALUES ($1, $2, $3, $4)
@@ -1002,7 +1009,7 @@ export async function saveSessionEntries(req, res) {
            DO UPDATE SET
              quantity = EXCLUDED.quantity,
              unit_price = EXCLUDED.unit_price`,
-          [sessionId, entry.product_id, entry.quantity, entry.unit_price],
+          [sessionId, entry.product_id, entry.quantity, unitPriceToSave],
         );
       }
 

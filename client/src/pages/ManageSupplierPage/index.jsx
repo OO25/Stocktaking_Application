@@ -1,3 +1,5 @@
+import { sortByName } from "../../lib/sortByName.js";
+import NameSortSelect from "../../components/NameSortSelect.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchAllSuppliers, deleteSupplier } from "../../api/suppliers.js";
 import { Button } from "../../components/ui/button.jsx";
@@ -34,6 +36,7 @@ function useDebounce(value, delay = 300) {
 
 function ManageSupplierPage() {
   const [suppliers, setSuppliers] = useState([]);
+  const [sort, setSort] = useState("az");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -134,7 +137,7 @@ function ManageSupplierPage() {
   const totalCount = filteredSuppliers.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
   const startIndex = (page - 1) * limit;
-  const pageSuppliers = filteredSuppliers.slice(
+  const pageSuppliers = sortByName(filteredSuppliers, sort).slice(
     startIndex,
     startIndex + limit
   );
@@ -193,7 +196,7 @@ function ManageSupplierPage() {
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
           {/* Card header: search */}
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
+          <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-1 flex-col-reverse items-start gap-y-2 sm:flex-row sm:items-center sm:space-x-2">
               <div className="search-field">
                 <Search className="search-icon" />
@@ -208,6 +211,13 @@ function ManageSupplierPage() {
                 />
               </div>
             </div>
+            <NameSortSelect
+              value={sort}
+              onValueChange={(value) => {
+                setSort(value);
+                setPage(1);
+              }}
+            />
           </div>
 
           <SupplierTable

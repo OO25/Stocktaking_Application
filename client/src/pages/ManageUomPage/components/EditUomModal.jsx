@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { updateUom } from "../../../api/uom.js";
 import { Button } from "../../../components/ui/button.jsx";
@@ -24,7 +25,7 @@ function isFormDirty(form, original) {
  * Modal overlay for editing an existing unit of measure.
  * @param {{ open: boolean, uom: any, onClose: () => void, onUpdated: () => void }} props
  */
-function EditUomModal({ open, uom, onClose, onUpdated }) {
+function EditUomModal({ open, uom, onClose, onUpdated, existingUnits = [] }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -56,6 +57,15 @@ function EditUomModal({ open, uom, onClose, onUpdated }) {
       setError("Please fill in the following required fields: Name.");
       return false;
     }
+    const duplicateName = existingUnits.some((unit) =>
+      unit.name.trim().toLowerCase() === form.name.trim().toLowerCase() &&
+      unit.id !== uom.id
+    );
+    if (duplicateName) {
+      setFieldErrors({ name: true });
+      setError("A unit with this name already exists.");
+      return false;
+    }
     setError(null);
     return true;
   }
@@ -80,7 +90,7 @@ function EditUomModal({ open, uom, onClose, onUpdated }) {
 
   return (
     <>
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => { if (isFormDirty(form, uom)) { setDiscardOpen(true); } else { onClose(); } }}
       >
@@ -145,7 +155,7 @@ function EditUomModal({ open, uom, onClose, onUpdated }) {
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       <ConfirmDialog
         open={discardOpen}

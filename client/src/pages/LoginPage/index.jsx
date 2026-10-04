@@ -1,6 +1,6 @@
 // Login form — shown when no user is authenticated
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
@@ -9,6 +9,10 @@ import { cn } from "../../lib/utils.js";
 
 function LoginPage() {
   const { login } = useAuth();
+
+  useEffect(() => {
+    document.title = "Login | Stocktaking Application";
+  }, []);
 
   const [username,     setUsername]     = useState("");
   const [password,     setPassword]     = useState("");

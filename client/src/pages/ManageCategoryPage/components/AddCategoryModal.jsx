@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { createFoodGroup, createPackagingType } from "../../../api/categories.js";
 import { Button } from "../../../components/ui/button.jsx";
@@ -28,7 +29,7 @@ function isAddCategoryDirty(form) {
  * Modal overlay for creating a new category.
  * @param {{ open: boolean, onClose: () => void, onCreated: () => void }} props
  */
-function AddCategoryModal({ open, onClose, onCreated }) {
+function AddCategoryModal({ open, onClose, onCreated, existingCategories = [] }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -60,6 +61,15 @@ function AddCategoryModal({ open, onClose, onCreated }) {
       const labels = { name: "Name" };
       const missing = Object.keys(errors).map((k) => labels[k] || k).join(", ");
       setError(`Please fill in the following required fields: ${missing}.`);
+      return false;
+    }
+    const duplicateName = existingCategories.some((item) =>
+      item.type === (form.type === "food_group" ? "Food group" : "Packaging type") &&
+      item.name.trim().toLowerCase() === form.name.trim().toLowerCase()
+    );
+    if (duplicateName) {
+      setFieldErrors({ name: true });
+      setError("A category with this name already exists.");
       return false;
     }
     setError(null);
@@ -95,7 +105,7 @@ function AddCategoryModal({ open, onClose, onCreated }) {
 
   return (
     <>
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => {
           if (isAddCategoryDirty(form)) {
@@ -202,7 +212,7 @@ function AddCategoryModal({ open, onClose, onCreated }) {
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       <ConfirmDialog
         open={discardOpen}

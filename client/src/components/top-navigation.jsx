@@ -17,8 +17,10 @@ import { Badge } from "./ui/badge.jsx";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export function TopNavigation() {
+  const { user } = useAuth();
   const location = useLocation();
   const { pathname } = location;
   const stockCountMatch = pathname.match(/^\/stock-count\/(.+)$/);
@@ -26,6 +28,7 @@ export function TopNavigation() {
   const [stockCountDetailName, setStockCountDetailName] = useState("");
   const pageTitles = {
     "/dashboard": "Dashboard",
+    "/branch-dashboard": "Dashboard",
     "/stock-count": "Stock Count",
     "/products": "Products",
     "/branches": "Branches",
@@ -36,6 +39,7 @@ export function TopNavigation() {
     "/users": "Users",
   };
   const pageTitle = pageTitles[pathname] ?? "Dashboard";
+  const dashboardPath = user?.role === "admin" ? "/dashboard" : "/branch-dashboard";
   const managePages = [
     { label: "Products", to: "/products" },
     { label: "Branches", to: "/branches" },
@@ -45,21 +49,20 @@ export function TopNavigation() {
     { label: "Branch Assignment", to: "/branch-assignment" },
     { label: "Users", to: "/users" },
   ];
-  const isManagePage = managePages.some((page) => page.to === pathname);
+  const isManagePage = user?.role === "admin" && managePages.some((page) => page.to === pathname);
   const isStockCountDetail = Boolean(stockCountId);
+
+  useEffect(() => {
+    const title = isStockCountDetail ? stockCountDetailName || "Stock Count" : pageTitle;
+    document.title = `${title} | Stocktaking Application`;
+  }, [pageTitle, isStockCountDetail, stockCountDetailName]);
 
   useEffect(() => {
     if (!stockCountId) return;
     const stateName = location.state?.assignmentName || location.state?.name;
     const stored = sessionStorage.getItem(`stockcount-name:${stockCountId}`);
-    if (stateName) {
-      setStockCountDetailName(stateName);
-      sessionStorage.setItem(`stockcount-name:${stockCountId}`, stateName);
-      return;
-    }
-    if (stored) {
-      setStockCountDetailName(stored);
-    }
+    setStockCountDetailName(stateName || stored || "");
+    if (stateName) sessionStorage.setItem(`stockcount-name:${stockCountId}`, stateName);
   }, [location.state, stockCountId]);
 
   useEffect(() => {
@@ -86,7 +89,7 @@ export function TopNavigation() {
             <>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/dashboard">
+                  <Link to={dashboardPath}>
                     <Badge
                       variant="outline"
                       className="text-muted-foreground hover:text-foreground"
@@ -130,7 +133,7 @@ export function TopNavigation() {
             <>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/dashboard">
+                  <Link to={dashboardPath}>
                     <Badge
                       variant="outline"
                       className="text-muted-foreground hover:text-foreground"

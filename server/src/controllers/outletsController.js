@@ -12,8 +12,13 @@ export async function getOutlets(req, res) {
     const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit) || 10) : null;
     const search = (req.query.search || "").trim();
 
+    const sortDirection = req.query.sort === "za" ? "DESC" : "ASC";
     const conditions = [];
     const values = [];
+    if (req.user.role !== "admin") {
+      values.push(req.user.id);
+      conditions.push(`EXISTS (SELECT 1 FROM user_outlets uo WHERE uo.outlet_id = o.id AND uo.user_id = $${values.length})`);
+    }
 
     if (search) {
       values.push(search);
@@ -37,12 +42,14 @@ export async function getOutlets(req, res) {
       o.cost_centre,
       o.created_at,
       o.updated_at,
-      COUNT(op.product_id)::int AS allocated_product_count
+      (COUNT(op.product_id) +
+        (SELECT COUNT(*) FROM stocktake_sessions ss WHERE ss.outlet_id = o.id) +
+        (SELECT COUNT(*) FROM user_outlets uo WHERE uo.outlet_id = o.id))::int AS allocated_product_count
       FROM outlets o
       LEFT JOIN outlet_products op ON op.outlet_id = o.id
       ${where}
       GROUP BY o.id, o.name, o.cost_centre, o.created_at, o.updated_at
-      ORDER BY o.name`;
+      ORDER BY LOWER(o.name) ${sortDirection}, o.id ${sortDirection}`;
     const queryValues = [...values];
 
     if (page && limit) {

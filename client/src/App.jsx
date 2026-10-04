@@ -12,6 +12,7 @@ import ManageUsersPage from "./pages/ManageUsersPage/index.jsx";
 import StockCountPage from "./pages/StockCountPage/index.jsx";
 import StockCountDetailPage from "./pages/StockCountPage/detail.jsx";
 import DashboardPage from "./pages/DashboardPage/index.jsx";
+import BranchDashboardPage from "./pages/branchDashboardPage/index.jsx";
 import {
   SidebarInset,
   SidebarProvider,
@@ -42,6 +43,34 @@ function AuthLayout() {
   );
 }
 
+function DashboardRedirect() {
+  const { user } = useAuth();
+  return (
+    <Navigate
+      to={user?.role === "admin" ? "/dashboard" : "/branch-dashboard"}
+      replace
+    />
+  );
+}
+
+function AdminOnlyRoute({ children }) {
+  const { user } = useAuth();
+  return user?.role === "admin" ? (
+    children
+  ) : (
+    <Navigate to="/branch-dashboard" replace />
+  );
+}
+
+function NonAdminOnlyRoute({ children }) {
+  const { user } = useAuth();
+  return user?.role !== "admin" ? (
+    children
+  ) : (
+    <Navigate to="/dashboard" replace />
+  );
+}
+
 function App() {
   const { user } = useAuth();
 
@@ -53,19 +82,36 @@ function App() {
       />
 
       <Route element={<AuthLayout />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
+        <Route index element={<DashboardRedirect />} />
+        <Route
+          path="dashboard"
+          element={
+            <AdminOnlyRoute>
+              <DashboardPage />
+            </AdminOnlyRoute>
+          }
+        />
+        <Route
+          path="branch-dashboard"
+          element={
+            <NonAdminOnlyRoute>
+              <BranchDashboardPage />
+            </NonAdminOnlyRoute>
+          }
+        />
         <Route path="stock-count" element={<StockCountPage />} />
         <Route path="stock-count/:id" element={<StockCountDetailPage />} />
-        <Route path="products" element={<ManageProductPage />} />
-        <Route path="branches" element={<ManageOutletPage />} />
-        <Route path="categories" element={<ManageCategoryPage />} />
-        <Route path="suppliers" element={<ManageSupplierPage />} />
-        <Route path="uom" element={<ManageUomPage />} />
-        <Route path="branch-assignment" element={<ManageOutletAssignmentPage />} />
-        <Route path="users" element={<ManageUsersPage />} />
+        <Route element={<AdminOnlyRoute><Outlet /></AdminOnlyRoute>}>
+          <Route path="products" element={<ManageProductPage />} />
+          <Route path="branches" element={<ManageOutletPage />} />
+          <Route path="categories" element={<ManageCategoryPage />} />
+          <Route path="suppliers" element={<ManageSupplierPage />} />
+          <Route path="uom" element={<ManageUomPage />} />
+          <Route path="branch-assignment" element={<ManageOutletAssignmentPage />} />
+          <Route path="users" element={<ManageUsersPage />} />
+        </Route>
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<DashboardRedirect />} />
     </Routes>
   );
 }

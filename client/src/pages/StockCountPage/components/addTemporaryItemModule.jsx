@@ -1,3 +1,4 @@
+import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { fetchCategories } from "../../../api/categories.js";
 import { fetchUoms } from "../../../api/uom.js";
@@ -217,7 +218,7 @@ function AddTemporaryItemModule({
 
   return (
     <>
-      <div
+      <ModalBackdrop
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         onClick={() => {
           if (isDirty(form)) {
@@ -461,7 +462,7 @@ function AddTemporaryItemModule({
             </div>
           </form>
         </div>
-      </div>
+      </ModalBackdrop>
 
       <ConfirmDialog
         open={discardOpen}
