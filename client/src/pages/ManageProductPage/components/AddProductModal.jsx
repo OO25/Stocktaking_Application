@@ -1,3 +1,4 @@
+import { useBarcodeCapture } from "../../../hooks/useBarcodeCapture.js";
 import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useState, useEffect } from "react";
 import { fetchCategories, fetchSuppliers, fetchOutlets, createProduct } from "../../../api/products.js";
@@ -90,6 +91,8 @@ function AddProductModal({ open, onClose, onCreated }) {
     setFieldErrors({});
     setDiscardOpen(false);
   }, [open]);
+
+  useBarcodeCapture(open && !discardOpen, form, setForm, "product_code", "add-product-barcode");
 
   if (!open) return null;
 

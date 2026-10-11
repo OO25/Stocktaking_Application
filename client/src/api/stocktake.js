@@ -130,3 +130,10 @@ export async function submitSession(id) {
     method: "POST",
   });
 }
+
+export async function promoteSessionTemporaryItem(id, itemId, foodGroupId) {
+  return request(`${API_BASE}/stocktake/sessions/${id}/new-items/${itemId}/permanent`, {
+    method: "POST",
+    body: JSON.stringify({ food_group_id: foodGroupId }),
+  });
+}

@@ -1,3 +1,4 @@
+import { fetchCategories } from "../../api/categories.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import {
   deleteSessionTemporaryItem,
+  promoteSessionTemporaryItem,
   fetchSessionDetail,
   saveSessionEntries,
   updateSessionStatus,
@@ -45,6 +47,34 @@ export default function StockCountDetailPage() {
   const [entries, setEntries] = useState([]);
   const [validProducts, setValidProducts] = useState([]);
   const [temporaryItems, setTemporaryItems] = useState([]);
+  const [promoteItem, setPromoteItem] = useState(null);
+  const [promoteCategory, setPromoteCategory] = useState("");
+  const [promoteCategories, setPromoteCategories] = useState([]);
+  const [promoteError, setPromoteError] = useState(null);
+  const [promoting, setPromoting] = useState(false);
+
+  async function openPromote(item) {
+    setPromoteItem(item);
+    setPromoteCategory(String(item.food_group_id || ""));
+    setPromoteError(null);
+    if (!item.food_group_id) {
+      try { setPromoteCategories((await fetchCategories()).foodGroups || []); }
+      catch (err) { setPromoteError(err.message); }
+    }
+  }
+
+  async function savePermanentItem() {
+    setPromoting(true);
+    setPromoteError(null);
+    try {
+      const result = await promoteSessionTemporaryItem(id, promoteItem.id, promoteCategory);
+      setTemporaryItems((items) => items.map((item) => item.id === promoteItem.id
+        ? { ...item, permanent_product_id: result.product_id } : item));
+      setPromoteItem(null);
+    } catch (err) {
+      setPromoteError(err.message || "Failed to save permanent item.");
+    } finally { setPromoting(false); }
+  }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -217,7 +247,7 @@ export default function StockCountDetailPage() {
     }
 
     function handleKeyDown(event) {
-      if (scanDialogOpen || unrecognizedDialogOpen || addTemporaryItemOpen) return;
+      if (scanDialogOpen || unrecognizedDialogOpen || addTemporaryItemOpen || promoteItem) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
 
       if (event.key === "Enter") {
@@ -242,7 +272,7 @@ export default function StockCountDetailPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isEditable, scanDialogOpen, validProducts, unrecognizedDialogOpen, addTemporaryItemOpen]);
+  }, [isEditable, scanDialogOpen, validProducts, unrecognizedDialogOpen, addTemporaryItemOpen, promoteItem]);
 
   // Save entries without finalizing
   const handleSave = async () => {
@@ -564,7 +594,31 @@ export default function StockCountDetailPage() {
         </div>
       </div>
 
+      <AlertDialog open={Boolean(promoteItem)} onOpenChange={(open) => { if (!open && !promoting) setPromoteItem(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save as permanent item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Add {promoteItem?.name || "this item"} to the product catalogue for this outlet. This count will be preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {promoteItem && !promoteItem.food_group_id && <label className="space-y-2 text-sm">
+            <span>Food category</span>
+            <select aria-label="Food category" className="w-full rounded-md border p-2" value={promoteCategory} onChange={(event) => setPromoteCategory(event.target.value)}>
+              <option value="">Select a category</option>
+              {promoteCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+          </label>}
+          {promoteError && <p role="alert" className="text-sm text-red-600">{promoteError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={promoting}>Cancel</AlertDialogCancel>
+            <Button disabled={promoting || !promoteCategory} onClick={savePermanentItem}>{promoting ? "Saving…" : "Save permanent item"}</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <TemporaryItemsTable
+        canPromote={["admin", "manager"].includes(user?.role)}
+        onPromote={openPromote}
         temporaryItems={temporaryItems}
         isEditable={isEditable}
         onEdit={(item) => {

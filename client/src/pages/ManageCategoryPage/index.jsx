@@ -1,6 +1,5 @@
 import { sortByName } from "../../lib/sortByName.js";
 import NameSortSelect from "../../components/NameSortSelect.jsx";
-import { downloadCategories } from "../../lib/exportCategories.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchCategories,
@@ -22,16 +21,6 @@ import CategoryTable from "./components/categoryTable.jsx";
 import AddCategoryModal from "./components/AddCategoryModal.jsx";
 import EditCategoryModal from "./components/EditCategoryModal.jsx";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu.jsx";
-import {
-  ChevronDown,
-  FileSpreadsheet,
-  FileText,
   Plus,
   Search,
 } from "lucide-react";
@@ -51,7 +40,6 @@ function ManageCategoryPage() {
     foodGroups: [],
     packagingTypes: [],
   });
-  const [exporting, setExporting] = useState(false);
   const [sort, setSort] = useState("az");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -185,16 +173,6 @@ function ManageCategoryPage() {
     });
   }, [allCategories, debouncedSearch, typeFilter]);
 
-  async function handleExport(format) {
-    setExporting(true);
-    try {
-      await downloadCategories(sortByName(filteredCategories, sort), format);
-    } catch (err) {
-      setError(err.message || "Failed to export categories.");
-    } finally {
-      setExporting(false);
-    }
-  }
 
   const totalCount = filteredCategories.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
@@ -223,25 +201,6 @@ function ManageCategoryPage() {
           {/* Action */}
           <div className="action-row">
             <div className="flex gap-2 w-full sm:w-auto">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="outline">
-                    Options
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>Export</DropdownMenuLabel>
-                  <DropdownMenuItem disabled={loading || exporting} onSelect={() => handleExport("xlsx")}>
-                    <FileSpreadsheet className="h-4 w-4" />
-                    Excel
-                  </DropdownMenuItem>
-                  <DropdownMenuItem disabled={loading || exporting} onSelect={() => handleExport("csv")}>
-                    <FileText className="h-4 w-4" />
-                    CSV
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
               <Button onClick={() => setShowAddModal(true)}>
                 <Plus />
                 Add New Category

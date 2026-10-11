@@ -8,16 +8,6 @@ import SuccessAlert from "../../components/SuccessAlert.jsx";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu.jsx";
-import {
-  ChevronDown,
-  FileSpreadsheet,
-  FileText,
   Plus,
   Search,
 } from "lucide-react";
@@ -112,25 +102,6 @@ function ManageOutletPage() {
             <p className="text-sm text-gray-500">Manage your outlets here.</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="outline">
-                    Options
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Export</DropdownMenuLabel>
-                <DropdownMenuItem>
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Excel
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileText className="h-4 w-4" />
-                  CSV
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
             <Button onClick={() => setShowAddModal(true)}>
               <Plus />
               Add New Outlet

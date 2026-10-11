@@ -76,3 +76,15 @@ A multi-outlet stocktake and financial tracking system for food service operatio
 | `npm run dev:server` | Start only the Express server |
 | `npm run build` | Build the client for production |
 | `npm run start` | Start the production server |
+## Permanent stocktake items
+
+Run pending migrations before deploying this version (`npm run migrate --workspace=server`).
+Migration `010_permanent-stocktake-items.sql` links counted temporary items to their
+permanent catalogue products. Managers can save items for their assigned outlets;
+admins can save items from any stock count, including submitted or locked counts.
+The original quantity and price remain in the count, while the new product is
+available to future counts for that outlet. A food category is required when saving.
+
+Add-item forms focus the barcode field and accept keyboard scanners ending in Enter
+or Tab. Rapid scans from another form field populate the barcode and preserve that
+field's previous value.

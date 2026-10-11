@@ -1,3 +1,4 @@
+import { useBarcodeCapture } from "../../../hooks/useBarcodeCapture.js";
 import ModalBackdrop from "../../../components/ModalBackdrop.jsx";
 import { useEffect, useState } from "react";
 import { fetchCategories } from "../../../api/categories.js";
@@ -127,6 +128,8 @@ function AddTemporaryItemModule({
       setForm((prev) => ({ ...prev, unit_size: String(matched.id) }));
     }
   }, [open, temporaryItem, uoms, form.unit_size]);
+
+  useBarcodeCapture(open && !discardOpen, form, setForm, "barcode", "temp-item-barcode");
 
   if (!open) return null;
 

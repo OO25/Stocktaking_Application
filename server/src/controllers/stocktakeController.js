@@ -520,6 +520,7 @@ export async function getSessionDetail(req, res) {
            sni.quantity,
            sni.total,
            sni.is_one_off,
+           sni.permanent_product_id,
            fg.name AS food_group_name
          FROM stocktake_new_items sni
          LEFT JOIN food_groups fg ON fg.id = sni.food_group_id
@@ -560,7 +561,7 @@ export async function getSessionDetail(req, res) {
     // Build and return DTO
     const dto = buildSessionDetailDTO(
       session,
-      validProducts,
+      validProducts.filter((product) => !temporaryItems.some((item) => item.permanent_product_id === product.product_id)),
       currentEntries,
       temporaryItems,
     );
@@ -1151,5 +1152,74 @@ export async function updateSessionStatus(req, res) {
   } catch (err) {
     console.error("updateSessionStatus error:", err);
     res.status(500).json({ message: "Failed to update session status." });
+  }
+}
+
+/** Copy a counted item to the catalogue without changing its historical count. */
+export async function promoteSessionTemporaryItem(req, res) {
+  const sessionId = Number(req.params.id);
+  const itemId = Number(req.params.itemId);
+  if (![sessionId, itemId].every((id) => Number.isInteger(id) && id > 0)) {
+    return res.status(400).json({ message: "Invalid session or item id." });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows: sessions } = await client.query(
+      "SELECT outlet_id FROM stocktake_sessions WHERE id = $1 FOR UPDATE", [sessionId]);
+    if (!sessions.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Session not found." });
+    }
+    try {
+      await checkSessionAccess(req, sessions[0].outlet_id);
+    } catch {
+      await client.query("ROLLBACK");
+      return res.status(403).json({ message: "Access denied to this session." });
+    }
+    const { rows } = await client.query(
+      "SELECT * FROM stocktake_new_items WHERE id = $1 AND session_id = $2 FOR UPDATE", [itemId, sessionId]);
+    const item = rows[0];
+    if (!item) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Temporary item not found." });
+    }
+    if (item.permanent_product_id) {
+      await client.query("COMMIT");
+      return res.json({ product_id: item.permanent_product_id });
+    }
+    const categoryId = Number(item.food_group_id || req.body.food_group_id);
+    const { rows: categories } = await client.query("SELECT id FROM food_groups WHERE id = $1", [Number.isInteger(categoryId) ? categoryId : 0]);
+    if (!categories.length) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "Select a food category for this permanent item." });
+    }
+    if (item.barcode) {
+      const { rows: duplicates } = await client.query("SELECT id FROM products WHERE barcode = $1", [item.barcode]);
+      if (duplicates.length) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ message: "A permanent product with this barcode already exists." });
+      }
+    }
+    const name = item.name?.trim() || item.description.split(" | ")[0].trim();
+    if (!name) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "A product name is required." });
+    }
+    const { rows: products } = await client.query(
+      `INSERT INTO products (name, food_group_id, barcode, package_size, uom_id, price)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [name, categoryId, item.barcode, item.package_size, item.uom_id, item.price]);
+    const productId = products[0].id;
+    await client.query("INSERT INTO outlet_products (outlet_id, product_id) VALUES ($1, $2)", [sessions[0].outlet_id, productId]);
+    await client.query("UPDATE stocktake_new_items SET permanent_product_id = $1 WHERE id = $2", [productId, itemId]);
+    await client.query("COMMIT");
+    res.status(201).json({ product_id: productId });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("promoteSessionTemporaryItem error:", err);
+    res.status(500).json({ message: "Failed to save permanent item." });
+  } finally {
+    client.release();
   }
 }

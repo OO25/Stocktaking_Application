@@ -1,4 +1,4 @@
-import { Clock3, Pencil, Trash2 } from "lucide-react";
+import { Clock3, Pencil, Trash2, Save } from "lucide-react";
 import { Button } from "../../../components/ui/button.jsx";
 import { Badge } from "../../../components/ui/badge.jsx";
 import {
@@ -34,6 +34,8 @@ function TemporaryItemsTable({
   isEditable,
   onEdit,
   onDelete,
+  canPromote,
+  onPromote,
 }) {
   if (!temporaryItems?.length) return null;
 
@@ -103,8 +105,17 @@ function TemporaryItemsTable({
                   {Number(item.quantity || 0).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right pr-6">
-                  {isEditable ? (
+                  {isEditable || canPromote ? (
                     <div className="inline-flex items-center justify-end gap-2">
+                      {canPromote && (
+                        item.permanent_product_id ? <Badge variant="secondary">Saved permanently</Badge> :
+                        <Button type="button" size="sm" variant="outline"
+                          title="Save as permanent item" aria-label="Save as permanent item"
+                          onClick={() => onPromote(item)}>
+                          <Save className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {isEditable && <>
                       <Button
                         type="button"
                         size="sm"
@@ -121,6 +132,7 @@ function TemporaryItemsTable({
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+                      </>}
                     </div>
                   ) : (
                     <span className="text-sm text-gray-400">-</span>
